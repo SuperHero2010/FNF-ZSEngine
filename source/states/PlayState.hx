@@ -417,13 +417,17 @@ class PlayState extends MusicBeatState
 
 		// var gameCam:FlxCamera = FlxG.camera;
 		camGame = initPsychCamera();
+		trace('[PlayState] camGame initialized: ' + camGame);
 		camHUD = new FlxCamera();
+		trace('[PlayState] camHUD initialized: ' + camHUD + ', Type: ' + Type.getClassName(Type.getClass(camHUD)));
 		camOther = new FlxCamera();
+		trace('[PlayState] camOther initialized: ' + camOther);
 		camHUD.bgColor.alpha = 0;
 		camOther.bgColor.alpha = 0;
 
 		FlxG.cameras.add(camHUD, false);
 		FlxG.cameras.add(camOther, false);
+		trace('[PlayState] Cameras added to FlxG.cameras');
 
 		persistentUpdate = true;
 		persistentDraw = true;
@@ -1024,15 +1028,22 @@ class PlayState extends MusicBeatState
 	}
 
 	public function getLuaObject(tag:String):Dynamic
-		return variables.get(tag);
+	{
+		trace('[PlayState] getLuaObject called with tag: ' + tag);
+		var result = variables.get(tag);
+		trace('[PlayState] getLuaObject result: ' + result + (result != null ? ', Type: ' + Type.getClassName(Type.getClass(result)) : ''));
+		return result;
+	}
 
 	#if !flash
 	function rebuildCameraShaderStack(cam:FlxCamera, stack:Array<CameraStackShader>):Void
 	{
+		trace('[PlayState] rebuildCameraShaderStack called for camera: ' + cam + ', stack size: ' + stack.length);
 		var newCamEffects:Array<BitmapFilter> = [];
 		for (e in stack)
 			newCamEffects.push(new ShaderFilter(e.shader));
 		cam.filters = newCamEffects;
+		trace('[PlayState] rebuildCameraShaderStack completed, filters set: ' + cam.filters);
 	}
 
 	function cleanCameraShaderStack(cam:FlxCamera, stack:Array<CameraStackShader>):Void
@@ -1046,38 +1057,59 @@ class PlayState extends MusicBeatState
 	 */
 	public function addShaderToCamera(cam:String, effect:CameraStackShader):Void
 	{
+		trace('[PlayState] addShaderToCamera called with cam: ' + cam + ', effect: ' + effect);
 		if (!ClientPrefs.data.shaders)
+		{
+			trace('[PlayState] addShaderToCamera: Shaders disabled, returning');
 			return;
+		}
 
 		switch (cam.toLowerCase())
 		{
 			case 'camhud' | 'hud':
+				trace('[PlayState] addShaderToCamera: Adding shader to camHUD');
 				camHUDShaders.push(effect);
 				rebuildCameraShaderStack(camHUD, camHUDShaders);
 			case 'camother' | 'other':
+				trace('[PlayState] addShaderToCamera: Adding shader to camOther (fallthrough)');
 				camOtherShaders.push(effect);
 				rebuildCameraShaderStack(camOther, camOtherShaders);
 			case 'camgame' | 'game':
+				trace('[PlayState] addShaderToCamera: Adding shader to camGame (fallthrough)');
 				camGameShaders.push(effect);
 				rebuildCameraShaderStack(camGame, camGameShaders);
 			default:
+				trace('[PlayState] addShaderToCamera: Default case, checking variables for: ' + cam);
 				if (variables.exists(cam))
 				{
 					var obj:Dynamic = variables.get(cam);
+					trace('[PlayState] addShaderToCamera: Found in variables: ' + obj);
 					if (obj != null)
+					{
 						Reflect.setProperty(obj, 'shader', effect.shader);
+						trace('[PlayState] addShaderToCamera: Set shader property on object from variables');
+					}
 				}
 				else
 				{
+					trace('[PlayState] addShaderToCamera: Not in variables, trying Reflect.getProperty');
 					try
 					{
 						var obj:Dynamic = Reflect.getProperty(this, cam);
+						trace('[PlayState] addShaderToCamera: Reflect.getProperty result: ' + obj);
 						if (obj != null)
+						{
 							Reflect.setProperty(obj, 'shader', effect.shader);
+							trace('[PlayState] addShaderToCamera: Set shader property on object from Reflect.getProperty');
+						}
 					}
-					catch (_:Dynamic) {}
+					catch (_:Dynamic)
+					{
+						trace('[PlayState] addShaderToCamera: Reflect.getProperty failed');
+					}
 				}
 		}
+		trace('[PlayState] addShaderToCamera completed');
 	}
 
 	public function removeShaderFromCamera(cam:String, effect:CameraStackShader):Void
