@@ -17,6 +17,8 @@ class ZSTranspiler {
             return null;
         }
 
+        var libMap = ZSLibValidator.getLibMap(zsSource);
+
         for (i in 0...lines.length) {
             var line = trimStr(lines[i]);
             if (line == "" || line.indexOf("-/") == 0) continue;
@@ -128,8 +130,15 @@ class ZSTranspiler {
 
                 var builtinLibs = ["math", "string", "table", "io", "os", "debug", "coroutine", "package"];
                 if (builtinLibs.contains(libName)) {
-                    i++;
-                    continue;
+                    if (alias == libName) {
+                        i++;
+                        continue;
+                    } else {
+                        for (_ in 0...originalIndent) luaCode.add(" ");
+                        luaCode.add("local " + alias + " = " + libName + "\n");
+                        i++;
+                        continue;
+                    }
                 } else {
                     for (_ in 0...originalIndent) luaCode.add(" ");
                     luaCode.add("local " + alias + " = require(\"" + libName + "\")\n");
@@ -200,11 +209,7 @@ class ZSTranspiler {
                     if (spaceIdx > 0) {
                         var firstWord = afterColon.substring(0, spaceIdx);
                         var rest = afterColon.substring(firstWord.length + 1);
-
-                        var hasOperator = (rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || 
-                                        rest.indexOf("+") > -1 || rest.indexOf("-") > -1 ||
-                                        rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
-
+                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
                         if (hasOperator) {
                             trimmedLine = beforeColon + "." + afterColon;
                         } else {
@@ -232,6 +237,139 @@ class ZSTranspiler {
                 var funcCallPattern = ~/([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)>/g;
                 trimmedLine = funcCallPattern.replace(trimmedLine, "$1($2)");
                 trimmedLine = ~/([a-zA-Z_][a-zA-Z0-9_]*)<>/g.replace(trimmedLine, "$1()");
+            }
+
+            if (!inBlockComment) {
+                var codeToCheck = trimmedLine;
+
+                if (trimmedLine.indexOf(" -/") > -1) {
+                    var parts = trimmedLine.split(" -/");
+                    codeToCheck = parts[0];
+                }
+
+                if (codeToCheck.indexOf('"') > -1) {
+                    errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
+                    errors.push('  → Use curly quotes “ and ” instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("'") > -1) {
+                    errors.push('Error at line $currentLine: Straight single quotes \' are not allowed in ZS');
+                    errors.push('  → Use curly quotes ‘ and ’ instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+
+                if (codeToCheck.indexOf("~=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator "~=" is not allowed in ZS');
+                    errors.push('  → Use "≠" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("<=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator "<=" is not allowed in ZS');
+                    errors.push('  → Use "≤" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf(">=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator ">=" is not allowed in ZS');
+                    errors.push('  → Use "≥" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("-=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator "-=" is not allowed in ZS');
+                    errors.push('  → Use "−=" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("*=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator "*=" is not allowed in ZS');
+                    errors.push('  → Use "×=" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("/=") > -1) {
+                    errors.push('Error at line $currentLine: Lua operator "/=" is not allowed in ZS');
+                    errors.push('  → Use "÷=" instead');
+                    errors.push('  Found: "$trimmedLine"');
+                    return null;
+                }
+
+                // Check for operators with numbers AND noun variables
+                var patterns = [
+                    // Subtraction patterns
+                    ~/[0-9] *- *[0-9]/,
+                    ~/[0-9]-[0-9]/,
+                    ~/[0-9] *-[0-9]/,
+                    ~/[0-9]- *[0-9]/,
+                    ~/> *- *</,
+                    ~/>-</,
+                    ~/> *-</,
+                    ~/>- *</,
+                    ~/[0-9] *- *</,
+                    ~/[0-9]-</,
+                    ~/[0-9]- *</,
+                    ~/[0-9] *-</,
+                    ~/> *- *[0-9]/,
+                    ~/>-[0-9]/,
+                    ~/>- *[0-9]/,
+                    ~/> *-[0-9]/,
+
+                    // Multiplication patterns
+                    ~/[0-9] *\* *[0-9]/,
+                    ~/[0-9]\*[0-9]/,
+                    ~/[0-9] *\*[0-9]/,
+                    ~/[0-9]\* *[0-9]/,
+                    ~/> *\* *</,
+                    ~/>\*</,
+                    ~/> *\*</,
+                    ~/>\* *</,
+                    ~/[0-9] *\* *</,
+                    ~/[0-9]\* *</,
+                    ~/[0-9]\*</,
+                    ~/[0-9] *\*</,
+                    ~/> *\* *[0-9]/,
+                    ~/>\*[0-9]/,
+                    ~/>\* *[0-9]/,
+                    ~/> *\*[0-9]/,
+
+                    // Division patterns
+                    ~/[0-9] *\/ *[0-9]/,
+                    ~/[0-9]\/[0-9]/,
+                    ~/[0-9] *\/[0-9]/,
+                    ~/[0-9]\/ *[0-9]/,
+                    ~/> *\/ *</,
+                    ~/>\/</,
+                    ~/> *\/</,
+                    ~/>\/ *</,
+                    ~/[0-9] *\/ *</,
+                    ~/[0-9]\/ *</,
+                    ~/[0-9]\/</,
+                    ~/[0-9] *\/</,
+                    ~/> *\/ *[0-9]/,
+                    ~/>\/[0-9]/,
+                    ~/>\/ *[0-9]/,
+                    ~/> *\/[0-9]/
+                ];
+
+                for (pattern in patterns) {
+                    if (pattern.match(codeToCheck)) {
+                        // Determine operator type
+                        var opType = "operator";
+                        if (trimmedLine.indexOf("-") > -1) opType = "subtraction";
+                        else if (trimmedLine.indexOf("*") > -1) opType = "multiplication";
+                        else if (trimmedLine.indexOf("/") > -1) opType = "division";
+
+                        var correctSymbol = opType == "subtraction" ? "−" : (opType == "multiplication" ? "×" : "÷");
+
+                        errors.push('Error at line $currentLine: "$opType" operator "${opType == "subtraction" ? "-" : (opType == "multiplication" ? "*" : "/")}" is not allowed');
+                        errors.push('  → Use "$correctSymbol" instead');
+                        errors.push('  Found: "$trimmedLine"');
+                        return null;
+                    }
+                }
             }
 
             trimmedLine = convertQuotes(trimmedLine);
