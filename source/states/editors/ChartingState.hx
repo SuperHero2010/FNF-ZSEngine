@@ -154,7 +154,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var nextGridBg:ChartingGridSprite;
 	var waveformSprite:FlxSprite;
 	var scrollY:Float = 0;
-	
+
+	var selectedNoteData:Array<{section:Int, strumTime:Float, noteData:Int, sustainLength:Float}> = [];
+
 	var zoomList:Array<Float> = [
 		0.25,
 		0.5,
@@ -3047,6 +3049,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
+
+		if (selectedNoteData.length > 0)
+			syncSelectionWithVisibleNotes();
 	}
 
 	function jumpNextSection()
@@ -3597,6 +3602,46 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		};
 
 		objY += 40;
+		var selectAllSustainsButton:PsychUIButton = new PsychUIButton(objX, objY + 40, 'Select All Sustains', function() { 
+			selectedNoteData = [];
+			selectedNotes = [];
+
+			var foundCount:Int = 0;
+
+			for (sectionIndex in 0...PlayState.SONG.notes.length)
+			{
+				var section = PlayState.SONG.notes[sectionIndex];
+				if (section == null || section.sectionNotes == null) continue;
+
+				for (noteData in section.sectionNotes)
+				{
+					if (noteData == null || noteData.length < 3) continue;
+					if (noteData[1] < 0) continue;
+
+					var sustainLength:Float = noteData[2];
+					if (sustainLength > 0)
+					{
+						selectedNoteData.push({
+							section: sectionIndex,
+							strumTime: noteData[0],
+							noteData: noteData[1],
+							sustainLength: sustainLength
+						});
+						foundCount++;
+					}
+				}
+			}
+
+			syncSelectionWithVisibleNotes();
+
+			if (foundCount > 0) 
+				showOutput('Selected $foundCount sustain notes from entire chart'); 
+			else 
+				showOutput('No sustain notes found in chart');
+			
+			forceDataUpdate = true;
+		}, 120);
+
 		noteTypeDropDown = new PsychUIDropDownMenu(objX, objY, [], function(id:Int, changeToType:String)
 		{
 			var newSelected:Array<MetaNote> = [];
@@ -3623,66 +3668,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			softReloadNotes();
 		}, 150);
 
-		var selectAllSustainsButton:PsychUIButton = new PsychUIButton(objX, objY + 40, 'Select All Sustains', function() { 
-			selectedNotes = []; 
-			var foundCount:Int = 0; 
-
-			var currentSection = curSec;
-
-			var allNotesTemp:Array<MetaNote> = [];
-			for (sectionIndex in 0...PlayState.SONG.notes.length)
-			{
-				var section = PlayState.SONG.notes[sectionIndex];
-				if (section == null || section.sectionNotes == null) continue;
-
-				for (noteData in section.sectionNotes)
-				{
-					if (noteData == null || noteData.length < 3) continue;
-					if (noteData[1] < 0) continue;
-
-					var sustainLength:Float = noteData[2];
-					if (sustainLength > 0)
-					{
-						var tempNote = createNote(noteData, sectionIndex);
-						allNotesTemp.push(tempNote);
-						foundCount++;
-					}
-				}
-			}
-
-			for (note in allNotesTemp)
-			{
-				selectedNotes.push(note);
-			}
-
-			for (note in allNotesTemp)
-			{
-				note.destroy();
-			}
-			allNotesTemp = [];
-
-			if (foundCount > 0) 
-				showOutput('Selected $foundCount sustain notes from entire chart'); 
-			else 
-				showOutput('No sustain notes found in chart'); 
-
-			var visibleSelected = [];
-			for (note in selectedNotes)
-			{
-				if (note.strumTime >= cachedSectionTimes[curSec] && note.strumTime < cachedSectionTimes[curSec + 1])
-					visibleSelected.push(note);
-			}
-
-			if (visibleSelected.length > 0)
-			{
-				var firstNote = visibleSelected[0];
-				selectionBox.setPosition(firstNote.x, firstNote.y);
-				selectionBox.visible = true;
-			}
-
-			forceDataUpdate = true;
-		}, 120);
-
 		tab_group.add(new FlxText(susLengthStepper.x, susLengthStepper.y - 15, 80, 'Sustain length:'));
 		tab_group.add(new FlxText(strumTimeStepper.x, strumTimeStepper.y - 15, 100, 'Note Hit time (ms):'));
 		tab_group.add(new FlxText(noteTypeDropDown.x, noteTypeDropDown.y - 15, 80, 'Note Type:'));
@@ -3690,6 +3675,32 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(strumTimeStepper);
 		tab_group.add(noteTypeDropDown);
 		tab_group.add(selectAllSustainsButton);
+	}
+
+	function syncSelectionWithVisibleNotes():Void
+	{
+		selectedNotes = [];
+
+		for (note in notes)
+		{
+			if (note == null || note.isEvent) continue;
+
+			for (data in selectedNoteData)
+			{
+				if (Math.abs(note.strumTime - data.strumTime) < 0.1 && note.songData[2] > 0)
+				{
+					selectedNotes.push(note);
+					break;
+				}
+			}
+		}
+
+		if (selectedNotes.length > 0)
+		{
+			var firstNote = selectedNotes[0];
+			selectionBox.setPosition(firstNote.x, firstNote.y);
+			selectionBox.visible = true;
+		}
 	}
 
 	function syncNotesWithSection()
