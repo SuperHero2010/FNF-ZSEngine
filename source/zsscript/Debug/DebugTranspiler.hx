@@ -3,17 +3,17 @@ class DebugTranspiler {
         var testScript = 
 "! ZS-LUA
 
-onCreate:
-    print: “Hello World”
-    print: “Health: ” + read <health>
-    print(debug): “Debug message”
-    print: “Score: ” + read <score> + “ points”
-    print: read <playerName> + “ joined the game”
+import math
+import string as str
 
-onUpdate<elapsed>:
-    if read <health> ≤ 0 then
-        print: “Game Over”
-        print(debug): “Player died at beat ” + read <curBeat>";
+onCreate:
+    math: max 10, 20
+    math: min 5, 15, 25
+    str: rep “abc”, 3
+    myFunc<arg1>, <arg2>, <arg3>
+
+myFunc<arg1>, <arg2>, <arg3>:
+    print: “Arguments: ” + <arg1> + “, ” + <arg2> + “, ” + <arg3>";
         
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");

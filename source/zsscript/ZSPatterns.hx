@@ -16,18 +16,6 @@ class ZSPatterns {
             description: "Trigger event with two values",
             category: "events"
         },
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
-            replacement: "$1($2)",
-            description: "Function call with parameters",
-            category: "functions"
-        },
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<>",
-            replacement: "$1()",
-            description: "Function call without parameters",
-            category: "functions"
-        },
 
         // ===== PROPERTY OPERATIONS =====
         {

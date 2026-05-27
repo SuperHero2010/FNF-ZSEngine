@@ -166,89 +166,6 @@ class ZSTranspiler {
 
             if (!inBlockComment) {
                 var codeToCheck = trimmedLine;
-                if (codeToCheck.indexOf('"') > -1) {
-                    errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
-                    errors.push('  → Use curly quotes “ and ” instead');
-                    return null;
-                }
-                if (codeToCheck.indexOf("'") > -1) {
-                    errors.push('Error at line $currentLine: Straight single quotes \' are not allowed in ZS');
-                    errors.push('  → Use curly quotes ‘ and ’ instead');
-                    return null;
-                }
-            }
-
-            if (isPrintLine) {
-                trimmedLine = trimmedLine.split("+").join("..");
-            }
-
-            var colonPos = trimmedLine.indexOf(":");
-            var isLibraryCall = false;
-            var isEventDef = false;
-
-            if (colonPos > 0) {
-                var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
-                var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
-
-                if (afterColon == "") {
-                    if (beforeColon.indexOf("<") > -1) {
-                        var eventName = beforeColon.split("<")[0];
-                        var param = beforeColon.substring(beforeColon.indexOf("<") + 1, beforeColon.indexOf(">"));
-                        trimmedLine = "function " + eventName + "(" + param + ")";
-                    } else {
-                        trimmedLine = "function " + beforeColon + "()";
-                    }
-                }
-                else if (beforeColon == "print" || beforeColon == "print(debug)") {
-                    isPrintLine = true;
-                }
-                else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
-                    var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var funcName = afterColon.substring(0, spaceIdx);
-                        var args = afterColon.substring(funcName.length + 1);
-                        trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
-                    } else {
-                        trimmedLine = beforeColon + "." + afterColon;
-                    }
-                }
-                else {
-                    var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var firstWord = afterColon.substring(0, spaceIdx);
-                        var rest = afterColon.substring(firstWord.length + 1);
-                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
-                        if (hasOperator) {
-                            trimmedLine = beforeColon + "." + afterColon;
-                        } else {
-                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                        }
-                    } else {
-                        trimmedLine = beforeColon + "." + afterColon;
-                    }
-                }
-            }
-
-            if (isEventDef) {
-                var beforeColon = trimStr(trimmedLine.substring(0, trimmedLine.indexOf(":")));
-                var paramPattern = ~/<([^>]+)>/g;
-                if (paramPattern.match(beforeColon)) {
-                    var eventName = beforeColon.split("<")[0];
-                    var param = paramPattern.matched(1);
-                    trimmedLine = "function " + eventName + "(" + param + ")";
-                } else {
-                    trimmedLine = "function " + beforeColon + "()";
-                }
-            }
-
-            if (!isEventDef && !isLibraryCall) {
-                var funcCallPattern = ~/([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)>/g;
-                trimmedLine = funcCallPattern.replace(trimmedLine, "$1($2)");
-                trimmedLine = ~/([a-zA-Z_][a-zA-Z0-9_]*)<>/g.replace(trimmedLine, "$1()");
-            }
-
-            if (!inBlockComment) {
-                var codeToCheck = trimmedLine;
 
                 if (trimmedLine.indexOf(" -/") > -1) {
                     var parts = trimmedLine.split(" -/");
@@ -258,13 +175,11 @@ class ZSTranspiler {
                 if (codeToCheck.indexOf('"') > -1) {
                     errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
                     errors.push('  → Use curly quotes “ and ” instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf("'") > -1) {
                     errors.push('Error at line $currentLine: Straight single quotes \' are not allowed in ZS');
                     errors.push('  → Use curly quotes ‘ and ’ instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
 
@@ -377,6 +292,99 @@ class ZSTranspiler {
                         errors.push('  Found: "$trimmedLine"');
                         return null;
                     }
+                }
+            }
+
+            if (isPrintLine) {
+                trimmedLine = trimmedLine.split("+").join("..");
+            }
+
+            var colonPos = trimmedLine.indexOf(":");
+            var isLibraryCall = false;
+            var isEventDef = false;
+
+            if (colonPos > 0) {
+                var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
+                var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
+
+                if (afterColon == "") {
+                    if (beforeColon.indexOf("<") > -1) {
+                        var funcName = beforeColon.split("<")[0];
+                        var allParams = [];
+                        var pos = 0;
+                        var temp = beforeColon;
+                        while (true) {
+                            var start = temp.indexOf("<", pos);
+                            if (start == -1) break;
+                            var end = temp.indexOf(">", start);
+                            if (end == -1) break;
+                            var param = temp.substring(start + 1, end);
+                            allParams.push(param);
+                            pos = end + 1;
+                        }
+                        trimmedLine = "function " + funcName + "(" + allParams.join(", ") + ")";
+                    } else {
+                        trimmedLine = "function " + beforeColon + "()";
+                    }
+                }
+                else if (beforeColon == "print" || beforeColon == "print(debug)") {
+                    isPrintLine = true;
+                }
+                else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
+                    var spaceIdx = afterColon.indexOf(" ");
+                    if (spaceIdx > 0) {
+                        var funcName = afterColon.substring(0, spaceIdx);
+                        var args = afterColon.substring(funcName.length + 1);
+                        trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
+                    } else {
+                        trimmedLine = beforeColon + "." + afterColon;
+                    }
+                }
+                else {
+                    var spaceIdx = afterColon.indexOf(" ");
+                    if (spaceIdx > 0) {
+                        var firstWord = afterColon.substring(0, spaceIdx);
+                        var rest = afterColon.substring(firstWord.length + 1);
+                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
+                        if (hasOperator) {
+                            trimmedLine = beforeColon + "." + afterColon;
+                        } else {
+                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                        }
+                    } else {
+                        trimmedLine = beforeColon + "." + afterColon;
+                    }
+                }
+            }
+
+            if (isEventDef) {
+                var beforeColon = trimStr(trimmedLine.substring(0, trimmedLine.indexOf(":")));
+                var paramPattern = ~/<([^>]+)>/g;
+                if (paramPattern.match(beforeColon)) {
+                    var eventName = beforeColon.split("<")[0];
+                    var param = paramPattern.matched(1);
+                    trimmedLine = "function " + eventName + "(" + param + ")";
+                } else {
+                    trimmedLine = "function " + beforeColon + "()";
+                }
+            } else if (!isLibraryCall) {
+                var funcCallPattern = ~/([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>/g;
+                var match = funcCallPattern.match(trimmedLine);
+                if (match) {
+                    var funcName = funcCallPattern.matched(1);
+                    var allArgs = [];
+                    var pos = 0;
+                    var tempLine = trimmedLine;
+                    while (true) {
+                        var start = tempLine.indexOf("<", pos);
+                        if (start == -1) break;
+                        var end = tempLine.indexOf(">", start);
+                        if (end == -1) break;
+                        var arg = tempLine.substring(start + 1, end);
+                        allArgs.push(arg);
+                        pos = end + 1;
+                    }
+                    trimmedLine = funcName + "(" + allArgs.join(", ") + ")";
                 }
             }
 
