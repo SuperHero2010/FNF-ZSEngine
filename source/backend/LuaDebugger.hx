@@ -138,30 +138,6 @@ class LuaDebugger
 
         if (!checkLuaFile(scriptPath)) return;
 
-        var content = File.getContent(scriptPath);
-
-        var issues:Array<String> = [];
-
-        if (content.indexOf("function onCreate") == -1)
-            issues.push("Missing onCreate function");
-
-        if (content.indexOf("function onUpdate") == -1 && content.indexOf("function onBeatHit") == -1)
-            issues.push("No event handlers found");
-
-        if (content.indexOf("debugPrint") == -1 && content.indexOf("print") == -1)
-            issues.push("No debugPrint/print statements");
-
-        if (issues.length > 0)
-        {
-            log('Issues found in $scriptPath:', "WARNING");
-            for (issue in issues)
-                log('  - $issue', "WARNING");
-        }
-        else
-        {
-            log('No issues found in $scriptPath', "SUCCESS");
-        }
-
         try {
             var funk = new FunkinLua(scriptPath);
             enableDebugMode(funk);
@@ -264,8 +240,18 @@ class LuaDebugger
     public static function clearLog():Void
     {
         if (!enabled) return;
-
-        if (FileSystem.exists(".log"))
-            FileSystem.deleteFile(".log");
+        var debugDir = "./debug/Lua/";
+        if (FileSystem.exists(debugDir))
+        {
+            var files = FileSystem.readDirectory(debugDir);
+            for (file in files)
+            {
+                if (file.endsWith(".log"))
+                {
+                    var filePath = debugDir + file;
+                    FileSystem.deleteFile(filePath);
+                }
+            }
+        }
     }
 }

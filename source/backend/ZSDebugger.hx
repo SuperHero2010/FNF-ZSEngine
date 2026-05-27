@@ -114,10 +114,21 @@ class ZSDebugger {
         } catch(e:Dynamic) {}
     }
 
-    public static function clearLog():Void {
+    public static function clearLog():Void
+    {
         if (!enabled) return;
-
-        if (FileSystem.exists(".log")) 
-            FileSystem.deleteFile(".log");
+        var debugDir = "./debug/ZS/";
+        if (FileSystem.exists(debugDir))
+        {
+            var files = FileSystem.readDirectory(debugDir);
+            for (file in files)
+            {
+                if (file.endsWith(".log"))
+                {
+                    var filePath = debugDir + file;
+                    FileSystem.deleteFile(filePath);
+                }
+            }
+        }
     }
 }

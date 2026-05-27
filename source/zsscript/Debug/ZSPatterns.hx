@@ -9,18 +9,39 @@ typedef Pattern = {
 
 class ZSPatterns {
     public static var patterns:Array<Pattern> = [
+        // ===== LIBRARY OPERATIONS =====
+        {
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
+            replacement: "$1.$2($3)",
+            description: "Library function call with arguments",
+            category: "library"
+        },
+        // Library property access
+        {
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)",
+            replacement: "$1.$2",
+            description: "Library property access",
+            category: "library"
+        },
+
         // ===== TRIGGER EVENT =====
         {
-            pattern: "trigger event: ([^,]+), ([^,]+), (.+)",
-            replacement: "triggerEvent($1, $2, $3)",
-            description: "Trigger event",
+            pattern: "trigger event <([^>]+)> with value “([^”]+)”, “([^”]+)”",
+            replacement: 'triggerEvent("$1", $2, $3)',
+            description: "Trigger event with two values",
             category: "events"
         },
         {
-            pattern: "call function: (.+)\\((.+)\\)",
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
             replacement: "$1($2)",
-            description: "Call a custom function",
-            category: "events"
+            description: "Function call with parameters",
+            category: "functions"
+        },
+        {
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<>",
+            replacement: "$1()",
+            description: "Function call without parameters",
+            category: "functions"
         },
 
         // ===== PROPERTY OPERATIONS =====
@@ -51,13 +72,13 @@ class ZSPatterns {
             category: "shaders"
         },
         {
-            pattern: "change on shader\\((Float|Int|Bool)\\) <([^>]+)> uniform <([^>]+)> to (.+)",
+            pattern: "change in shader\\((float|int|bool)\\) <([^>]+)> uniform <([^>]+)> to (.+)",
             replacement: "setShader$1(\"$2\", \"$3\", $4)",
             description: "Set shader uniform",
             category: "shaders"
         },
         {
-            pattern: "read from shader\\((Float|Int|Bool)\\) <([^>]+)> uniform <([^>]+)>",
+            pattern: "read from shader\\((float|int|bool)\\) <([^>]+)> uniform <([^>]+)>",
             replacement: "getShader$1(\"$2\", \"$3\")",
             description: "Get shader uniform",
             category: "shaders"
@@ -79,13 +100,13 @@ class ZSPatterns {
 
         // ===== GROUP OPERATIONS =====
         {
-            pattern: "change in group <([^>]+)> at <([^>]+)> property <([^>]+)> to (.+)",
+            pattern: "change in group <([^>]+)> at ([^ ]+) property <([^>]+)> to (.+)",
             replacement: 'setPropertyFromGroup("$1", $2, "$3", $4)',
             description: "Set group property",
             category: "groups"
         },
         {
-            pattern: "read from group <([^>]+)> at <([^>]+)> property <([^>]+)>",
+            pattern: "read from group <([^>]+)> at ([^ ]+) property <([^>]+)>",
             replacement: 'getPropertyFromGroup("$1", $2, "$3")',
             description: "Get group property",
             category: "groups"
@@ -103,7 +124,7 @@ class ZSPatterns {
             category: "groups"
         },
 
-        // ===== CLASS PROPERTY OPERATIONS =====
+        // ===== CLASS OPERATIONS =====
         {
             pattern: "change in class <([^>]+)> property <([^>]+)> to (.+)",
             replacement: 'setPropertyFromClass("$1", "$2", $3)',
@@ -165,25 +186,37 @@ class ZSPatterns {
 
         // ===== ANIMATION OPERATIONS =====
         {
-            pattern: "play animation: <([^>]+)>, (.+), (.+), (.+)",
+            pattern: "play animation <([^>]+)> with value “([^”]+)”, “([^”]+)”, “([^”]+)”",
             replacement: 'playAnim("$1", $2, $3, $4)',
-            description: "Play animation on character",
+            description: "Play animation with three values",
             category: "animations"
         },
         {
-            pattern: "add animation: <([^>]+)>, (.+), (.+), (.+), (.+)",
-            replacement: 'addAnimation("$1", $2, $3, $4, $5)',
-            description: "Add animation to character",
+            pattern: "play animation <([^>]+)> with value “([^”]+)”, “([^”]+)”",
+            replacement: 'playAnim("$1", $2, $3)',
+            description: "Play animation with two values",
             category: "animations"
         },
         {
-            pattern: "add animation by prefix: <([^>]+)>, (.+), (.+), (.+), (.+)",
-            replacement: 'addAnimationByPrefix("$1", $2, $3, $4, $5)',
+            pattern: "play animation <([^>]+)> with value “([^”]+)”",
+            replacement: 'playAnim("$1", $2)',
+            description: "Play animation with one value",
+            category: "animations"
+        },
+        {
+            pattern: "add animation <([^>]+)> with value “([^”]+)”, “([^”]+)”, “([^”]+)” to “([^”]+)”",
+            replacement: 'addAnimation("$5", "$1", $2, $3, $4)',
+            description: "Add animation",
+            category: "animations"
+        },
+        {
+            pattern: "add animation by prefix <([^>]+)> with value “([^”]+)”, “([^”]+)”, “([^”]+)” to “([^”]+)”",
+            replacement: 'addAnimationByPrefix("$5", "$1", $2, $3, $4)',
             description: "Add animation by prefix",
             category: "animations"
         },
         {
-            pattern: "set <([^>]+)> animation to (.+)",
+            pattern: "change <([^>]+)> animation to (.+)",
             replacement: 'setProperty(\"$1.animation.curAnim.name\", $2)',
             description: "Set current animation",
             category: "animations"
@@ -191,45 +224,45 @@ class ZSPatterns {
 
         // ===== CAMERA OPERATIONS =====
         {
-            pattern: "set camera follow: <([^>]+)>, (.+)",
+            pattern: "change camera follow <([^>]+)> with value (.+)",
             replacement: 'setCameraFollow("$1", $2)',
-            description: "Set camera follow target",
+            description: "Set camera follow",
             category: "camera"
         },
         {
-            pattern: "set camera zoom: (.+), (.+)",
+            pattern: "change camera zoom to (.+), (.+)",
             replacement: "setCameraZoom($1, $2)",
             description: "Set camera zoom",
             category: "camera"
         },
         {
-            pattern: "set camera focus: <([^>]+)>",
+            pattern: "change camera focus on <([^>]+)>",
             replacement: 'setCameraFocus("$1")',
-            description: "Focus camera on object",
+            description: "Focus camera",
             category: "camera"
         },
         {
-            pattern: "shake camera: (.+), (.+)",
+            pattern: "shake camera (.+), (.+)",
             replacement: "cameraShake($1, $2)",
-            description: "Shake the camera",
+            description: "Shake camera",
             category: "camera"
         },
 
         // ===== CHARACTER OPERATIONS =====
         {
-            pattern: "set character <([^>]+)> to (.+)",
+            pattern: "change character <([^>]+)> to (.+)",
             replacement: 'setCharacter("$1", $2)',
             description: "Change character",
             category: "characters"
         },
         {
-            pattern: "set <([^>]+)> health to (.+)",
+            pattern: "change <([^>]+)> health to (.+)",
             replacement: 'setProperty("$1.health", $2)',
             description: "Set character health",
             category: "characters"
         },
         {
-            pattern: "set <([^>]+)> position: x=(.+), y=(.+)",
+            pattern: "change <([^>]+)> position to (.+) and (.+)",
             replacement: 'setProperty("$1.x", $2)\nsetProperty("$1.y", $3)',
             description: "Set character position",
             category: "characters"
@@ -257,28 +290,28 @@ class ZSPatterns {
 
         // ===== VISUAL OPERATIONS =====
         {
-            pattern: "set <([^>]+)> color to (.+)",
+            pattern: "change <([^>]+)> color to (.+)",
             replacement: 'setProperty("$1.color", $2)',
             description: "Set object color",
             category: "visuals"
         },
         {
-            pattern: "set <([^>]+)> alpha to (.+)",
+            pattern: "change <([^>]+)> alpha to (.+)",
             replacement: 'setProperty("$1.alpha", $2)',
             description: "Set transparency",
             category: "visuals"
         },
         {
-            pattern: "set <([^>]+)> scale to x=(.+), y=(.+)",
+            pattern: "change <([^>]+)> scale to (.+) and (.+)",
             replacement: 'setProperty("$1.scale.x", $2)\nsetProperty("$1.scale.y", $3)',
-            description: "Set object scale",
-            category: "visuals"
+            description: "Set character scale",
+            category: "characters"
         },
         {
-            pattern: "set <([^>]+)> visible to (.+)",
+            pattern: "change <([^>]+)> visible to (.+)",
             replacement: 'setProperty("$1.visible", $2)',
-            description: "Show/hide object",
-            category: "visuals"
+            description: "Set character visibility",
+            category: "characters"
         },
 
         // ===== TWEEN OPERATIONS =====
@@ -303,22 +336,36 @@ class ZSPatterns {
 
         // ===== NOTE OPERATIONS =====
         {
-            pattern: "set note (.+) to (.+)",
-            replacement: 'setPropertyFromGroup("notes", $1, $2)',
+            pattern: "change note at ([^ ]+) property <([^>]+)> to (.+)",
+            replacement: 'setPropertyFromGroup("notes", $1, "$2", $3)',
             description: "Set note property",
             category: "notes"
         },
         {
-            pattern: "get note (.+) (.+)",
-            replacement: 'getPropertyFromGroup("notes", $1, $2)',
+            pattern: "read note at ([^ ]+) property <([^>]+)>",
+            replacement: 'getPropertyFromGroup("notes", $1, "$2")',
             description: "Get note property",
             category: "notes"
         },
         {
-            pattern: "set all notes to (.+)",
+            pattern: "change all notes of <([^>]+)> to (.+)",
             replacement: 'setProperty("notes.$1", $2)',
-            description: "Set property on all notes",
+            description: "Set all notes property",
             category: "notes"
+        },
+
+        // ===== PRINT OPERATIONS =====
+        {
+            pattern: "print: [“\"]([^”\"]+)[”\"]",
+            replacement: 'print("$1")',
+            description: "Print to console",
+            category: "print"
+        },
+        {
+            pattern: "print\\(debug\\): [“\"]([^”\"]+)[”\"]",
+            replacement: 'debugPrint("$1")',
+            description: "Debug print to game",
+            category: "print"
         },
 
         // ===== LOOPS =====
@@ -354,12 +401,6 @@ class ZSPatterns {
             pattern: "([a-zA-Z]+)<([^>]+)>:",
             replacement: "function $1($2)",
             description: "Event with parameters",
-            category: "events"
-        },
-        {
-            pattern: "([a-zA-Z]+):",
-            replacement: "function $1()",
-            description: "Event without parameters",
             category: "events"
         },
 

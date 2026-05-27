@@ -3627,8 +3627,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			selectedNotes = []; 
 			var foundCount:Int = 0; 
 
-			var selectedNoteData:Array<{section:Int, strumTime:Float, noteData:Int}> = [];
+			var currentSection = curSec;
 
+			var allNotesTemp:Array<MetaNote> = [];
 			for (sectionIndex in 0...PlayState.SONG.notes.length)
 			{
 				var section = PlayState.SONG.notes[sectionIndex];
@@ -3642,41 +3643,44 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					var sustainLength:Float = noteData[2];
 					if (sustainLength > 0)
 					{
-						selectedNoteData.push({
-							section: sectionIndex,
-							strumTime: noteData[0],
-							noteData: noteData[1]
-						});
+						var tempNote = createNote(noteData, sectionIndex);
+						allNotesTemp.push(tempNote);
 						foundCount++;
 					}
 				}
 			}
 
-			for (note in notes)
+			for (note in allNotesTemp)
 			{
-				if (note == null || note.isEvent) continue;
-
-				for (selected in selectedNoteData)
-				{
-					if (Math.abs(note.strumTime - selected.strumTime) < 0.1)
-					{
-						selectedNotes.push(note);
-						break;
-					}
-				}
+				selectedNotes.push(note);
 			}
 
+			for (note in allNotesTemp)
+			{
+				note.destroy();
+			}
+			allNotesTemp = [];
+
 			if (foundCount > 0) 
-				showOutput('Selected $foundCount sustain notes from entire chart (${selectedNotes.length} currently visible)'); 
+				showOutput('Selected $foundCount sustain notes from entire chart'); 
 			else 
 				showOutput('No sustain notes found in chart'); 
 
-			if (selectedNotes.length > 0)
+			var visibleSelected = [];
+			for (note in selectedNotes)
 			{
-				var firstNote = selectedNotes[0];
+				if (note.strumTime >= cachedSectionTimes[curSec] && note.strumTime < cachedSectionTimes[curSec + 1])
+					visibleSelected.push(note);
+			}
+
+			if (visibleSelected.length > 0)
+			{
+				var firstNote = visibleSelected[0];
 				selectionBox.setPosition(firstNote.x, firstNote.y);
 				selectionBox.visible = true;
 			}
+
+			forceDataUpdate = true;
 		}, 120);
 
 		tab_group.add(new FlxText(susLengthStepper.x, susLengthStepper.y - 15, 80, 'Sustain length:'));

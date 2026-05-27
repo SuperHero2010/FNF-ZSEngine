@@ -120,27 +120,6 @@ class HaxeDebugger
 
         if (!checkHxFile(scriptPath)) return;
 
-        var content = File.getContent(scriptPath);
-
-        var issues:Array<String> = [];
-
-        if (content.indexOf("function") == -1)
-            issues.push("No functions found");
-
-        if (content.indexOf("trace") == -1)
-            issues.push("No trace statements");
-
-        if (issues.length > 0)
-        {
-            log('Issues found in $scriptPath:', "WARNING");
-            for (issue in issues)
-                log('  - $issue', "WARNING");
-        }
-        else
-        {
-            log('No issues found in $scriptPath', "SUCCESS");
-        }
-
         try {
             var script = new HScript(null, scriptPath);
             enableTraceCapture(script, scriptPath);
@@ -227,8 +206,18 @@ class HaxeDebugger
     public static function clearLog():Void
     {
         if (!enabled) return;
-
-        if (FileSystem.exists(".log"))
-            FileSystem.deleteFile(".log");
+        var debugDir = "./debug/Haxe/";
+        if (FileSystem.exists(debugDir))
+        {
+            var files = FileSystem.readDirectory(debugDir);
+            for (file in files)
+            {
+                if (file.endsWith(".log"))
+                {
+                    var filePath = debugDir + file;
+                    FileSystem.deleteFile(filePath);
+                }
+            }
+        }
     }
 }

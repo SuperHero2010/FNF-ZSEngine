@@ -3,8 +3,20 @@ class DebugTranspiler {
         var testScript = 
 "! ZS-LUA
 
+import math
+import string as str
+import myCustomLib
+
 onCreate:
-    setProperty: <hitHealth> = 1 × 0.5";
+    math: pi × 16
+    math: sqrt 25
+    str: upper “hello world”
+    myCustomLib: doSomething 5
+    print: “This is a print”
+    print(debug): “Debug msg”
+
+onUpdate<elapsed>:
+    math: sin elapsed";
         
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");

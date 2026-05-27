@@ -849,7 +849,7 @@ class PlayState extends MusicBeatState
 			}
 		}
 		songSpeed = value;
-		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed * playbackRate);
+		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed);
 		return value;
 	}
 
@@ -862,12 +862,8 @@ class PlayState extends MusicBeatState
 			opponentVocals.pitch = value;
 			FlxG.sound.music.pitch = value;
 
-			var ratio:Float = playbackRate / value; //funny word huh
-			if(ratio != 1)
-			{
-				for (note in notes.members) note.resizeByRatio(ratio);
-				for (note in unspawnNotes) note.resizeByRatio(ratio);
-			}
+			for (note in notes.members) note.resizeByRatio(value);
+			for (note in unspawnNotes) note.resizeByRatio(value);
 		}
 		playbackRate = value;
 		FlxG.animationTimeScale = value;
@@ -1791,7 +1787,6 @@ class PlayState extends MusicBeatState
 							if(oldNote.isSustainNote)
 							{
 								oldNote.scale.y *= Note.SUSTAIN_SIZE / oldNote.frameHeight;
-								oldNote.scale.y /= playbackRate;
 								oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 							}
 
@@ -1800,7 +1795,6 @@ class PlayState extends MusicBeatState
 						}
 						else if(oldNote.isSustainNote)
 						{
-							oldNote.scale.y /= playbackRate;
 							oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 						}
 
@@ -2203,7 +2197,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		if (unspawnNotes[0] != null)
 		{
-			var time:Float = spawnTime * playbackRate;
+			var time:Float = spawnTime;
 			// Apply H-Slice bounds checking for songSpeed
 			if(songSpeed < 1) time = Math.max(spawnTime / songSpeed, Conductor.stepCrochet);
 			else time /= songSpeed;
@@ -2282,7 +2276,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 								if(!daNote.mustPress) strumGroup = opponentStrums;
 
 								var strum:StrumNote = strumGroup.members[daNote.noteData];
-								daNote.followStrumNote(strum, fakeCrochet, songSpeed / playbackRate);
+								daNote.followStrumNote(strum, fakeCrochet, songSpeed);
 								if(canBeHit && daNote.isSustainNote && strum.sustainReduce) daNote.clipToStrumNote(strum);
 							}
 

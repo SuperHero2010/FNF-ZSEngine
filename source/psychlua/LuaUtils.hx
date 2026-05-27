@@ -86,9 +86,9 @@ class LuaUtils
 		if(splitProps.length > 1)
 		{
 			var target:Dynamic = null;
-			if(MusicBeatState.getVariables().exists(splitProps[0]))
+			if(PlayState.instance != null && PlayState.instance.variables.exists(splitProps[0]))
 			{
-				var retVal:Dynamic = MusicBeatState.getVariables().get(splitProps[0]);
+				var retVal:Dynamic = PlayState.instance.variables.get(splitProps[0]);
 				if(retVal != null)
 					target = retVal;
 			}
@@ -252,8 +252,15 @@ class LuaUtils
 				return PlayState.instance;
 			
 			default:
+				// Check PlayState.instance.getLuaObject first (matching JS-Engine approach)
+				if(PlayState.instance != null)
+				{
+					var luaObj:Dynamic = PlayState.instance.getLuaObject(objectName);
+					if(luaObj != null) return luaObj;
+				}
+
 				var obj:Dynamic = MusicBeatState.getVariables().get(objectName);
-				if(obj == null) obj = getVarInArray(MusicBeatState.getState(), objectName, allowMaps);
+				if(obj == null) obj = getVarInArray(getTargetInstance(), objectName, allowMaps);
 				return obj;
 		}
 	}
