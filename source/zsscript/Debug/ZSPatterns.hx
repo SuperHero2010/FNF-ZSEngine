@@ -9,21 +9,6 @@ typedef Pattern = {
 
 class ZSPatterns {
     public static var patterns:Array<Pattern> = [
-        // ===== LIBRARY OPERATIONS =====
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
-            replacement: "$1.$2($3)",
-            description: "Library function call with arguments",
-            category: "library"
-        },
-        // Library property access
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)",
-            replacement: "$1.$2",
-            description: "Library property access",
-            category: "library"
-        },
-
         // ===== TRIGGER EVENT =====
         {
             pattern: "trigger event <([^>]+)> with value “([^”]+)”, “([^”]+)”",
@@ -356,16 +341,31 @@ class ZSPatterns {
 
         // ===== PRINT OPERATIONS =====
         {
-            pattern: "print: [“\"]([^”\"]+)[”\"]",
-            replacement: 'print("$1")',
+            pattern: "print: (.+)",
+            replacement: 'print($1)',
             description: "Print to console",
             category: "print"
         },
         {
-            pattern: "print\\(debug\\): [“\"]([^”\"]+)[”\"]",
-            replacement: 'debugPrint("$1")',
+            pattern: "print\\(debug\\): (.+)",
+            replacement: 'debugPrint($1)',
             description: "Debug print to game",
             category: "print"
+        },
+
+        // ===== LIBRARY OPERATIONS =====
+        {
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
+            replacement: "$1.$2($3)",
+            description: "Library function call with arguments",
+            category: "library"
+        },
+        // Library property access
+        {
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)",
+            replacement: "$1.$2",
+            description: "Library property access",
+            category: "library"
         },
 
         // ===== LOOPS =====

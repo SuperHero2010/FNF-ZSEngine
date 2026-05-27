@@ -113,8 +113,29 @@ class ZSTranspiler {
             }
 
             if (trimmedLine.indexOf("import ") == 0) {
-                i++;
-                continue;
+                var rest = trimStr(trimmedLine.substr(7));
+                var libName = "";
+                var alias = "";
+
+                if (rest.indexOf(" as ") > -1) {
+                    var parts = rest.split(" as ");
+                    libName = trimStr(parts[0]);
+                    alias = trimStr(parts[1]);
+                } else {
+                    libName = rest;
+                    alias = rest;
+                }
+
+                var builtinLibs = ["math", "string", "table", "io", "os", "debug", "coroutine", "package"];
+                if (builtinLibs.contains(libName)) {
+                    i++;
+                    continue;
+                } else {
+                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    luaCode.add("local " + alias + " = require(\"" + libName + "\")\n");
+                    i++;
+                    continue;
+                }
             }
 
             var inlineComment = "";
