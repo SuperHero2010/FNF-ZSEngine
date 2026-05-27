@@ -295,8 +295,12 @@ class ZSTranspiler {
                 }
             }
 
-            if (isPrintLine) {
-                trimmedLine = trimmedLine.split("+").join("..");
+            if (trimmedLine.indexOf("+") > -1) {
+                var hasQuotes = (trimmedLine.indexOf('"') > -1 || trimmedLine.indexOf("'") > -1 || trimmedLine.indexOf("“") > -1 || trimmedLine.indexOf("”") > -1 || trimmedLine.indexOf("‘") > -1 || trimmedLine.indexOf("’") > -1);
+
+                if (hasQuotes) {
+                    trimmedLine = trimmedLine.split("+").join("..");
+                }
             }
 
             var colonPos = trimmedLine.indexOf(":");
@@ -340,20 +344,14 @@ class ZSTranspiler {
                         trimmedLine = beforeColon + "." + afterColon;
                     }
                 }
-                else {
+                else if (afterColon.indexOf(" ") > -1) {
                     var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var firstWord = afterColon.substring(0, spaceIdx);
-                        var rest = afterColon.substring(firstWord.length + 1);
-                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
-                        if (hasOperator) {
-                            trimmedLine = beforeColon + "." + afterColon;
-                        } else {
-                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                        }
-                    } else {
-                        trimmedLine = beforeColon + "." + afterColon;
-                    }
+                    var funcName = afterColon.substring(0, spaceIdx);
+                    var args = afterColon.substring(funcName.length + 1);
+                    trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
+                }
+                else {
+                    trimmedLine = beforeColon + "." + afterColon;
                 }
             }
 

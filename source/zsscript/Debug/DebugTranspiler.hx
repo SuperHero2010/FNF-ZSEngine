@@ -6,14 +6,22 @@ class DebugTranspiler {
 import math
 import string as str
 
-onCreate:
-    math: max 10, 20
-    math: min 5, 15, 25
-    str: rep “abc”, 3
-    myFunc<arg1>, <arg2>, <arg3>
+local var1 = 10
+local var2 = 20
 
-myFunc<arg1>, <arg2>, <arg3>:
-    print: “Arguments: ” + <arg1> + “, ” + <arg2> + “, ” + <arg3>";
+onCreate:
+    print: “Hello ” + read <playerName>
+    print: “Score: ” + read <score> + “ points”
+    str: rep “a” + “b”, 5
+    math: max 5 + 3, 10
+    change <message> to “Welcome ” + read <playerName>
+    
+onUpdate<elapsed>:
+    if read <health> > 0 then
+        print: “Health: ” + read <health>
+        change <fullName> to read <firstName> + “ ” + read <lastName>
+        print: 5 + 10
+        print: var1 + var2";
         
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");

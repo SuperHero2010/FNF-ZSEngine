@@ -287,8 +287,12 @@ class ZSTranspiler {
                 }
             }
 
-            if (isPrintLine) {
-                trimmedLine = trimmedLine.split("+").join("..");
+            if (trimmedLine.indexOf("+") > -1) {
+                var hasQuotes = (trimmedLine.indexOf('"') > -1 || trimmedLine.indexOf("'") > -1 || trimmedLine.indexOf("“") > -1 || trimmedLine.indexOf("”") > -1 || trimmedLine.indexOf("‘") > -1 || trimmedLine.indexOf("’") > -1);
+
+                if (hasQuotes) {
+                    trimmedLine = trimmedLine.split("+").join("..");
+                }
             }
 
             var colonPos = trimmedLine.indexOf(":");
@@ -299,7 +303,10 @@ class ZSTranspiler {
                 var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
                 var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
 
+                trace('Library check: beforeColon="$beforeColon", afterColon="$afterColon"');
+
                 if (afterColon == "") {
+                    trace('  → Event definition');
                     if (beforeColon.indexOf("<") > -1) {
                         var funcName = beforeColon.split("<")[0];
                         var allParams = [];
@@ -320,9 +327,11 @@ class ZSTranspiler {
                     }
                 }
                 else if (beforeColon == "print" || beforeColon == "print(debug)") {
+                    trace('  → Print statement');
                     isPrintLine = true;
                 }
                 else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
+                    trace('  → Library function call');
                     var spaceIdx = afterColon.indexOf(" ");
                     if (spaceIdx > 0) {
                         var funcName = afterColon.substring(0, spaceIdx);
@@ -332,20 +341,16 @@ class ZSTranspiler {
                         trimmedLine = beforeColon + "." + afterColon;
                     }
                 }
-                else {
+                else if (afterColon.indexOf(" ") > -1) {
+                    trace('  → Library function call (space-separated)');
                     var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var firstWord = afterColon.substring(0, spaceIdx);
-                        var rest = afterColon.substring(firstWord.length + 1);
-                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
-                        if (hasOperator) {
-                            trimmedLine = beforeColon + "." + afterColon;
-                        } else {
-                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                        }
-                    } else {
-                        trimmedLine = beforeColon + "." + afterColon;
-                    }
+                    var funcName = afterColon.substring(0, spaceIdx);
+                    var args = afterColon.substring(funcName.length + 1);
+                    trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
+                }
+                else {
+                    trace('  → Library property access');
+                    trimmedLine = beforeColon + "." + afterColon;
                 }
             }
 
