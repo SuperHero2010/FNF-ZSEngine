@@ -344,9 +344,23 @@ class ZSTranspiler {
                 else if (afterColon.indexOf(" ") > -1) {
                     trace('  → Library function call (space-separated)');
                     var spaceIdx = afterColon.indexOf(" ");
-                    var funcName = afterColon.substring(0, spaceIdx);
-                    var args = afterColon.substring(funcName.length + 1);
-                    trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
+                    if (spaceIdx > 0) {
+                        var firstWord = afterColon.substring(0, spaceIdx);
+                        var rest = afterColon.substring(firstWord.length + 1);
+
+                        if (rest.indexOf(",") > -1) {
+                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                        } else {
+                            var hasOperator = (rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
+                            if (hasOperator) {
+                                trimmedLine = beforeColon + "." + afterColon;
+                            } else {
+                                trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                            }
+                        }
+                    } else {
+                        trimmedLine = beforeColon + "." + afterColon;
+                    }
                 }
                 else {
                     trace('  → Library property access');

@@ -15,7 +15,7 @@ onCreate:
     str: rep “a” + “b”, 5
     math: max 5 + 3, 10
     change <message> to “Welcome ” + read <playerName>
-    
+
 onUpdate<elapsed>:
     if read <health> > 0 then
         print: “Health: ” + read <health>
