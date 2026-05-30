@@ -111,20 +111,6 @@ class ZSPatterns {
             category: "classes"
         },
 
-        // ===== CONTROL STRUCTURES =====
-        {
-            pattern: "if (.+) then",
-            replacement: "if $1 then",
-            description: "If statement",
-            category: "control"
-        },
-        {
-            pattern: "else if (.+) then",
-            replacement: "elseif $1 then",
-            description: "Else if statement",
-            category: "control"
-        },
-
         // ===== RETURN-FREE KEYWORDS =====
         {
             pattern: "\\bproceed\\b",
@@ -356,14 +342,6 @@ class ZSPatterns {
             category: "library"
         },
 
-        // ===== LOOPS =====
-        {
-            pattern: "for <([^>]+)> = (.+) do",
-            replacement: "for $1 = $2 do",
-            description: "Numeric for loop (any expression)",
-            category: "control"
-        },
-
         // ===== TABLE OPERATIONS =====
         {
             pattern: "<([^>]+)>\\[([^]]+)\\]",
@@ -390,14 +368,6 @@ class ZSPatterns {
             replacement: "function $1($2)",
             description: "Event with parameters",
             category: "events"
-        },
-
-        // ===== VARIABLE REFERENCES =====
-        {
-            pattern: "<([^>]+)>",
-            replacement: "$1",
-            description: "Variable reference",
-            category: "variables"
         }
     ];
 }

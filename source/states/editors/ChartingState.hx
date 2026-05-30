@@ -1454,6 +1454,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 								{
 									trace('Removed $totalRemoved items within radius $radius (${removedNotes.length} notes, ${removedEvents.length} events)');
 									addUndoAction(DELETE_NOTE, {notes: removedNotes, events: removedEvents});
+									removedNotes = [];
+									removedEvents = [];
 								}
 							}
 						}
@@ -1757,7 +1759,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						  '\nStep: $curStep' +
 						  '\n\nBeat Snap: ${curQuant} / 16' +
 						  '\nSelected: ${selectedNotes.length}';
-		
+
 		if(PlayState.SONG != null && PlayState.SONG.notes != null)
 		{
 			try {
@@ -2027,6 +2029,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(note.animation.curAnim != null) note.animation.curAnim.curFrame = 0;
 		}
 		selectedNotes = [];
+		selectedNoteData = [];
 		onSelectNote();
 		forceDataUpdate = true;
 	}
@@ -3605,6 +3608,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var selectAllSustainsButton:PsychUIButton = new PsychUIButton(objX, objY + 40, 'Select All Sustains', function() { 
 			selectedNoteData = [];
 			selectedNotes = [];
+			resetSelectedNotes();
 
 			var foundCount:Int = 0;
 
@@ -3673,24 +3677,35 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(new FlxText(noteTypeDropDown.x, noteTypeDropDown.y - 15, 80, 'Note Type:'));
 		tab_group.add(susLengthStepper);
 		tab_group.add(strumTimeStepper);
-		tab_group.add(noteTypeDropDown);
 		tab_group.add(selectAllSustainsButton);
+		tab_group.add(noteTypeDropDown);
 	}
 
 	function syncSelectionWithVisibleNotes():Void
 	{
+		if (selectedNoteData.length == 0) return;
+
 		selectedNotes = [];
+
+		var minTime:Float = cachedSectionTimes[curSec];
+		var maxTime:Float = cachedSectionTimes[curSec + 1];
 
 		for (note in notes)
 		{
 			if (note == null || note.isEvent) continue;
 
-			for (data in selectedNoteData)
+			if (note.strumTime >= minTime && note.strumTime < maxTime)
 			{
-				if (Math.abs(note.strumTime - data.strumTime) < 0.1 && note.songData[2] > 0)
+				if (note.songData != null && note.songData.length > 2 && note.songData[2] > 0)
 				{
-					selectedNotes.push(note);
-					break;
+					for (data in selectedNoteData)
+					{
+						if (Math.abs(note.strumTime - data.strumTime) < 0.1)
+						{
+							selectedNotes.push(note);
+							break;
+						}
+					}
 				}
 			}
 		}

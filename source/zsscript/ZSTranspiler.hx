@@ -45,6 +45,7 @@ class ZSTranspiler {
         lines[directiveLineIndex] = "";
 
         var indentationStack:Array<Int> = [0];
+        var blockTypeStack:Array<String> = [];
         var lastIndent = 0;
         var inBlockComment = false;
         var i = 0;
@@ -60,6 +61,7 @@ class ZSTranspiler {
             if (zsDebugger) ZSDebugger.logTranspiler('Line $currentLine: $trimmedLine');
             #end
 
+            var pendingNewline = false;
             if (trimmedLine == "") {
                 var nextLine = "";
                 for (j in i+1...lines.length) {
@@ -75,7 +77,7 @@ class ZSTranspiler {
                     i++;
                     continue;
                 }
-                luaCode.add("\n");
+                pendingNewline = true;
                 i++;
                 continue;
             }
@@ -85,11 +87,15 @@ class ZSTranspiler {
                 if (closePos > 0) {
                     var content = trimmedLine.substring(3, closePos);
                     var afterClose = trimmedLine.substring(closePos + 3);
-                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    for (_ in 0...originalIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add("--[[" + content + "]]" + afterClose + "\n");
                 } else {
                     inBlockComment = true;
-                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    for (_ in 0...originalIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add("--[[" + trimmedLine.substr(3) + "\n");
                 }
                 lastIndent = originalIndent;
@@ -103,10 +109,14 @@ class ZSTranspiler {
                     inBlockComment = false;
                     var beforeClose = trimmedLine.substring(0, closePos);
                     var afterClose = trimmedLine.substring(closePos + 3);
-                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    for (_ in 0...originalIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add(beforeClose + "]]" + afterClose + "\n");
                 } else {
-                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    for (_ in 0...originalIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add(trimmedLine + "\n");
                 }
                 lastIndent = originalIndent;
@@ -115,7 +125,9 @@ class ZSTranspiler {
             }
 
             if (trimmedLine.indexOf("-/") == 0) {
-                for (_ in 0...originalIndent) luaCode.add(" ");
+                for (_ in 0...originalIndent) {
+                    luaCode.add(" ");
+                }
                 luaCode.add("--" + trimmedLine.substr(2) + "\n");
                 lastIndent = originalIndent;
                 i++;
@@ -142,13 +154,17 @@ class ZSTranspiler {
                         i++;
                         continue;
                     } else {
-                        for (_ in 0...originalIndent) luaCode.add(" ");
+                        for (_ in 0...originalIndent) {
+                            luaCode.add(" ");
+                        }
                         luaCode.add("local " + alias + " = " + libName + "\n");
                         i++;
                         continue;
                     }
                 } else {
-                    for (_ in 0...originalIndent) luaCode.add(" ");
+                    for (_ in 0...originalIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add("local " + alias + " = require(\"" + libName + "\")\n");
                     i++;
                     continue;
@@ -162,16 +178,8 @@ class ZSTranspiler {
                 trimmedLine = trimStr(trimmedLine.substring(0, commentPos));
             }
 
-            var isPrintLine = (trimmedLine.indexOf("print:") == 0 || trimmedLine.indexOf("print(debug):") == 0);
-
             if (!inBlockComment) {
                 var codeToCheck = trimmedLine;
-
-                if (trimmedLine.indexOf(" -/") > -1) {
-                    var parts = trimmedLine.split(" -/");
-                    codeToCheck = parts[0];
-                }
-
                 if (codeToCheck.indexOf('"') > -1) {
                     errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
                     errors.push('  → Use curly quotes “ and ” instead');
@@ -186,127 +194,64 @@ class ZSTranspiler {
                 if (codeToCheck.indexOf("~=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "~=" is not allowed in ZS');
                     errors.push('  → Use "≠" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf("<=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "<=" is not allowed in ZS');
                     errors.push('  → Use "≤" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf(">=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator ">=" is not allowed in ZS');
                     errors.push('  → Use "≥" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf("-=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "-=" is not allowed in ZS');
                     errors.push('  → Use "−=" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf("*=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "*=" is not allowed in ZS');
                     errors.push('  → Use "×=" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
                 if (codeToCheck.indexOf("/=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "/=" is not allowed in ZS');
                     errors.push('  → Use "÷=" instead');
-                    errors.push('  Found: "$trimmedLine"');
                     return null;
                 }
 
-                // Check for operators with numbers AND noun variables
                 var patterns = [
-                    // Subtraction patterns
-                    ~/[0-9] *- *[0-9]/,
-                    ~/[0-9]-[0-9]/,
-                    ~/[0-9] *-[0-9]/,
-                    ~/[0-9]- *[0-9]/,
-                    ~/> *- *</,
-                    ~/>-</,
-                    ~/> *-</,
-                    ~/>- *</,
-                    ~/[0-9] *- *</,
-                    ~/[0-9]-</,
-                    ~/[0-9]- *</,
-                    ~/[0-9] *-</,
-                    ~/> *- *[0-9]/,
-                    ~/>-[0-9]/,
-                    ~/>- *[0-9]/,
-                    ~/> *-[0-9]/,
-
-                    // Multiplication patterns
-                    ~/[0-9] *\* *[0-9]/,
-                    ~/[0-9]\*[0-9]/,
-                    ~/[0-9] *\*[0-9]/,
-                    ~/[0-9]\* *[0-9]/,
-                    ~/> *\* *</,
-                    ~/>\*</,
-                    ~/> *\*</,
-                    ~/>\* *</,
-                    ~/[0-9] *\* *</,
-                    ~/[0-9]\* *</,
-                    ~/[0-9]\*</,
-                    ~/[0-9] *\*</,
-                    ~/> *\* *[0-9]/,
-                    ~/>\*[0-9]/,
-                    ~/>\* *[0-9]/,
-                    ~/> *\*[0-9]/,
-
-                    // Division patterns
-                    ~/[0-9] *\/ *[0-9]/,
-                    ~/[0-9]\/[0-9]/,
-                    ~/[0-9] *\/[0-9]/,
-                    ~/[0-9]\/ *[0-9]/,
-                    ~/> *\/ *</,
-                    ~/>\/</,
-                    ~/> *\/</,
-                    ~/>\/ *</,
-                    ~/[0-9] *\/ *</,
-                    ~/[0-9]\/ *</,
-                    ~/[0-9]\/</,
-                    ~/[0-9] *\/</,
-                    ~/> *\/ *[0-9]/,
-                    ~/>\/[0-9]/,
-                    ~/>\/ *[0-9]/,
-                    ~/> *\/[0-9]/
+                    ~/[0-9] *- *[0-9]/, ~/[0-9]-[0-9]/, ~/[0-9] *-[0-9]/, ~/[0-9]- *[0-9]/,
+                    ~/> *- *</, ~/>-</, ~/> *-</, ~/>- *</,
+                    ~/[0-9] *- *</, ~/[0-9]-</, ~/[0-9]- *</, ~/[0-9] *-</,
+                    ~/> *- *[0-9]/, ~/>-[0-9]/, ~/>- *[0-9]/, ~/> *-[0-9]/,
+                    ~/[0-9] *\* *[0-9]/, ~/[0-9]\*[0-9]/, ~/[0-9] *\*[0-9]/, ~/[0-9]\* *[0-9]/,
+                    ~/> *\* *</, ~/>\*</, ~/> *\*</, ~/>\* *</,
+                    ~/[0-9] *\* *</, ~/[0-9]\* *</, ~/[0-9]\*</, ~/[0-9] *\*</,
+                    ~/> *\* *[0-9]/, ~/>\*[0-9]/, ~/>\* *[0-9]/, ~/> *\*[0-9]/,
+                    ~/[0-9] *\/ *[0-9]/, ~/[0-9]\/[0-9]/, ~/[0-9] *\/[0-9]/, ~/[0-9]\/ *[0-9]/,
+                    ~/> *\/ *</, ~/>\/</, ~/> *\/</, ~/>\/ *</,
+                    ~/[0-9] *\/ *</, ~/[0-9]\/ *</, ~/[0-9]\/</, ~/[0-9] *\/</,
+                    ~/> *\/ *[0-9]/, ~/>\/[0-9]/, ~/>\/ *[0-9]/, ~/> *\/[0-9]/
                 ];
 
                 for (pattern in patterns) {
                     if (pattern.match(codeToCheck)) {
-                        // Determine operator type
                         var opType = "operator";
                         if (trimmedLine.indexOf("-") > -1) opType = "subtraction";
                         else if (trimmedLine.indexOf("*") > -1) opType = "multiplication";
                         else if (trimmedLine.indexOf("/") > -1) opType = "division";
-
                         var correctSymbol = opType == "subtraction" ? "−" : (opType == "multiplication" ? "×" : "÷");
-
-                        errors.push('Error at line $currentLine: "$opType" operator "${opType == "subtraction" ? "-" : (opType == "multiplication" ? "*" : "/")}" is not allowed');
+                        errors.push('Error at line $currentLine: "$opType" operator is not allowed');
                         errors.push('  → Use "$correctSymbol" instead');
-                        errors.push('  Found: "$trimmedLine"');
                         return null;
                     }
                 }
             }
 
-            if (trimmedLine.indexOf("+") > -1) {
-                var hasQuotes = (trimmedLine.indexOf('"') > -1 || trimmedLine.indexOf("'") > -1 || trimmedLine.indexOf("“") > -1 || trimmedLine.indexOf("”") > -1 || trimmedLine.indexOf("‘") > -1 || trimmedLine.indexOf("’") > -1);
-
-                if (hasQuotes) {
-                    trimmedLine = trimmedLine.split("+").join("..");
-                }
-            }
-
             var colonPos = trimmedLine.indexOf(":");
-            var isLibraryCall = false;
-            var isEventDef = false;
-
             if (colonPos > 0) {
                 var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
                 var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
@@ -322,8 +267,7 @@ class ZSTranspiler {
                             if (start == -1) break;
                             var end = temp.indexOf(">", start);
                             if (end == -1) break;
-                            var param = temp.substring(start + 1, end);
-                            allParams.push(param);
+                            allParams.push(temp.substring(start + 1, end));
                             pos = end + 1;
                         }
                         trimmedLine = "function " + funcName + "(" + allParams.join(", ") + ")";
@@ -332,7 +276,6 @@ class ZSTranspiler {
                     }
                 }
                 else if (beforeColon == "print" || beforeColon == "print(debug)") {
-                    isPrintLine = true;
                 }
                 else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
                     var spaceIdx = afterColon.indexOf(" ");
@@ -346,22 +289,17 @@ class ZSTranspiler {
                 }
                 else if (afterColon.indexOf(" ") > -1) {
                     var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var firstWord = afterColon.substring(0, spaceIdx);
-                        var rest = afterColon.substring(firstWord.length + 1);
-
-                        if (rest.indexOf(",") > -1) {
-                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                        } else {
-                            var hasOperator = (rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1 || rest.indexOf("-") > -1 || rest.indexOf("*") > -1 || rest.indexOf("/") > -1);
-                            if (hasOperator) {
-                                trimmedLine = beforeColon + "." + afterColon;
-                            } else {
-                                trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                            }
-                        }
+                    var firstWord = afterColon.substring(0, spaceIdx);
+                    var rest = afterColon.substring(firstWord.length + 1);
+                    if (rest.indexOf(",") > -1) {
+                        trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
                     } else {
-                        trimmedLine = beforeColon + "." + afterColon;
+                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1);
+                        if (hasOperator) {
+                            trimmedLine = beforeColon + "." + afterColon;
+                        } else {
+                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                        }
                     }
                 }
                 else {
@@ -369,17 +307,7 @@ class ZSTranspiler {
                 }
             }
 
-            if (isEventDef) {
-                var beforeColon = trimStr(trimmedLine.substring(0, trimmedLine.indexOf(":")));
-                var paramPattern = ~/<([^>]+)>/g;
-                if (paramPattern.match(beforeColon)) {
-                    var eventName = beforeColon.split("<")[0];
-                    var param = paramPattern.matched(1);
-                    trimmedLine = "function " + eventName + "(" + param + ")";
-                } else {
-                    trimmedLine = "function " + beforeColon + "()";
-                }
-            } else if (!isLibraryCall) {
+            if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
                 var funcCallPattern = ~/([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>/g;
                 var match = funcCallPattern.match(trimmedLine);
                 if (match) {
@@ -392,8 +320,7 @@ class ZSTranspiler {
                         if (start == -1) break;
                         var end = tempLine.indexOf(">", start);
                         if (end == -1) break;
-                        var arg = tempLine.substring(start + 1, end);
-                        allArgs.push(arg);
+                        allArgs.push(tempLine.substring(start + 1, end));
                         pos = end + 1;
                     }
                     trimmedLine = funcName + "(" + allArgs.join(", ") + ")";
@@ -423,40 +350,139 @@ class ZSTranspiler {
                 luaLine = "elseif " + luaLine.substr(8);
             }
 
-            if (originalIndent <= lastIndent && trimmedLine != "" && !isBlockStarter(trimmedLine)) {
-                while (indentationStack.length > 1 && originalIndent <= indentationStack[indentationStack.length - 1]) {
-                    var blockIndent = indentationStack[indentationStack.length - 1];
-                    for (_ in 0...blockIndent) luaCode.add(" ");
-                    luaCode.add("end\n");
-                    indentationStack.pop();
-                    skipLine = true;
+            var startParen = luaLine.indexOf("(");
+            if (startParen > -1) {
+                var endParen = luaLine.lastIndexOf(")");
+                if (endParen > startParen) {
+                    var beforeParen = luaLine.substring(0, startParen);
+                    var content = luaLine.substring(startParen + 1, endParen);
+                    var afterParen = luaLine.substring(endParen + 1);
+                    var args = splitArgs(content);
+                    for (j in 0...args.length) {
+                        args[j] = ZSParser.parseExpression(args[j]);
+                    }
+                    var parsedContent = args.join(", ");
+                    luaLine = beforeParen + "(" + parsedContent + ")" + afterParen;
                 }
             }
 
-            if (skipLine) continue;
+            luaLine = ~/<([^>]+)>/g.replace(luaLine, "$1");
+            luaLine = addOperatorSpacing(luaLine);
 
             if (originalIndent == 0 && (luaLine.indexOf("function ") == 0)) {
                 while (indentationStack.length > 1) {
                     var blockIndent = indentationStack[indentationStack.length - 1];
-                    for (_ in 0...blockIndent) luaCode.add(" ");
+                    for (_ in 0...blockIndent) {
+                        luaCode.add(" ");
+                    }
                     luaCode.add("end\n");
                     indentationStack.pop();
+                    blockTypeStack.pop();
                 }
                 luaCode.add("\n");
-                indentationStack = [0];
                 lastIndent = 0;
             }
 
-            for (_ in 0...originalIndent) luaCode.add(" ");
-            luaCode.add(luaLine + inlineComment + "\n");
+            var isElseOrElseIf = (trimmedLine.indexOf("elseif") == 0 || trimmedLine.indexOf("else") == 0);
 
-            if (luaLine.indexOf("function ") == 0 || 
-                luaLine.indexOf(" then") > -1 || 
-                luaLine.indexOf(" do") > -1 || 
-                luaLine == "repeat" || 
-                luaLine.indexOf("else") == 0) {
-                indentationStack.push(originalIndent);
+            if (originalIndent <= lastIndent && trimmedLine != "" && !isBlockStarter(trimmedLine) && !isElseOrElseIf) {
+                while (indentationStack.length > 1 && originalIndent <= indentationStack[indentationStack.length - 1]) {
+                    var blockIndent = indentationStack[indentationStack.length - 1];
+                    for (_ in 0...blockIndent) {
+                        luaCode.add(" ");
+                    }
+                    luaCode.add("end\n");
+                    indentationStack.pop();
+                    blockTypeStack.pop();
+                }
             }
+
+            if (skipLine) {
+                lastIndent = originalIndent;
+                i++;
+                continue;
+            }
+
+            var isConditionalStart = (luaLine.indexOf("if ") == 0 && luaLine.indexOf(" then") > -1);
+            var isLoopStart = (luaLine.indexOf("for ") == 0 && luaLine.indexOf(" do") > -1) || (luaLine.indexOf("while ") == 0 && luaLine.indexOf(" do") > -1);
+            var isFunctionStart = (luaLine.indexOf("function ") == 0);
+            var isRepeat = (luaLine == "repeat");
+            var isElseOrElseIf = (luaLine.indexOf("elseif") == 0 || luaLine.indexOf("else") == 0);
+            var isBlockStarter = (isConditionalStart || isLoopStart || isFunctionStart || isRepeat);
+
+            if (!isBlockStarter && !isElseOrElseIf) {
+                for (_ in 0...originalIndent) {
+                    luaCode.add(" ");
+                }
+                luaCode.add(luaLine + inlineComment + "\n");
+                lastIndent = originalIndent;
+                i++;
+                continue;
+            }
+
+            if (isBlockStarter) {
+                if (indentationStack.length > 1 && originalIndent == indentationStack[indentationStack.length - 1]) {
+                    var lastBlock = blockTypeStack.length > 0 ? blockTypeStack[blockTypeStack.length - 1] : "";
+                    if (lastBlock == "if") {
+                        var blockIndent = indentationStack[indentationStack.length - 1];
+                        for (_ in 0...blockIndent) {
+                            luaCode.add(" ");
+                        }
+                        if (pendingNewline) {
+                            luaCode.add("\n");
+                            pendingNewline = false;
+                        }
+                        luaCode.add("end\n\n");
+                        indentationStack.pop();
+                        blockTypeStack.pop();
+                        trace('Closed if block before starting new block at same indent');
+                    } else if (lastBlock != "else" && lastBlock != "elseif") {
+                        var blockIndent = indentationStack[indentationStack.length - 1];
+                        for (_ in 0...blockIndent) {
+                            luaCode.add(" ");
+                        }
+                        if (pendingNewline) {
+                            luaCode.add("\n");
+                            pendingNewline = false;
+                        }
+                        luaCode.add("end\n\n");
+                        indentationStack.pop();
+                        blockTypeStack.pop();
+                        trace('Closed previous block "$lastBlock" before pushing new block at same indent');
+                    }
+                }
+
+                for (_ in 0...originalIndent) {
+                    luaCode.add(" ");
+                }
+                luaCode.add(luaLine + inlineComment + "\n");
+
+                if (isConditionalStart) {
+                    indentationStack.push(originalIndent);
+                    blockTypeStack.push("if");
+                    trace('  PUSH if: stack=$indentationStack');
+                } else if (isLoopStart) {
+                    indentationStack.push(originalIndent);
+                    blockTypeStack.push("loop");
+                    trace('  PUSH loop: stack=$indentationStack');
+                } else if (isFunctionStart) {
+                    indentationStack.push(originalIndent);
+                    blockTypeStack.push("function");
+                    trace('  PUSH function: stack=$indentationStack');
+                } else if (isRepeat) {
+                    indentationStack.push(originalIndent);
+                    blockTypeStack.push("repeat");
+                    trace('  PUSH repeat: stack=$indentationStack');
+                }
+                lastIndent = originalIndent;
+                i++;
+                continue;
+            }
+
+            for (_ in 0...originalIndent) {
+                luaCode.add(" ");
+            }
+            luaCode.add(luaLine + inlineComment + "\n");
 
             lastIndent = originalIndent;
             i++;
@@ -464,9 +490,12 @@ class ZSTranspiler {
 
         while (indentationStack.length > 1) {
             var blockIndent = indentationStack[indentationStack.length - 1];
-            for (_ in 0...blockIndent) luaCode.add(" ");
+            for (_ in 0...blockIndent) {
+                luaCode.add(" ");
+            }
             luaCode.add("end\n");
             indentationStack.pop();
+            blockTypeStack.pop();
         }
 
         return luaCode.toString();
@@ -486,9 +515,13 @@ class ZSTranspiler {
         var subRegex = ~/([0-9>][^ ]*) *- *([0-9<][^ ]*)/g;
         line = subRegex.replace(line, "$1 − $2");
         var subNoSpace = ~/([0-9>][^ ]*)-([0-9<][^ ]*)/g;
-        line = subNoSpace.replace(line, "$1 − $2");
+        line = subNoSpace.replace(line, "$1−$2");
         var negRegex = ~/(^|[=\(\{,;+*\/÷−]) *- *([0-9<][^ ]*)/g;
         line = negRegex.replace(line, "$1 -$2");
+        var subRegex2 = ~/([0-9>][^ ]*)- *([0-9<][^ ]*)/g;
+        line = subRegex2.replace(line, "$1− $2");
+        var subRegex3 = ~/([0-9>][^ ]*) *-([0-9<][^ ]*)/g;
+        line = subRegex3.replace(line, "$1 −$2");
         return line;
     }
 
@@ -520,5 +553,56 @@ class ZSTranspiler {
         while (start <= end && (s.charAt(start) == ' ' || s.charAt(start) == '\t' || s.charAt(start) == '\r' || s.charAt(start) == '\n')) start++;
         while (end >= start && (s.charAt(end) == ' ' || s.charAt(end) == '\t' || s.charAt(end) == '\r' || s.charAt(end) == '\n')) end--;
         return s.substring(start, end + 1);
+    }
+
+    static function splitArgs(content:String):Array<String> {
+        var args = [];
+        var current = "";
+        var inQuote = false;
+        for (i in 0...content.length) {
+            var c = content.charAt(i);
+            if (c == '"' || c == "'" || c == "“" || c == "”") {
+                inQuote = !inQuote;
+                current += c;
+            } else if (c == "," && !inQuote) {
+                args.push(current);
+                current = "";
+            } else {
+                current += c;
+            }
+        }
+        if (current != "") args.push(current);
+        return args;
+    }
+
+    static function isMultiConditionCheck(line:String):Bool {
+        var l = trimStr(line);
+        var i = 0;
+        var len = l.length;
+        while (i < len) {
+            if (i + 7 <= len && l.substring(i, i + 7) == "else if") return true;
+            if (i + 6 <= len && l.substring(i, i + 6) == "elseif") return true;
+            if (i + 4 <= len && l.substring(i, i + 4) == "else") {
+                if (i + 4 == len || !isAlphaNum(l.charAt(i + 4))) return true;
+            }
+            i++;
+        }
+        return false;
+    }
+
+    static function isAlphaNum(c:String):Bool {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+    }
+
+    static function addOperatorSpacing(line:String):String {
+        // Add spaces around - (subtraction), but not around negative numbers
+        // Match pattern: digit/variable - digit/variable
+        line = ~/([0-9a-zA-Z_\)\]\} ]) *- *([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 - $2");
+
+        // Add spaces around * and / (but not inside comments or strings)
+        line = ~/([0-9a-zA-Z_\)\]\} ])\*([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 * $2");
+        line = ~/([0-9a-zA-Z_\)\]\} ])\/([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 / $2");
+
+        return line;
     }
 }
