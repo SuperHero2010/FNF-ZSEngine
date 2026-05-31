@@ -82,16 +82,27 @@ class ZSParser {
             if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
                 var start = i;
                 i++;
-                while (i < expr.length && 
-                      ((expr.charAt(i) >= 'a' && expr.charAt(i) <= 'z') || 
-                       (expr.charAt(i) >= 'A' && expr.charAt(i) <= 'Z') || 
-                       (expr.charAt(i) >= '0' && expr.charAt(i) <= '9') || 
-                       expr.charAt(i) == '_' || expr.charAt(i) == '.' || 
-                       expr.charAt(i) == '(' || expr.charAt(i) == ')')) {
+                while (i < expr.length && ((expr.charAt(i) >= 'a' && expr.charAt(i) <= 'z') || (expr.charAt(i) >= 'A' && expr.charAt(i) <= 'Z') || (expr.charAt(i) >= '0' && expr.charAt(i) <= '9') || expr.charAt(i) == '_')) {
                     i++;
                 }
-                tokens.push(Variable(expr.substring(start, i)));
-                continue;
+                var name = expr.substring(start, i);
+
+                while (i < expr.length && expr.charAt(i) == ' ') i++;
+                if (i < expr.length && expr.charAt(i) == '(') {
+                    var parenCount = 1;
+                    i++;
+                    while (i < expr.length && parenCount > 0) {
+                        var ch = expr.charAt(i);
+                        if (ch == '(') parenCount++;
+                        else if (ch == ')') parenCount--;
+                        i++;
+                    }
+                    tokens.push(Variable(expr.substring(start, i)));
+                    continue;
+                } else {
+                    tokens.push(Variable(name));
+                    continue;
+                }
             }
 
             var start = i;
@@ -105,10 +116,13 @@ class ZSParser {
         var globalHasStringLiteral = false;
         for (token in tokens) {
             switch (token) {
-                case StringLiteral(_): globalHasStringLiteral = true;
+                case StringLiteral(_): 
+                    globalHasStringLiteral = true;
+                    trace('ZSParser: Found string literal, globalHasStringLiteral=true');
                 default:
             }
         }
+        trace('ZSParser: globalHasStringLiteral=$globalHasStringLiteral');
 
         var result = "";
         var i = 0;
@@ -136,23 +150,31 @@ class ZSParser {
                         }
                     case StringLiteral(s):
                         subResult += s;
+                        trace('ZSParser: StringLiteral added: "$s"');
                         j++;
                     case NumberLiteral(n):
                         subResult += n;
+                        trace('ZSParser: NumberLiteral added: "$n"');
                         j++;
                     case Variable(v):
                         subResult += v;
+                        trace('ZSParser: Variable added: "$v"');
                         j++;
                     case PropertyRef(p):
                         subResult += p;
+                        trace('ZSParser: PropertyRef added: "$p"');
                         j++;
                     case Operator(op):
                         if (op == "+") {
+                            trace('ZSParser: Operator "+" at depth=$depth, globalHasStringLiteral=$globalHasStringLiteral');
                             if (depth > 0) {
+                                trace('  -> depth > 0, using " + "');
                                 subResult += " + ";
                             } else if (globalHasStringLiteral) {
+                                trace('  -> globalHasStringLiteral true, using " .. "');
                                 subResult += " .. ";
                             } else {
+                                trace('  -> no string literal, using " + "');
                                 subResult += " + ";
                             }
                         }

@@ -327,21 +327,6 @@ class ZSPatterns {
             category: "print"
         },
 
-        // ===== LIBRARY OPERATIONS =====
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>",
-            replacement: "$1.$2($3)",
-            description: "Library function call with arguments",
-            category: "library"
-        },
-        // Library property access
-        {
-            pattern: "([a-zA-Z_][a-zA-Z0-9_]*): ([a-zA-Z_][a-zA-Z0-9_]*)",
-            replacement: "$1.$2",
-            description: "Library property access",
-            category: "library"
-        },
-
         // ===== TABLE OPERATIONS =====
         {
             pattern: "<([^>]+)>\\[([^]]+)\\]",

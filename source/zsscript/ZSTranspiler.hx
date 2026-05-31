@@ -21,8 +21,6 @@ class ZSTranspiler {
             return null;
         }
 
-        var libMap = ZSLibValidator.getLibMap(zsSource);
-
         for (i in 0...lines.length) {
             var line = trimStr(lines[i]);
             if (line == "" || line.indexOf("-/") == 0) continue;
@@ -191,6 +189,12 @@ class ZSTranspiler {
                     return null;
                 }
 
+                if (codeToCheck.indexOf("elseif") > -1) {
+                    errors.push('Error at line $currentLine: Lua "elseif" is not allowed in ZS');
+                    errors.push('  → Use "else if" instead');
+                    return null;
+                }
+
                 if (codeToCheck.indexOf("~=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "~=" is not allowed in ZS');
                     errors.push('  → Use "≠" instead');
@@ -219,6 +223,16 @@ class ZSTranspiler {
                 if (codeToCheck.indexOf("/=") > -1) {
                     errors.push('Error at line $currentLine: Lua operator "/=" is not allowed in ZS');
                     errors.push('  → Use "÷=" instead');
+                    return null;
+                }
+                if (codeToCheck.indexOf("--") > -1) {
+                    errors.push('Error at line $currentLine: Lua comment "--" is not allowed in ZS');
+                    errors.push('  → Use "-/" for comments instead');
+                    return null;
+                }
+                if (codeToCheck.indexOf("--[[") > -1 || codeToCheck.indexOf("]]") > -1 || codeToCheck.indexOf("]]--") > -1) {
+                    errors.push('Error at line $currentLine: Lua block comment "--[[ ... ]]"/"--[[ ... ]]--" is not allowed in ZS');
+                    errors.push('  → Use "*/- ... /-*" for block comments instead');
                     return null;
                 }
 
@@ -383,7 +397,7 @@ class ZSTranspiler {
                 lastIndent = 0;
             }
 
-            var isElseOrElseIf = (trimmedLine.indexOf("elseif") == 0 || trimmedLine.indexOf("else") == 0);
+            var isElseOrElseIf = (trimmedLine.indexOf("else if") == 0 || trimmedLine.indexOf("else") == 0);
 
             if (originalIndent <= lastIndent && trimmedLine != "" && !isBlockStarter(trimmedLine) && !isElseOrElseIf) {
                 while (indentationStack.length > 1 && originalIndent <= indentationStack[indentationStack.length - 1]) {
@@ -407,7 +421,7 @@ class ZSTranspiler {
             var isLoopStart = (luaLine.indexOf("for ") == 0 && luaLine.indexOf(" do") > -1) || (luaLine.indexOf("while ") == 0 && luaLine.indexOf(" do") > -1);
             var isFunctionStart = (luaLine.indexOf("function ") == 0);
             var isRepeat = (luaLine == "repeat");
-            var isElseOrElseIf = (luaLine.indexOf("elseif") == 0 || luaLine.indexOf("else") == 0);
+            var isElseOrElseIf = (luaLine.indexOf("else if") == 0 || luaLine.indexOf("else") == 0);
             var isBlockStarter = (isConditionalStart || isLoopStart || isFunctionStart || isRepeat);
 
             if (!isBlockStarter && !isElseOrElseIf) {
@@ -436,7 +450,7 @@ class ZSTranspiler {
                         indentationStack.pop();
                         blockTypeStack.pop();
                         trace('Closed if block before starting new block at same indent');
-                    } else if (lastBlock != "else" && lastBlock != "elseif") {
+                    } else if (lastBlock != "else" && lastBlock != "else if") {
                         var blockIndent = indentationStack[indentationStack.length - 1];
                         for (_ in 0...blockIndent) {
                             luaCode.add(" ");
@@ -581,7 +595,6 @@ class ZSTranspiler {
         var len = l.length;
         while (i < len) {
             if (i + 7 <= len && l.substring(i, i + 7) == "else if") return true;
-            if (i + 6 <= len && l.substring(i, i + 6) == "elseif") return true;
             if (i + 4 <= len && l.substring(i, i + 4) == "else") {
                 if (i + 4 == len || !isAlphaNum(l.charAt(i + 4))) return true;
             }
