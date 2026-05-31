@@ -551,13 +551,12 @@ class ZSTranspiler {
     }
 
     static function isBlockStarter(line:String):Bool {
-        var l = StringTools.trim(line);
-        if (l.endsWith(":")) return true;
-        if (l.startsWith("if ") && (l.endsWith(":") || l.indexOf(" then") > -1)) return true;
-        if (l.startsWith("else if ") && (l.endsWith(":") || l.indexOf(" then") > -1)) return true;
-        if (l == "else" || l == "else:") return true;
-        if (l.startsWith("for ") && (l.endsWith(":") || l.indexOf(" do") > -1)) return true;
-        if (l.startsWith("while ") && (l.endsWith(":") || l.indexOf(" do") > -1)) return true;
+        var l = trimStr(line);
+        if (l.indexOf("else if") == 0 || l.indexOf("else") == 0) return false;
+        if (l.charAt(l.length - 1) == ":") return true;
+        if (l.indexOf("if ") == 0 && (l.charAt(l.length - 1) == ":" || l.indexOf(" then") > -1)) return true;
+        if (l.indexOf("for ") == 0 && (l.charAt(l.length - 1) == ":" || l.indexOf(" do") > -1)) return true;
+        if (l.indexOf("while ") == 0 && (l.charAt(l.length - 1) == ":" || l.indexOf(" do") > -1)) return true;
         return false;
     }
 
