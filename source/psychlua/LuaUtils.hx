@@ -42,109 +42,77 @@ class LuaUtils
 
 	public static function setVarInArray(instance:Dynamic, variable:String, value:Dynamic, allowMaps:Bool = false):Any
 	{
-		trace('[LuaUtils] setVarInArray called with instance: ' + instance + ', variable: ' + variable + ', value: ' + value);
 		var splitProps:Array<String> = variable.split('[');
 		if(splitProps.length > 1)
 		{
-			trace('[LuaUtils] setVarInArray: Array access detected, splitProps: ' + splitProps);
 			var target:Dynamic = null;
 			if(MusicBeatState.getVariables().exists(splitProps[0]))
 			{
-				trace('[LuaUtils] setVarInArray: Found in MusicBeatState.getVariables');
 				var retVal:Dynamic = MusicBeatState.getVariables().get(splitProps[0]);
 				if(retVal != null)
 					target = retVal;
 			}
-			else
-			{
-				trace('[LuaUtils] setVarInArray: Not in variables, using Reflect.getProperty');
-				target = Reflect.getProperty(instance, splitProps[0]);
-			}
-			trace('[LuaUtils] setVarInArray: Target after first step: ' + target + (target != null ? ', Type: ' + Type.getClassName(Type.getClass(target)) : ''));
+			else target = Reflect.getProperty(instance, splitProps[0]);
 
 			for (i in 1...splitProps.length)
 			{
 				var j:Dynamic = splitProps[i].substr(0, splitProps[i].length - 1);
-				trace('[LuaUtils] setVarInArray: Array index: ' + j);
 				if(i >= splitProps.length-1) //Last array
 					target[j] = value;
 				else //Anything else
 					target = target[j];
 			}
-			trace('[LuaUtils] setVarInArray: Array access completed');
 			return target;
 		}
 
 		if(allowMaps && isMap(instance))
 		{
-			trace('[LuaUtils] setVarInArray: Map access, calling instance.set');
 			instance.set(variable, value);
 			return value;
 		}
 
 		if(instance is MusicBeatState && MusicBeatState.getVariables().exists(variable))
 		{
-			trace('[LuaUtils] setVarInArray: Found in MusicBeatState.getVariables, setting there');
 			MusicBeatState.getVariables().set(variable, value);
 			return value;
 		}
-		trace('[LuaUtils] setVarInArray: Using Reflect.setProperty on instance');
 		Reflect.setProperty(instance, variable, value);
-		trace('[LuaUtils] setVarInArray: Reflect.setProperty completed');
 		return value;
 	}
 	public static function getVarInArray(instance:Dynamic, variable:String, allowMaps:Bool = false):Any
 	{
-		trace('[LuaUtils] getVarInArray called with instance: ' + instance + ', variable: ' + variable);
 		var splitProps:Array<String> = variable.split('[');
 		if(splitProps.length > 1)
 		{
-			trace('[LuaUtils] getVarInArray: Array access detected, splitProps: ' + splitProps);
 			var target:Dynamic = null;
 			if(MusicBeatState.getVariables().exists(splitProps[0]))
 			{
-				trace('[LuaUtils] getVarInArray: Found in MusicBeatState.getVariables');
 				var retVal:Dynamic = MusicBeatState.getVariables().get(splitProps[0]);
 				if(retVal != null)
 					target = retVal;
 			}
-			else
-			{
-				trace('[LuaUtils] getVarInArray: Not in variables, using Reflect.getProperty');
-				target = Reflect.getProperty(instance, splitProps[0]);
-			}
-			trace('[LuaUtils] getVarInArray: Target after first step: ' + target + (target != null ? ', Type: ' + Type.getClassName(Type.getClass(target)) : ''));
+			else target = Reflect.getProperty(instance, splitProps[0]);
 
 			for (i in 1...splitProps.length)
 			{
 				var j:Dynamic = splitProps[i].substr(0, splitProps[i].length - 1);
-				trace('[LuaUtils] getVarInArray: Array index: ' + j);
 				target = target[j];
 			}
-			trace('[LuaUtils] getVarInArray: Returning array access result: ' + target);
 			return target;
 		}
 		
 		if(allowMaps && isMap(instance))
 		{
-			trace('[LuaUtils] getVarInArray: Map access, returning instance.get(variable)');
 			return instance.get(variable);
 		}
 
 		if(instance is MusicBeatState && MusicBeatState.getVariables().exists(variable))
 		{
-			trace('[LuaUtils] getVarInArray: Found in MusicBeatState.getVariables');
 			var retVal:Dynamic = MusicBeatState.getVariables().get(variable);
 			if(retVal != null)
-			{
-				trace('[LuaUtils] getVarInArray: Returning from variables: ' + retVal + ', Type: ' + Type.getClassName(Type.getClass(retVal)));
 				return retVal;
-			}
 		}
-		trace('[LuaUtils] getVarInArray: Using Reflect.getProperty on instance');
-		var result = Reflect.getProperty(instance, variable);
-		trace('[LuaUtils] getVarInArray: Reflect.getProperty result: ' + result + (result != null ? ', Type: ' + Type.getClassName(Type.getClass(result)) : ''));
-		return result;
+		return Reflect.getProperty(instance, variable);
 	}
 
 	public static function getModSetting(saveTag:String, ?modName:String = null)
@@ -263,44 +231,24 @@ class LuaUtils
 
 	public static function getPropertyLoop(split:Array<String>, ?getProperty:Bool=true, ?allowMaps:Bool = false):Dynamic
 	{
-		trace('[LuaUtils] getPropertyLoop called with split: ' + split + ', getProperty: ' + getProperty);
 		var obj:Dynamic = getObjectDirectly(split[0]);
-		trace('[LuaUtils] getPropertyLoop: getObjectDirectly returned: ' + obj + (obj != null ? ', Type: ' + Type.getClassName(Type.getClass(obj)) : ''));
 		var end = split.length;
 		if(getProperty) end = split.length-1;
-		trace('[LuaUtils] getPropertyLoop: end index: ' + end);
 
-		for (i in 1...end)
-		{
-			trace('[LuaUtils] getPropertyLoop: Step ' + i + ', accessing: ' + split[i] + ' on obj: ' + obj);
-			obj = getVarInArray(obj, split[i], allowMaps);
-			trace('[LuaUtils] getPropertyLoop: After step ' + i + ', obj: ' + obj + (obj != null ? ', Type: ' + Type.getClassName(Type.getClass(obj)) : ''));
-		}
-		trace('[LuaUtils] getPropertyLoop: Returning: ' + obj);
+		for (i in 1...end) obj = getVarInArray(obj, split[i], allowMaps);
 		return obj;
 	}
 
 	public static function getObjectDirectly(objectName:String, ?allowMaps:Bool = false):Dynamic
 	{
-		trace('[LuaUtils] getObjectDirectly called with objectName: ' + objectName);
 		switch(objectName)
 		{
 			case 'this' | 'instance' | 'game':
-				trace('[LuaUtils] getObjectDirectly: Returning PlayState.instance: ' + PlayState.instance);
 				return PlayState.instance;
 			
 			default:
-				trace('[LuaUtils] getObjectDirectly: Checking MusicBeatState.getVariables');
 				var obj:Dynamic = MusicBeatState.getVariables().get(objectName);
-				trace('[LuaUtils] getObjectDirectly: Variables.get result: ' + obj);
-				if(obj == null)
-				{
-					trace('[LuaUtils] getObjectDirectly: Not in variables, calling getVarInArray');
-					var state = MusicBeatState.getState();
-					trace('[LuaUtils] getObjectDirectly: State: ' + state);
-					obj = getVarInArray(state, objectName, allowMaps);
-					trace('[LuaUtils] getObjectDirectly: getVarInArray result: ' + obj + (obj != null ? ', Type: ' + Type.getClassName(Type.getClass(obj)) : ''));
-				}
+				if(obj == null) obj = getVarInArray(MusicBeatState.getState(), objectName, allowMaps);
 				return obj;
 		}
 	}
