@@ -5,19 +5,6 @@ package backend;
 
 class PsychCamera extends FlxCamera
 {
-	public var angle(default, set):Float = 0;
-
-	inline function set_angle(value:Float):Float
-	{
-		angle = value;
-		if (flashSprite != null)
-			flashSprite.rotation = value;
-		return value;
-	}
-
-	inline function get_angle():Float
-		return flashSprite != null ? flashSprite.rotation : angle;
-
 	override public function update(elapsed:Float):Void
 	{
 		// follow the target, if there is one

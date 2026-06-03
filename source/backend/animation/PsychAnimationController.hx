@@ -5,7 +5,7 @@ import flixel.animation.FlxAnimationController;
 class PsychAnimationController extends FlxAnimationController {
     public var followGlobalSpeed:Bool = true;
 
-    override function get_frameName():String
+    public function getLuaFrameName():String
     {
         if (_sprite != null && _sprite.frame != null)
         {
@@ -14,19 +14,16 @@ class PsychAnimationController extends FlxAnimationController {
                 return frameName;
         }
 
-        if (_curAnim != null && _curAnim.numFrames > 0)
+        if (_sprite != null && _sprite.frames != null && frameIndex >= 0 && frameIndex < _sprite.frames.frames.length)
         {
-            final index:Int = _curAnim.curFrame;
-            if (index >= 0 && index < _curAnim.frames.length)
-            {
-                final animFrame = _curAnim.frames[index];
-                if (animFrame != null && animFrame.name != null && animFrame.name != '')
-                    return animFrame.name;
-            }
-
-            if (_curAnim.name != null && _curAnim.name != '')
-                return _curAnim.name;
+            final atlasFrame = _sprite.frames.frames[frameIndex];
+            if (atlasFrame != null && atlasFrame.name != null && atlasFrame.name != '')
+                return atlasFrame.name;
         }
+
+        final animName:String = name;
+        if (animName != null && animName != '')
+            return animName;
 
         return '';
     }
