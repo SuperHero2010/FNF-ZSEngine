@@ -276,14 +276,16 @@ class MergeChartState extends MusicBeatState
 			// Merge notes
 			if (chart.notes != null)
 			{
-				for (section in chart.notes)
+				var notesArray:Array<Dynamic> = cast chart.notes;
+				for (section in notesArray)
 				{
 					var newSection:Dynamic = Reflect.copy(section);
 
 					if (newSection.sectionNotes != null)
 					{
+						var sectionNotes:Array<Dynamic> = cast newSection.sectionNotes;
 						var offsetNotes:Array<Dynamic> = [];
-						for (note in newSection.sectionNotes)
+						for (note in sectionNotes)
 						{
 							var noteCopy:Array<Dynamic> = note.copy();
 							noteCopy[0] = noteCopy[0] + noteOffset;
@@ -299,7 +301,8 @@ class MergeChartState extends MusicBeatState
 			// Merge events
 			if (chart.events != null)
 			{
-				for (event in chart.events)
+				var eventsArray:Array<Dynamic> = cast chart.events;
+				for (event in eventsArray)
 				{
 					var eventCopy:Array<Dynamic> = event.copy();
 					eventCopy[0] = eventCopy[0] + noteOffset;
@@ -311,7 +314,8 @@ class MergeChartState extends MusicBeatState
 			var lastSectionTime:Float = 0;
 			if (chart.notes != null)
 			{
-				for (section in chart.notes)
+				var notesArray2:Array<Dynamic> = cast chart.notes;
+				for (section in notesArray2)
 				{
 					var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
 					lastSectionTime += beats * (60 / chartBpm);
