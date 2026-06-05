@@ -33,13 +33,15 @@ class MergeChartState extends MusicBeatState
 	{
 		super.create();
 
+		FlxG.mouse.visible = true;
+
 		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.antialiasing = ClientPrefs.data.antialiasing;
+		bg.color = 0xFF353535;
 		add(bg);
 
 		var titleText:FlxText = new FlxText(0, 20, FlxG.width, "Chart Merger", 40);
 		titleText.alignment = CENTER;
-		titleText.setFormat("VCR OSD Mono", 40, FlxColor.WHITE, CENTER);
 		add(titleText);
 
 		var boxWidth:Float = 200;
@@ -56,12 +58,14 @@ class MergeChartState extends MusicBeatState
 			add(box);
 		}
 
-		mergeButton = new PsychUIButton(FlxG.width / 2 - 100, startY + boxHeight + 50, "Merge Charts", onMergeButton);
+		mergeButton = new PsychUIButton(FlxG.width / 2 - 75, startY + boxHeight + 50, "Merge Charts", onMergeButton);
+		mergeButton.resize(150, 40);
 		mergeButton.normalStyle.bgColor = FlxColor.GREEN;
 		mergeButton.normalStyle.textColor = FlxColor.BLACK;
 		add(mergeButton);
 
 		var backButton:PsychUIButton = new PsychUIButton(20, FlxG.height - 60, "Back", onBackButton);
+		backButton.resize(100, 40);
 		add(backButton);
 
 		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
@@ -70,7 +74,7 @@ class MergeChartState extends MusicBeatState
 		add(progressBg);
 
 		progressText = new FlxText(FlxG.width / 2 - 180, FlxG.height / 2 - 30, 360, "", 20);
-		progressText.setFormat("VCR OSD Mono", 20, FlxColor.WHITE, CENTER);
+		progressText.alignment = CENTER;
 		progressText.visible = false;
 		add(progressText);
 
@@ -109,7 +113,8 @@ class MergeChartState extends MusicBeatState
 			if (box.hasChart) selectedCount++;
 		}
 
-		if (selectedCount >= 2 && maxUnlocked < 5)
+		// Unlock next box when we have at least 2 charts selected
+		while (selectedCount >= 2 && maxUnlocked < 5)
 		{
 			maxUnlocked++;
 			for (i in 0...chartBoxes.length)
@@ -144,8 +149,7 @@ class MergeChartState extends MusicBeatState
 	{
 		showMergingProgress(true, "Loading charts...");
 
-		var mergedSong:SwagSong = null;
-		var allCharts:Array<SwagSong> = [];
+		var allCharts:Array<String> = [];
 
 		for (i in 0...chartPaths.length)
 		{
@@ -154,10 +158,10 @@ class MergeChartState extends MusicBeatState
 
 			try
 			{
-				var song:SwagSong = loadChartFromFile(path);
-				if (song != null)
+				var rawData:String = loadChartFromFile(path);
+				if (rawData != null)
 				{
-					allCharts.push(song);
+					allCharts.push(rawData);
 					trace("Loaded chart " + (i + 1) + " successfully");
 				}
 				else
@@ -178,12 +182,12 @@ class MergeChartState extends MusicBeatState
 		}
 
 		showMergingProgress(true, "Merging charts...");
-		mergedSong = mergeSongData(allCharts);
+		var mergedData:String = mergeSongData(allCharts);
 
-		if (mergedSong != null)
+		if (mergedData != null)
 		{
 			showMergingProgress(true, "Saving merged chart...");
-			saveMergedChart(mergedSong);
+			saveMergedChart(mergedData);
 		}
 		else
 		{
@@ -213,7 +217,7 @@ class MergeChartState extends MusicBeatState
 		}
 	}
 
-	private function loadChartFromFile(path:String):SwagSong
+	private function loadChartFromFile(path:String):String
 	{
 		var rawData:String = null;
 
@@ -228,120 +232,114 @@ class MergeChartState extends MusicBeatState
 			return null;
 		}
 
-		try
-		{
-			SongJson.log = true;
-			var song:SwagSong = Song.parseJSON(rawData, path, 'psych_v1', false);
-			SongJson.log = false;
-			return song;
-		}
-		catch (e:Dynamic)
-		{
-			trace("Error parsing chart: " + e);
-			return null;
-		}
+		return rawData;
 	}
 
-	private function mergeSongData(charts:Array<SwagSong>):SwagSong
+	private function mergeSongData(charts:Array<String>):String
 	{
 		if (charts.length == 0) return null;
 
-		var merged:SwagSong = {
-			song: charts[0].song,
-			notes: [],
-			events: [],
-			bpm: charts[0].bpm,
-			needsVoices: charts[0].needsVoices,
-			speed: charts[0].speed,
-			offset: charts[0].offset,
-			player1: charts[0].player1,
-			player2: charts[0].player2,
-			gfVersion: charts[0].gfVersion,
-			stage: charts[0].stage,
-			format: charts[0].format
-		};
+		// Parse all charts to Dynamic objects
+		var chartObjects:Array<Dynamic> = [];
+		for (chartJson in charts)
+		{
+			try
+			{
+				var chartObj:Dynamic = Json.parse(chartJson);
+				chartObjects.push(chartObj);
+			}
+			catch (e:Dynamic)
+			{
+				trace("Error parsing JSON: " + e);
+				return null;
+			}
+		}
+
+		if (chartObjects.length < 2) return null;
+
+		// Use first chart as base
+		var merged:Dynamic = Reflect.copy(chartObjects[0]);
+
+		// Initialize notes and events arrays if they don't exist
+		if (merged.notes == null) merged.notes = [];
+		if (merged.events == null) merged.events = [];
 
 		var noteOffset:Float = 0;
-		var sectionOffset:Float = 0;
+		var baseBpm:Float = merged.bpm != null ? merged.bpm : 100;
 
-		for (i in 0...charts.length)
+		// Merge additional charts
+		for (i in 1...chartObjects.length)
 		{
-			var chart:SwagSong = charts[i];
+			var chart:Dynamic = chartObjects[i];
+			var chartBpm:Float = chart.bpm != null ? chart.bpm : baseBpm;
 
-			for (section in chart.notes)
+			// Merge notes
+			if (chart.notes != null)
 			{
-				var newSection:SwagSection = {
-					sectionNotes: [],
-					sectionBeats: section.sectionBeats,
-					mustHitSection: section.mustHitSection,
-					altAnim: section.altAnim,
-					gfSection: section.gfSection,
-					bpm: section.bpm,
-					changeBPM: section.changeBPM
-				};
-
-				for (note in section.sectionNotes)
+				for (section in chart.notes)
 				{
-					var noteData:Array<Dynamic> = note;
-					var newNote:Array<Dynamic> = [
-						noteData[0] + noteOffset,
-						noteData[1],
-						noteData[2],
-						noteData.length > 3 ? noteData[3] : null
-					];
-					newSection.sectionNotes.push(newNote);
-				}
+					var newSection:Dynamic = Reflect.copy(section);
 
-				merged.notes.push(newSection);
+					if (newSection.sectionNotes != null)
+					{
+						var offsetNotes:Array<Dynamic> = [];
+						for (note in newSection.sectionNotes)
+						{
+							var noteCopy:Array<Dynamic> = note.copy();
+							noteCopy[0] = noteCopy[0] + noteOffset;
+							offsetNotes.push(noteCopy);
+						}
+						newSection.sectionNotes = offsetNotes;
+					}
+
+					merged.notes.push(newSection);
+				}
 			}
 
+			// Merge events
 			if (chart.events != null)
 			{
 				for (event in chart.events)
 				{
-					var eventData:Array<Dynamic> = event;
-					var newEvent:Array<Dynamic> = [
-						eventData[0] + noteOffset,
-						eventData[1],
-						eventData.length > 2 ? eventData[2] : null
-					];
-					merged.events.push(newEvent);
+					var eventCopy:Array<Dynamic> = event.copy();
+					eventCopy[0] = eventCopy[0] + noteOffset;
+					merged.events.push(eventCopy);
 				}
 			}
 
+			// Calculate time offset for next chart
 			var lastSectionTime:Float = 0;
-			for (section in chart.notes)
+			if (chart.notes != null)
 			{
-				lastSectionTime += section.sectionBeats * (60 / chart.bpm);
+				for (section in chart.notes)
+				{
+					var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
+					lastSectionTime += beats * (60 / chartBpm);
+				}
 			}
-
 			noteOffset += lastSectionTime;
 		}
 
-		return merged;
+		// Return merged as JSON string
+		return Json.stringify(merged, null, "\t");
 	}
 
-	private function saveMergedChart(song:SwagSong)
+	private function saveMergedChart(mergedData:String)
 	{
-		var defaultName:String = song.song + "-merged";
-		var data:String = Json.stringify(song, null, "\t");
+		// Extract song name from the merged data
+		var songName:String = "merged";
+		try
+		{
+			var mergedObj:Dynamic = Json.parse(mergedData);
+			if (mergedObj.song != null) songName = mergedObj.song;
+		}
+		catch (e:Dynamic) {}
 
-		fileDialog.save(defaultName, data,
+		var defaultName:String = songName + "-merged.json";
+
+		fileDialog.save(defaultName, mergedData,
 			function()
 			{
-				showMergingProgress(true, "Saved! Opening folder...");
-
-				#if windows
-				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
-				Sys.command('explorer', [folderPath]);
-				#elseif linux
-				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
-				Sys.command('xdg-open', [folderPath]);
-				#elseif mac
-				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
-				Sys.command('open', [folderPath]);
-				#end
-
 				showMergingProgress(false, "Merge complete!");
 			}, null, function()
 			{
