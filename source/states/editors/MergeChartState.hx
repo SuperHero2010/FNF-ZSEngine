@@ -236,111 +236,41 @@ class MergeChartState extends MusicBeatState
 
 		if (chartObjects.length < 2) return null;
 
-		// Create empty merged object
-		var merged:Dynamic = {};
+		// Use first chart as base (deep copy)
+		var merged:Dynamic = Json.parse(charts[0]);
 
-		// Copy metadata from first chart
-		var firstChart:Dynamic = chartObjects[0];
-		Reflect.setField(merged, "song", firstChart.song);
-		Reflect.setField(merged, "bpm", firstChart.bpm);
-		Reflect.setField(merged, "needsVoices", firstChart.needsVoices);
-		Reflect.setField(merged, "speed", firstChart.speed);
-		Reflect.setField(merged, "offset", firstChart.offset);
-		Reflect.setField(merged, "player1", firstChart.player1);
-		Reflect.setField(merged, "player2", firstChart.player2);
-		Reflect.setField(merged, "gfVersion", firstChart.gfVersion);
-		Reflect.setField(merged, "stage", firstChart.stage);
-		if (Reflect.hasField(firstChart, "format")) Reflect.setField(merged, "format", firstChart.format);
+		// Ensure notes and events arrays exist
+		if (merged.notes == null) merged.notes = [];
+		if (merged.events == null) merged.events = [];
 
-		// Initialize notes and events arrays
-		Reflect.setField(merged, "notes", []);
-		Reflect.setField(merged, "events", []);
-
-		var noteOffset:Float = 0;
-		var baseBpm:Float = firstChart.bpm != null ? firstChart.bpm : 100;
-
-		// Calculate durations for all charts first
-		var chartDurations:Array<Float> = [];
-		for (i in 0...chartObjects.length)
+		// Merge additional charts (starting from index 1) - PR style merge
+		for (i in 1...chartObjects.length)
 		{
 			var chart:Dynamic = chartObjects[i];
-			var chartBpm:Float = chart.bpm != null ? chart.bpm : baseBpm;
-			var duration:Float = 0;
 
+			// Merge notes - append all sections from Subsequent charts
 			if (chart.notes != null)
 			{
 				var notesArray:Array<Dynamic> = cast chart.notes;
+				var mergedNotes:Array<Dynamic> = cast merged.notes;
+
 				for (section in notesArray)
 				{
-					var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
-					duration += beats * (60 / chartBpm);
-				}
-			}
-			chartDurations.push(duration);
-		}
-
-		// Merge all charts (including first)
-		for (i in 0...chartObjects.length)
-		{
-			var chart:Dynamic = chartObjects[i];
-			var chartBpm:Float = chart.bpm != null ? chart.bpm : baseBpm;
-
-			// Merge notes
-			if (chart.notes != null)
-			{
-				var notesArray:Array<Dynamic> = cast chart.notes;
-				for (section in notesArray)
-				{
-					var newSection:Dynamic = {};
-					Reflect.setField(newSection, "sectionNotes", []);
-					Reflect.setField(newSection, "sectionBeats", section.sectionBeats);
-					Reflect.setField(newSection, "mustHitSection", section.mustHitSection);
-					if (Reflect.hasField(section, "altAnim")) Reflect.setField(newSection, "altAnim", section.altAnim);
-					if (Reflect.hasField(section, "gfSection")) Reflect.setField(newSection, "gfSection", section.gfSection);
-					if (Reflect.hasField(section, "bpm")) Reflect.setField(newSection, "bpm", section.bpm);
-					if (Reflect.hasField(section, "changeBPM")) Reflect.setField(newSection, "changeBPM", section.changeBPM);
-
-					if (section.sectionNotes != null)
-					{
-						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-						var offsetNotes:Array<Dynamic> = [];
-						for (note in sectionNotes)
-						{
-							var noteCopy:Array<Dynamic> = [];
-							for (j in 0...note.length)
-							{
-								noteCopy.push(note[j]);
-							}
-							noteCopy[0] = noteCopy[0] + noteOffset;
-							offsetNotes.push(noteCopy);
-						}
-						Reflect.setField(newSection, "sectionNotes", offsetNotes);
-					}
-
-					var mergedNotes:Array<Dynamic> = cast Reflect.field(merged, "notes");
-					mergedNotes.push(newSection);
+					mergedNotes.push(section);
 				}
 			}
 
-			// Merge events
+			// Merge events - append all events from Subsequent charts
 			if (chart.events != null)
 			{
 				var eventsArray:Array<Dynamic> = cast chart.events;
+				var mergedEvents:Array<Dynamic> = cast merged.events;
+
 				for (event in eventsArray)
 				{
-					var eventCopy:Array<Dynamic> = [];
-					for (j in 0...event.length)
-					{
-						eventCopy.push(event[j]);
-					}
-					eventCopy[0] = eventCopy[0] + noteOffset;
-					var mergedEvents:Array<Dynamic> = cast Reflect.field(merged, "events");
-					mergedEvents.push(eventCopy);
+					mergedEvents.push(event);
 				}
 			}
-
-			// Update offset for next chart
-			noteOffset += chartDurations[i];
 		}
 
 		// Return merged as JSON string
