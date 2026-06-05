@@ -11,14 +11,13 @@ import backend.Song;
 import backend.SongJson;
 import backend.ui.PsychUIBox;
 import backend.ui.PsychUIButton;
-import backend.ui.PsychUIText;
 
 import lime.ui.FileDialog;
 import lime.ui.FileDialogType;
 
 import haxe.Json;
 import sys.FileSystem;
-import sys.File;
+import sys.io.File;
 
 class MergeChartState extends MusicBeatState
 {
@@ -327,44 +326,34 @@ class MergeChartState extends MusicBeatState
 	{
 		var saveDialog = new FileDialog();
 		var defaultName:String = song.song + "-merged";
-		saveDialog.onSelect.add(function(path:String)
-		{
-			if (path != null && path.length > 0)
+		var data:String = Json.stringify(song, null, "\t");
+
+		saveDialog.save(defaultName, data,
+			function()
 			{
-				try
-				{
-					var json:String = Json.stringify(song, null, "\t");
-					File.saveContent(path, json);
-					trace("Saved merged chart to: " + path);
+				showMergingProgress(true, "Saved! Opening folder...");
 
-					showMergingProgress(true, "Saved! Opening folder...");
+				#if windows
+				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				Sys.command('explorer', [folderPath]);
+				#elseif linux
+				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				Sys.command('xdg-open', [folderPath]);
+				#elseif mac
+				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				Sys.command('open', [folderPath]);
+				#end
 
-					#if windows
-					var folderPath:String = haxe.io.Path.directory(path);
-					Sys.command('explorer', [folderPath]);
-					#elseif linux
-					var folderPath:String = haxe.io.Path.directory(path);
-					Sys.command('xdg-open', [folderPath]);
-					#elseif mac
-					var folderPath:String = haxe.io.Path.directory(path);
-					Sys.command('open', [folderPath]);
-					#end
-
-					showMergingProgress(false, "Merge complete!");
-				}
-				catch (e:Dynamic)
-				{
-					trace("Error saving chart: " + e);
-					showMergingProgress(false, "Error saving chart");
-				}
-			}
-		});
-		saveDialog.save(FileDialogType.SAVE, "json", defaultName);
+				showMergingProgress(false, "Merge complete!");
+			}, null, function()
+			{
+				showMergingProgress(false, "Error saving chart");
+			});
 	}
 
 	private function onBackButton()
 	{
-		FlxG.switchState(new editors.MasterEditorMenu());
+		FlxG.switchState(new MasterEditorMenu());
 	}
 
 	override function update(elapsed:Float)
@@ -392,9 +381,14 @@ class ChartBox extends FlxGroup
 		boxIndex = index;
 
 		bg = new FlxSprite(x, y).makeGraphic(Std.int(width), Std.int(height), FlxColor.BLACK);
-		bg.borderColor = FlxColor.WHITE;
-		bg.borderSize = 2;
 		add(bg);
+
+		var border:FlxSprite = new FlxSprite(x, y).makeGraphic(Std.int(width), Std.int(height), FlxColor.TRANSPARENT);
+		border.pixels.fillRect(new flash.geom.Rectangle(0, 0, width, 2), FlxColor.WHITE);
+		border.pixels.fillRect(new flash.geom.Rectangle(0, height - 2, width, 2), FlxColor.WHITE);
+		border.pixels.fillRect(new flash.geom.Rectangle(0, 0, 2, height), FlxColor.WHITE);
+		border.pixels.fillRect(new flash.geom.Rectangle(width - 2, 0, 2, height), FlxColor.WHITE);
+		add(border);
 
 		openButton = new PsychUIButton(x + width / 2 - 50, y + height / 2 - 15, "Open Chart", onOpenButton);
 		openButton.normalStyle.bgColor = FlxColor.BLUE;
@@ -440,13 +434,12 @@ class ChartBox extends FlxGroup
 		isWaitingForPath = true;
 
 		var fileDialog = new FileDialog();
-		fileDialog.onSelect.add(function(path:String)
+		fileDialog.open(function()
 		{
-			if (path != null && path.length > 0)
+			if (fileDialog.path != null && fileDialog.path.length > 0)
 			{
-				setChartPath(path);
+				setChartPath(fileDialog.path);
 			}
 		});
-		fileDialog.open(FileDialogType.OPEN, "json");
 	}
 }
