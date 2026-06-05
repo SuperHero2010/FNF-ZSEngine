@@ -1,0 +1,452 @@
+package states.editors;
+
+import flixel.FlxG;
+import flixel.FlxSprite;
+import flixel.group.FlxGroup;
+import flixel.text.FlxText;
+import flixel.ui.FlxButton;
+import flixel.util.FlxColor;
+
+import backend.Song;
+import backend.SongJson;
+import backend.ui.PsychUIBox;
+import backend.ui.PsychUIButton;
+import backend.ui.PsychUIText;
+
+import lime.ui.FileDialog;
+import lime.ui.FileDialogType;
+
+import haxe.Json;
+import sys.FileSystem;
+import sys.File;
+
+class MergeChartState extends MusicBeatState
+{
+	private var chartBoxes:Array<ChartBox> = [];
+	private var selectedCharts:Array<String> = [];
+	private var maxUnlocked:Int = 2; // First 2 boxes unlocked
+	private var mergeButton:PsychUIButton;
+	private var fileDialog:FileDialog;
+	private var progressText:FlxText;
+	private var progressBg:FlxSprite;
+	private var syncTime:Float = 0;
+	private var progressUpdateTime:Float = 0.1;
+
+	override function create()
+	{
+		super.create();
+
+		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
+		bg.antialiasing = ClientPrefs.data.antialiasing;
+		add(bg);
+
+		var titleText:FlxText = new FlxText(0, 20, FlxG.width, "Chart Merger", 40);
+		titleText.alignment = CENTER;
+		titleText.setFormat("VCR OSD Mono", 40, FlxColor.WHITE, CENTER);
+		add(titleText);
+
+		var boxWidth:Float = 200;
+		var boxHeight:Float = 150;
+		var spacing:Float = 20;
+		var startX:Float = (FlxG.width - (5 * boxWidth + 4 * spacing)) / 2;
+		var startY:Float = 100;
+
+		for (i in 0...5)
+		{
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY, boxWidth, boxHeight, i);
+			box.setUnlocked(i < maxUnlocked);
+			chartBoxes.push(box);
+			add(box);
+		}
+
+		mergeButton = new PsychUIButton(FlxG.width / 2 - 100, startY + boxHeight + 50, "Merge Charts", onMergeButton);
+		mergeButton.normalStyle.bgColor = FlxColor.GREEN;
+		mergeButton.normalStyle.textColor = FlxColor.BLACK;
+		add(mergeButton);
+
+		var backButton:PsychUIButton = new PsychUIButton(20, FlxG.height - 60, "Back", onBackButton);
+		add(backButton);
+
+		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
+		progressBg.alpha = 0.8;
+		progressBg.visible = false;
+		add(progressBg);
+
+		progressText = new FlxText(FlxG.width / 2 - 180, FlxG.height / 2 - 30, 360, "", 20);
+		progressText.setFormat("VCR OSD Mono", 20, FlxColor.WHITE, CENTER);
+		progressText.visible = false;
+		add(progressText);
+
+		fileDialog = new FileDialog();
+		fileDialog.onSelect.add(onFileSelected);
+	}
+
+	private function onFileSelected(path:String)
+	{
+		if (path != null && path.length > 0)
+		{
+			for (box in chartBoxes)
+			{
+				if (box.isWaitingForPath)
+				{
+					box.setChartPath(path);
+					box.isWaitingForPath = false;
+
+					if (!selectedCharts.contains(path))
+					{
+						selectedCharts.push(path);
+						checkUnlockCondition();
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	private function checkUnlockCondition()
+	{
+		var selectedCount:Int = 0;
+		for (box in chartBoxes)
+		{
+			if (box.hasChart) selectedCount++;
+		}
+
+		if (selectedCount >= 2 && maxUnlocked < 5)
+		{
+			maxUnlocked++;
+			for (i in 0...chartBoxes.length)
+			{
+				chartBoxes[i].setUnlocked(i < maxUnlocked);
+			}
+		}
+	}
+
+	private function onMergeButton()
+	{
+		var chartPaths:Array<String> = [];
+		for (box in chartBoxes)
+		{
+			if (box.hasChart && box.chartPath != null)
+			{
+				chartPaths.push(box.chartPath);
+			}
+		}
+
+		if (chartPaths.length < 2)
+		{
+			trace("Need at least 2 charts to merge");
+			return;
+		}
+
+		trace("Merging charts: " + chartPaths);
+		mergeCharts(chartPaths);
+	}
+
+	private function mergeCharts(chartPaths:Array<String>)
+	{
+		showMergingProgress(true, "Loading charts...");
+
+		var mergedSong:SwagSong = null;
+		var allCharts:Array<SwagSong> = [];
+
+		for (i in 0...chartPaths.length)
+		{
+			var path:String = chartPaths[i];
+			showMergingProgress(true, 'Loading chart ${i + 1}/${chartPaths.length}...');
+
+			try
+			{
+				var song:SwagSong = loadChartFromFile(path);
+				if (song != null)
+				{
+					allCharts.push(song);
+					trace("Loaded chart " + (i + 1) + " successfully");
+				}
+				else
+				{
+					trace("Failed to load chart " + (i + 1));
+				}
+			}
+			catch (e:Dynamic)
+			{
+				trace("Error loading chart " + (i + 1) + ": " + e);
+			}
+		}
+
+		if (allCharts.length < 2)
+		{
+			showMergingProgress(false, "Need at least 2 valid charts");
+			return;
+		}
+
+		showMergingProgress(true, "Merging charts...");
+		mergedSong = mergeSongData(allCharts);
+
+		if (mergedSong != null)
+		{
+			showMergingProgress(true, "Saving merged chart...");
+			saveMergedChart(mergedSong);
+		}
+		else
+		{
+			showMergingProgress(false, "Merge failed");
+		}
+	}
+
+	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
+	{
+		progressBg.visible = show;
+		progressText.visible = show;
+		progressText.text = message;
+
+		if (Main.isConsoleAvailable)
+		{
+			var currentTime = haxe.Timer.stamp() * 1000;
+			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
+			{
+				Sys.stdout().writeString('\x1b[0G' + message);
+				Sys.stdout().flush();
+				syncTime = currentTime;
+			}
+		}
+		else if (force)
+		{
+			Sys.println(message);
+		}
+	}
+
+	private function loadChartFromFile(path:String):SwagSong
+	{
+		var rawData:String = null;
+
+		#if MODS_ALLOWED
+		if(FileSystem.exists(path))
+			rawData = File.getContent(path);
+		#end
+
+		if (rawData == null)
+		{
+			trace("Could not read file: " + path);
+			return null;
+		}
+
+		try
+		{
+			SongJson.log = true;
+			var song:SwagSong = Song.parseJSON(rawData, path, 'psych_v1', false);
+			SongJson.log = false;
+			return song;
+		}
+		catch (e:Dynamic)
+		{
+			trace("Error parsing chart: " + e);
+			return null;
+		}
+	}
+
+	private function mergeSongData(charts:Array<SwagSong>):SwagSong
+	{
+		if (charts.length == 0) return null;
+
+		var merged:SwagSong = {
+			song: charts[0].song,
+			notes: [],
+			events: [],
+			bpm: charts[0].bpm,
+			needsVoices: charts[0].needsVoices,
+			speed: charts[0].speed,
+			offset: charts[0].offset,
+			player1: charts[0].player1,
+			player2: charts[0].player2,
+			gfVersion: charts[0].gfVersion,
+			stage: charts[0].stage,
+			format: charts[0].format
+		};
+
+		var noteOffset:Float = 0;
+		var sectionOffset:Float = 0;
+
+		for (i in 0...charts.length)
+		{
+			var chart:SwagSong = charts[i];
+
+			for (section in chart.notes)
+			{
+				var newSection:SwagSection = {
+					sectionNotes: [],
+					sectionBeats: section.sectionBeats,
+					mustHitSection: section.mustHitSection,
+					altAnim: section.altAnim,
+					gfSection: section.gfSection,
+					bpm: section.bpm,
+					changeBPM: section.changeBPM
+				};
+
+				for (note in section.sectionNotes)
+				{
+					var noteData:Array<Dynamic> = note;
+					var newNote:Array<Dynamic> = [
+						noteData[0] + noteOffset,
+						noteData[1],
+						noteData[2],
+						noteData.length > 3 ? noteData[3] : null
+					];
+					newSection.sectionNotes.push(newNote);
+				}
+
+				merged.notes.push(newSection);
+			}
+
+			if (chart.events != null)
+			{
+				for (event in chart.events)
+				{
+					var eventData:Array<Dynamic> = event;
+					var newEvent:Array<Dynamic> = [
+						eventData[0] + noteOffset,
+						eventData[1],
+						eventData.length > 2 ? eventData[2] : null
+					];
+					merged.events.push(newEvent);
+				}
+			}
+
+			var lastSectionTime:Float = 0;
+			for (section in chart.notes)
+			{
+				lastSectionTime += section.sectionBeats * (60 / chart.bpm);
+			}
+
+			noteOffset += lastSectionTime;
+		}
+
+		return merged;
+	}
+
+	private function saveMergedChart(song:SwagSong)
+	{
+		var saveDialog = new FileDialog();
+		var defaultName:String = song.song + "-merged";
+		saveDialog.onSelect.add(function(path:String)
+		{
+			if (path != null && path.length > 0)
+			{
+				try
+				{
+					var json:String = Json.stringify(song, null, "\t");
+					File.saveContent(path, json);
+					trace("Saved merged chart to: " + path);
+
+					showMergingProgress(true, "Saved! Opening folder...");
+
+					#if windows
+					var folderPath:String = haxe.io.Path.directory(path);
+					Sys.command('explorer', [folderPath]);
+					#elseif linux
+					var folderPath:String = haxe.io.Path.directory(path);
+					Sys.command('xdg-open', [folderPath]);
+					#elseif mac
+					var folderPath:String = haxe.io.Path.directory(path);
+					Sys.command('open', [folderPath]);
+					#end
+
+					showMergingProgress(false, "Merge complete!");
+				}
+				catch (e:Dynamic)
+				{
+					trace("Error saving chart: " + e);
+					showMergingProgress(false, "Error saving chart");
+				}
+			}
+		});
+		saveDialog.save(FileDialogType.SAVE, "json", defaultName);
+	}
+
+	private function onBackButton()
+	{
+		FlxG.switchState(new editors.MasterEditorMenu());
+	}
+
+	override function update(elapsed:Float)
+	{
+		super.update(elapsed);
+	}
+}
+
+class ChartBox extends FlxGroup
+{
+	public var boxIndex:Int;
+	public var isUnlocked:Bool = false;
+	public var hasChart:Bool = false;
+	public var chartPath:String = null;
+	public var isWaitingForPath:Bool = false;
+
+	private var bg:FlxSprite;
+	private var openButton:PsychUIButton;
+	private var pathText:FlxText;
+	private var lockOverlay:FlxSprite;
+
+	public function new(x:Float, y:Float, width:Float, height:Float, index:Int)
+	{
+		super();
+		boxIndex = index;
+
+		bg = new FlxSprite(x, y).makeGraphic(Std.int(width), Std.int(height), FlxColor.BLACK);
+		bg.borderColor = FlxColor.WHITE;
+		bg.borderSize = 2;
+		add(bg);
+
+		openButton = new PsychUIButton(x + width / 2 - 50, y + height / 2 - 15, "Open Chart", onOpenButton);
+		openButton.normalStyle.bgColor = FlxColor.BLUE;
+		openButton.normalStyle.textColor = FlxColor.WHITE;
+		add(openButton);
+
+		pathText = new FlxText(x + 10, y + height - 30, width - 20, "No chart selected", 12);
+		pathText.setFormat("VCR OSD Mono", 12, FlxColor.GRAY, LEFT);
+		add(pathText);
+
+		lockOverlay = new FlxSprite(x, y).makeGraphic(Std.int(width), Std.int(height), FlxColor.BLACK);
+		lockOverlay.alpha = 0.7;
+		add(lockOverlay);
+
+		var lockText:FlxText = new FlxText(x + width / 2 - 20, y + height / 2 - 10, 40, "🔒", 20);
+		lockText.alignment = CENTER;
+		add(lockText);
+
+		setUnlocked(false);
+	}
+
+	public function setUnlocked(unlocked:Bool)
+	{
+		isUnlocked = unlocked;
+		lockOverlay.visible = !unlocked;
+		openButton.active = unlocked;
+	}
+
+	public function setChartPath(path:String)
+	{
+		chartPath = path;
+		hasChart = true;
+
+		var fileName:String = path.split("\\").pop().split("/").pop();
+		pathText.text = fileName;
+		pathText.color = FlxColor.WHITE;
+	}
+
+	private function onOpenButton()
+	{
+		if (!isUnlocked) return;
+
+		isWaitingForPath = true;
+
+		var fileDialog = new FileDialog();
+		fileDialog.onSelect.add(function(path:String)
+		{
+			if (path != null && path.length > 0)
+			{
+				setChartPath(path);
+			}
+		});
+		fileDialog.open(FileDialogType.OPEN, "json");
+	}
+}
