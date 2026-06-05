@@ -259,6 +259,26 @@ class MergeChartState extends MusicBeatState
 		var noteOffset:Float = 0;
 		var baseBpm:Float = firstChart.bpm != null ? firstChart.bpm : 100;
 
+		// Calculate durations for all charts first
+		var chartDurations:Array<Float> = [];
+		for (i in 0...chartObjects.length)
+		{
+			var chart:Dynamic = chartObjects[i];
+			var chartBpm:Float = chart.bpm != null ? chart.bpm : baseBpm;
+			var duration:Float = 0;
+
+			if (chart.notes != null)
+			{
+				var notesArray:Array<Dynamic> = cast chart.notes;
+				for (section in notesArray)
+				{
+					var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
+					duration += beats * (60 / chartBpm);
+				}
+			}
+			chartDurations.push(duration);
+		}
+
 		// Merge all charts (including first)
 		for (i in 0...chartObjects.length)
 		{
@@ -319,18 +339,8 @@ class MergeChartState extends MusicBeatState
 				}
 			}
 
-			// Calculate time offset for next chart
-			var lastSectionTime:Float = 0;
-			if (chart.notes != null)
-			{
-				var notesArray2:Array<Dynamic> = cast chart.notes;
-				for (section in notesArray2)
-				{
-					var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
-					lastSectionTime += beats * (60 / chartBpm);
-				}
-			}
-			noteOffset += lastSectionTime;
+			// Update offset for next chart
+			noteOffset += chartDurations[i];
 		}
 
 		// Return merged as JSON string
