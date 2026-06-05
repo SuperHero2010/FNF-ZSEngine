@@ -1,5 +1,6 @@
 package states.editors;
 
+import haxe.xml.Access;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.group.FlxGroup;
@@ -56,8 +57,15 @@ class MergeChartState extends MusicBeatState
 			chartBoxes.push(box);
 			add(box);
 		}
+		for (i in 0...5)
+		{
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 2, boxWidth, boxHeight, i);
+			box.setUnlocked(true);
+			chartBoxes.push(box);
+			add(box);
+		}
 
-		mergeButton = new PsychUIButton(FlxG.width / 2 - 75, startY + boxHeight + 50, "Merge Charts", onMergeButton);
+		mergeButton = new PsychUIButton(FlxG.width / 2 - 75, startY + boxHeight + 350, "Merge Charts", onMergeButton);
 		mergeButton.resize(150, 40);
 		mergeButton.normalStyle.bgColor = FlxColor.GREEN;
 		mergeButton.normalStyle.textColor = FlxColor.BLACK;
@@ -366,7 +374,6 @@ class ChartBox extends FlxGroup
 		add(openButton);
 
 		pathText = new FlxText(x + 10, y + height - 30, width - 20, "No chart selected", 12);
-		pathText.setFormat("VCR OSD Mono", 12, FlxColor.GRAY, LEFT);
 		add(pathText);
 
 		lockOverlay = new FlxSprite(x, y).makeGraphic(Std.int(width), Std.int(height), FlxColor.BLACK);
