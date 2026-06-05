@@ -21,7 +21,6 @@ class MergeChartState extends MusicBeatState
 {
 	private var chartBoxes:Array<ChartBox> = [];
 	private var selectedCharts:Array<String> = [];
-	private var maxUnlocked:Int = 2; // First 2 boxes unlocked
 	private var mergeButton:PsychUIButton;
 	private var fileDialog:FileDialogHandler;
 	private var progressText:FlxText;
@@ -53,7 +52,7 @@ class MergeChartState extends MusicBeatState
 		for (i in 0...5)
 		{
 			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY, boxWidth, boxHeight, i);
-			box.setUnlocked(i < maxUnlocked);
+			box.setUnlocked(true);
 			chartBoxes.push(box);
 			add(box);
 		}
@@ -97,29 +96,9 @@ class MergeChartState extends MusicBeatState
 					if (!selectedCharts.contains(fileDialog.path))
 					{
 						selectedCharts.push(fileDialog.path);
-						checkUnlockCondition();
 					}
 					break;
 				}
-			}
-		}
-	}
-
-	private function checkUnlockCondition()
-	{
-		var selectedCount:Int = 0;
-		for (box in chartBoxes)
-		{
-			if (box.hasChart) selectedCount++;
-		}
-
-		// Unlock next box when we have at least 2 charts selected
-		while (selectedCount >= 2 && maxUnlocked < 5)
-		{
-			maxUnlocked++;
-			for (i in 0...chartBoxes.length)
-			{
-				chartBoxes[i].setUnlocked(i < maxUnlocked);
 			}
 		}
 	}
@@ -258,14 +237,27 @@ class MergeChartState extends MusicBeatState
 		if (chartObjects.length < 2) return null;
 
 		// Use first chart as base
-		var merged:Dynamic = Reflect.copy(chartObjects[0]);
-
+		var merged:Dynamic = Json.parse(charts[0]);
+		
 		// Initialize notes and events arrays if they don't exist
 		if (merged.notes == null) merged.notes = [];
 		if (merged.events == null) merged.events = [];
 
 		var noteOffset:Float = 0;
 		var baseBpm:Float = merged.bpm != null ? merged.bpm : 100;
+
+		// Calculate time offset for first chart
+		var firstChartTime:Float = 0;
+		if (merged.notes != null)
+		{
+			var firstNotes:Array<Dynamic> = cast merged.notes;
+			for (section in firstNotes)
+			{
+				var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
+				firstChartTime += beats * (60 / baseBpm);
+			}
+		}
+		noteOffset = firstChartTime;
 
 		// Merge additional charts
 		for (i in 1...chartObjects.length)
@@ -279,22 +271,34 @@ class MergeChartState extends MusicBeatState
 				var notesArray:Array<Dynamic> = cast chart.notes;
 				for (section in notesArray)
 				{
-					var newSection:Dynamic = Reflect.copy(section);
+					var newSection:Dynamic = {};
+					Reflect.setField(newSection, "sectionNotes", []);
+					Reflect.setField(newSection, "sectionBeats", section.sectionBeats);
+					Reflect.setField(newSection, "mustHitSection", section.mustHitSection);
+					if (Reflect.hasField(section, "altAnim")) Reflect.setField(newSection, "altAnim", section.altAnim);
+					if (Reflect.hasField(section, "gfSection")) Reflect.setField(newSection, "gfSection", section.gfSection);
+					if (Reflect.hasField(section, "bpm")) Reflect.setField(newSection, "bpm", section.bpm);
+					if (Reflect.hasField(section, "changeBPM")) Reflect.setField(newSection, "changeBPM", section.changeBPM);
 
-					if (newSection.sectionNotes != null)
+					if (section.sectionNotes != null)
 					{
-						var sectionNotes:Array<Dynamic> = cast newSection.sectionNotes;
+						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
 						var offsetNotes:Array<Dynamic> = [];
 						for (note in sectionNotes)
 						{
-							var noteCopy:Array<Dynamic> = note.copy();
+							var noteCopy:Array<Dynamic> = [];
+							for (j in 0...note.length)
+							{
+								noteCopy.push(note[j]);
+							}
 							noteCopy[0] = noteCopy[0] + noteOffset;
 							offsetNotes.push(noteCopy);
 						}
-						newSection.sectionNotes = offsetNotes;
+						Reflect.setField(newSection, "sectionNotes", offsetNotes);
 					}
 
-					merged.notes.push(newSection);
+					var mergedNotes:Array<Dynamic> = cast merged.notes;
+					mergedNotes.push(newSection);
 				}
 			}
 
@@ -304,9 +308,14 @@ class MergeChartState extends MusicBeatState
 				var eventsArray:Array<Dynamic> = cast chart.events;
 				for (event in eventsArray)
 				{
-					var eventCopy:Array<Dynamic> = event.copy();
+					var eventCopy:Array<Dynamic> = [];
+					for (j in 0...event.length)
+					{
+						eventCopy.push(event[j]);
+					}
 					eventCopy[0] = eventCopy[0] + noteOffset;
-					merged.events.push(eventCopy);
+					var mergedEvents:Array<Dynamic> = cast merged.events;
+					mergedEvents.push(eventCopy);
 				}
 			}
 
