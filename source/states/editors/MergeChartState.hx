@@ -76,7 +76,7 @@ class MergeChartState extends MusicBeatState
 
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
-		fileDialog.onComplete.add(onFileSelected);
+		fileDialog.onComplete = onFileSelected;
 	}
 
 	private function onFileSelected()
