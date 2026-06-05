@@ -236,31 +236,31 @@ class MergeChartState extends MusicBeatState
 
 		if (chartObjects.length < 2) return null;
 
-		// Use first chart as base
-		var merged:Dynamic = Json.parse(charts[0]);
-		
-		// Initialize notes and events arrays if they don't exist
-		if (merged.notes == null) merged.notes = [];
-		if (merged.events == null) merged.events = [];
+		// Create empty merged object
+		var merged:Dynamic = {};
+
+		// Copy metadata from first chart
+		var firstChart:Dynamic = chartObjects[0];
+		Reflect.setField(merged, "song", firstChart.song);
+		Reflect.setField(merged, "bpm", firstChart.bpm);
+		Reflect.setField(merged, "needsVoices", firstChart.needsVoices);
+		Reflect.setField(merged, "speed", firstChart.speed);
+		Reflect.setField(merged, "offset", firstChart.offset);
+		Reflect.setField(merged, "player1", firstChart.player1);
+		Reflect.setField(merged, "player2", firstChart.player2);
+		Reflect.setField(merged, "gfVersion", firstChart.gfVersion);
+		Reflect.setField(merged, "stage", firstChart.stage);
+		if (Reflect.hasField(firstChart, "format")) Reflect.setField(merged, "format", firstChart.format);
+
+		// Initialize notes and events arrays
+		Reflect.setField(merged, "notes", []);
+		Reflect.setField(merged, "events", []);
 
 		var noteOffset:Float = 0;
-		var baseBpm:Float = merged.bpm != null ? merged.bpm : 100;
+		var baseBpm:Float = firstChart.bpm != null ? firstChart.bpm : 100;
 
-		// Calculate time offset for first chart
-		var firstChartTime:Float = 0;
-		if (merged.notes != null)
-		{
-			var firstNotes:Array<Dynamic> = cast merged.notes;
-			for (section in firstNotes)
-			{
-				var beats:Float = section.sectionBeats != null ? section.sectionBeats : 4;
-				firstChartTime += beats * (60 / baseBpm);
-			}
-		}
-		noteOffset = firstChartTime;
-
-		// Merge additional charts
-		for (i in 1...chartObjects.length)
+		// Merge all charts (including first)
+		for (i in 0...chartObjects.length)
 		{
 			var chart:Dynamic = chartObjects[i];
 			var chartBpm:Float = chart.bpm != null ? chart.bpm : baseBpm;
@@ -297,7 +297,7 @@ class MergeChartState extends MusicBeatState
 						Reflect.setField(newSection, "sectionNotes", offsetNotes);
 					}
 
-					var mergedNotes:Array<Dynamic> = cast merged.notes;
+					var mergedNotes:Array<Dynamic> = cast Reflect.field(merged, "notes");
 					mergedNotes.push(newSection);
 				}
 			}
@@ -314,7 +314,7 @@ class MergeChartState extends MusicBeatState
 						eventCopy.push(event[j]);
 					}
 					eventCopy[0] = eventCopy[0] + noteOffset;
-					var mergedEvents:Array<Dynamic> = cast merged.events;
+					var mergedEvents:Array<Dynamic> = cast Reflect.field(merged, "events");
 					mergedEvents.push(eventCopy);
 				}
 			}
