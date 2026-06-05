@@ -11,9 +11,7 @@ import backend.Song;
 import backend.SongJson;
 import backend.ui.PsychUIBox;
 import backend.ui.PsychUIButton;
-
-import lime.ui.FileDialog;
-import lime.ui.FileDialogType;
+import states.editors.content.FileDialogHandler;
 
 import haxe.Json;
 import sys.FileSystem;
@@ -25,7 +23,7 @@ class MergeChartState extends MusicBeatState
 	private var selectedCharts:Array<String> = [];
 	private var maxUnlocked:Int = 2; // First 2 boxes unlocked
 	private var mergeButton:PsychUIButton;
-	private var fileDialog:FileDialog;
+	private var fileDialog:FileDialogHandler;
 	private var progressText:FlxText;
 	private var progressBg:FlxSprite;
 	private var syncTime:Float = 0;
@@ -76,24 +74,25 @@ class MergeChartState extends MusicBeatState
 		progressText.visible = false;
 		add(progressText);
 
-		fileDialog = new FileDialog();
-		fileDialog.onSelect.add(onFileSelected);
+		fileDialog = new FileDialogHandler();
+		add(fileDialog);
+		fileDialog.onComplete.add(onFileSelected);
 	}
 
-	private function onFileSelected(path:String)
+	private function onFileSelected()
 	{
-		if (path != null && path.length > 0)
+		if (fileDialog.path != null && fileDialog.path.length > 0)
 		{
 			for (box in chartBoxes)
 			{
 				if (box.isWaitingForPath)
 				{
-					box.setChartPath(path);
+					box.setChartPath(fileDialog.path);
 					box.isWaitingForPath = false;
 
-					if (!selectedCharts.contains(path))
+					if (!selectedCharts.contains(fileDialog.path))
 					{
-						selectedCharts.push(path);
+						selectedCharts.push(fileDialog.path);
 						checkUnlockCondition();
 					}
 					break;
@@ -324,23 +323,22 @@ class MergeChartState extends MusicBeatState
 
 	private function saveMergedChart(song:SwagSong)
 	{
-		var saveDialog = new FileDialog();
 		var defaultName:String = song.song + "-merged";
 		var data:String = Json.stringify(song, null, "\t");
 
-		saveDialog.save(defaultName, data,
+		fileDialog.save(defaultName, data,
 			function()
 			{
 				showMergingProgress(true, "Saved! Opening folder...");
 
 				#if windows
-				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
 				Sys.command('explorer', [folderPath]);
 				#elseif linux
-				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
 				Sys.command('xdg-open', [folderPath]);
 				#elseif mac
-				var folderPath:String = haxe.io.Path.directory(saveDialog.path);
+				var folderPath:String = haxe.io.Path.directory(fileDialog.path);
 				Sys.command('open', [folderPath]);
 				#end
 
@@ -433,13 +431,14 @@ class ChartBox extends FlxGroup
 
 		isWaitingForPath = true;
 
-		var fileDialog = new FileDialog();
-		fileDialog.open(function()
-		{
-			if (fileDialog.path != null && fileDialog.path.length > 0)
+		var fileDialog = new FileDialogHandler();
+		fileDialog.open(null, null, null,
+			function()
 			{
-				setChartPath(fileDialog.path);
-			}
-		});
+				if (fileDialog.path != null && fileDialog.path.length > 0)
+				{
+					setChartPath(fileDialog.path);
+				}
+			});
 	}
 }
