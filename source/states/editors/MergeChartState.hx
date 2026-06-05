@@ -243,24 +243,45 @@ class MergeChartState extends MusicBeatState
 		if (merged.notes == null) merged.notes = [];
 		if (merged.events == null) merged.events = [];
 
-		// Merge additional charts (starting from index 1) - PR style merge
+		// Merge additional charts (starting from index 1) - section-by-section merge
 		for (i in 1...chartObjects.length)
 		{
 			var chart:Dynamic = chartObjects[i];
 
-			// Merge notes - append all sections from Subsequent charts
+			// Merge notes section-by-section
 			if (chart.notes != null)
 			{
 				var notesArray:Array<Dynamic> = cast chart.notes;
 				var mergedNotes:Array<Dynamic> = cast merged.notes;
 
-				for (section in notesArray)
+				for (sectionIndex in 0...notesArray.length)
 				{
-					mergedNotes.push(section);
+					var chartSection:Dynamic = notesArray[sectionIndex];
+
+					// If merged chart has this section, append notes to it
+					if (sectionIndex < mergedNotes.length)
+					{
+						var mergedSection:Dynamic = mergedNotes[sectionIndex];
+						if (chartSection.sectionNotes != null)
+						{
+							var chartSectionNotes:Array<Dynamic> = cast chartSection.sectionNotes;
+							var mergedSectionNotes:Array<Dynamic> = cast mergedSection.sectionNotes;
+
+							for (note in chartSectionNotes)
+							{
+								mergedSectionNotes.push(note);
+							}
+						}
+					}
+					else
+					{
+						// If merged chart doesn't have this section, add it
+						mergedNotes.push(chartSection);
+					}
 				}
 			}
 
-			// Merge events - append all events from Subsequent charts
+			// Merge events - append all events
 			if (chart.events != null)
 			{
 				var eventsArray:Array<Dynamic> = cast chart.events;
