@@ -1,6 +1,5 @@
 package states.editors;
 
-import haxe.xml.Access;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.group.FlxGroup;
