@@ -58,7 +58,7 @@ class MergeChartState extends MusicBeatState
 		}
 		for (i in 0...5)
 		{
-			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 2, boxWidth, boxHeight, i);
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 4, boxWidth, boxHeight, i);
 			box.setUnlocked(true);
 			chartBoxes.push(box);
 			add(box);
