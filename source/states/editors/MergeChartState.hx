@@ -58,7 +58,7 @@ class MergeChartState extends MusicBeatState
 		}
 		for (i in 0...5)
 		{
-			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 4, boxWidth, boxHeight, i);
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 3, boxWidth, boxHeight, i);
 			box.setUnlocked(true);
 			chartBoxes.push(box);
 			add(box);
@@ -127,7 +127,6 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		trace("Merging charts: " + chartPaths);
 		mergeCharts(chartPaths);
 	}
 
@@ -140,7 +139,17 @@ class MergeChartState extends MusicBeatState
 		for (i in 0...chartPaths.length)
 		{
 			var path:String = chartPaths[i];
-			showMergingProgress(true, 'Loading chart ${i + 1}/${chartPaths.length}...');
+
+			// Get file size in MB
+			var fileSizeMB:Float = 0;
+			#if MODS_ALLOWED
+			if(FileSystem.exists(path))
+			{
+				fileSizeMB = FileSystem.stat(path).size / (1024 * 1024);
+			}
+			#end
+
+			showMergingProgress(true, 'Loading chart ${i + 1}/${chartPaths.length} (${fileSizeMB} MB)');
 
 			try
 			{
@@ -167,7 +176,36 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		showMergingProgress(true, "Merging charts...");
+		// Calculate total notes and events estimate before merging
+		var totalNotesEstimate:Int = 0;
+		var totalEventsEstimate:Int = 0;
+		for (chartJson in allCharts)
+		{
+			try
+			{
+				var chart:Dynamic = Json.parse(chartJson);
+				if (chart.notes != null)
+				{
+					var notesArray:Array<Dynamic> = cast chart.notes;
+					for (section in notesArray)
+					{
+						if (section.sectionNotes != null)
+						{
+							var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+							totalNotesEstimate += sectionNotes.length;
+						}
+					}
+				}
+				if (chart.events != null)
+				{
+					var eventsArray:Array<Dynamic> = cast chart.events;
+					totalEventsEstimate += eventsArray.length;
+				}
+			}
+			catch (e:Dynamic) {}
+		}
+
+		showMergingProgress(true, 'Merging ${totalNotesEstimate} notes and ${totalEventsEstimate} events');
 		var mergedData:String = mergeSongData(allCharts);
 
 		if (mergedData != null)
@@ -200,6 +238,31 @@ class MergeChartState extends MusicBeatState
 		else if (force)
 		{
 			Sys.println(message);
+		}
+	}
+
+	var parsedNotes:Int = 0;
+	var parsedEvents:Int = 0;
+	function showMergeProgress(force:Bool = false)
+	{
+		if (Main.isConsoleAvailable)
+		{
+			var currentTime = haxe.Timer.stamp() * 1000;
+			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
+			{
+				var totalNotes = parsedNotes;
+				var totalEvents = parsedEvents;
+
+				Sys.stdout().writeString('\x1b[0GLoading $totalNotes notes and $totalEvents events');
+				Sys.stdout().flush();
+				syncTime = currentTime;
+			}
+		}
+		else if (force) 
+		{
+			var totalNotes = parsedNotes;
+			var totalEvents = parsedEvents;
+			Sys.println('Loading $totalNotes notes and $totalEvents events');
 		}
 	}
 
@@ -243,12 +306,65 @@ class MergeChartState extends MusicBeatState
 
 		if (chartObjects.length < 2) return null;
 
+		// Reset progress counters
+		parsedNotes = 0;
+		parsedEvents = 0;
+
+		// JS Engine approach: Force major GC before massive operation
+		#if sys
+		cpp.vm.Gc.run(true);
+		#end
+
 		// Use first chart as base (deep copy)
 		var merged:Dynamic = Json.parse(charts[0]);
 
 		// Ensure notes and events arrays exist
 		if (merged.notes == null) merged.notes = [];
 		if (merged.events == null) merged.events = [];
+
+		// Count notes and events from first chart
+		if (merged.notes != null)
+		{
+			var mergedNotes:Array<Dynamic> = cast merged.notes;
+			for (section in mergedNotes)
+			{
+				if (section.sectionNotes != null)
+				{
+					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+					parsedNotes += sectionNotes.length;
+				}
+			}
+		}
+		if (merged.events != null)
+		{
+			var mergedEvents:Array<Dynamic> = cast merged.events;
+			parsedEvents = mergedEvents.length;
+		}
+
+		// Calculate total notes to determine if GC should be disabled
+		var totalNotesEstimate:Int = 0;
+		for (chart in chartObjects)
+		{
+			if (chart.notes != null)
+			{
+				var notesArray:Array<Dynamic> = cast chart.notes;
+				for (section in notesArray)
+				{
+					if (section.sectionNotes != null)
+					{
+						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+						totalNotesEstimate += sectionNotes.length;
+					}
+				}
+			}
+		}
+
+		// Conditional GC disabling for massive operations (JS Engine method)
+		#if sys
+		if (totalNotesEstimate > 1000000) {
+			cpp.vm.Gc.enable(false);
+		}
+		#end
 
 		// Merge additional charts (starting from index 1) - section-by-section merge
 		for (i in 1...chartObjects.length)
@@ -274,32 +390,70 @@ class MergeChartState extends MusicBeatState
 							var chartSectionNotes:Array<Dynamic> = cast chartSection.sectionNotes;
 							var mergedSectionNotes:Array<Dynamic> = cast mergedSection.sectionNotes;
 
-							for (note in chartSectionNotes)
-							{
-								mergedSectionNotes.push(note);
-							}
+							// Use concat for faster array joining (dupeNotes approach)
+							mergedSection.sectionNotes = mergedSectionNotes.concat(chartSectionNotes);
+							parsedNotes += chartSectionNotes.length;
 						}
 					}
 					else
 					{
 						// If merged chart doesn't have this section, add it
 						mergedNotes.push(chartSection);
+						if (chartSection.sectionNotes != null)
+						{
+							var sectionNotes:Array<Dynamic> = cast chartSection.sectionNotes;
+							parsedNotes += sectionNotes.length;
+						}
 					}
+
+					// Show progress periodically
+					showMergeProgress();
 				}
 			}
 
-			// Merge events - append all events
+			// Merge events - append all events using concat
 			if (chart.events != null)
 			{
 				var eventsArray:Array<Dynamic> = cast chart.events;
 				var mergedEvents:Array<Dynamic> = cast merged.events;
 
-				for (event in eventsArray)
+				// Use concat for faster array joining
+				merged.events = mergedEvents.concat(eventsArray);
+				parsedEvents += eventsArray.length;
+				showMergeProgress();
+			}
+		}
+
+		// Count total notes and events
+		var totalNotes:Int = 0;
+		var totalEvents:Int = 0;
+
+		if (merged.notes != null)
+		{
+			var mergedNotes:Array<Dynamic> = cast merged.notes;
+			for (section in mergedNotes)
+			{
+				if (section.sectionNotes != null)
 				{
-					mergedEvents.push(event);
+					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+					totalNotes += sectionNotes.length;
 				}
 			}
 		}
+
+		if (merged.events != null)
+		{
+			var mergedEvents:Array<Dynamic> = cast merged.events;
+			totalEvents = mergedEvents.length;
+		}
+
+		trace("Merged " + totalNotes + " notes and " + totalEvents + " events");
+
+		// JS Engine approach: Always re-enable GC and force collection
+		#if sys
+		cpp.vm.Gc.enable(true);
+		cpp.vm.Gc.run(true);
+		#end
 
 		// Return merged as JSON string
 		return Json.stringify(merged, null, "\t");

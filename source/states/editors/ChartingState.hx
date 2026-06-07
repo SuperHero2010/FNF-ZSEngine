@@ -325,7 +325,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		timeLine.screenCenter(Y);
 		timeLine.scrollFactor.set();
 		add(timeLine);
-		
+
 		var startX:Float = gridBg.x;
 		var startY:Float = FlxG.height/2;
 		vortexIndicator.visible = strumLineNotes.visible = strumLineNotes.active = vortexEnabled;
@@ -2170,24 +2170,24 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				songName = 'd:' + songName.substr(2);
 			#end
 
-        loadedChart = Song.loadFromJsonStreaming(filePath, songName);
-    }
-    else
-    {
-        var songName:String = Paths.formatToSongPath(songOrPath);
-        var diffSuffix = (diff != null && diff.length > 0 && diff != Difficulty.getDefault().toLowerCase()) ? "-" + diff : "";
-        SongJson.skipChart = false; // Chart editor needs full chart data
-        SongJson.log = true;
-        var jsonPath = Paths.json((songName.toLowerCase() + diffSuffix).toLowerCase());
-        var jsonSize = sys.FileSystem.exists(jsonPath) ? sys.FileSystem.stat(jsonPath).size : 0;
-        trace('Loading ${jsonSize} bytes');
-        loadedChart = Song.loadFromJson(songName.toLowerCase() + diffSuffix, songName.toLowerCase());
-        SongJson.log = false;
-    }
+        	loadedChart = Song.loadFromJsonStreaming(filePath, songName);
+		}
+		else
+		{
+			var songName:String = Paths.formatToSongPath(songOrPath);
+			var diffSuffix = (diff != null && diff.length > 0 && diff != Difficulty.getDefault().toLowerCase()) ? "-" + diff : "";
+			SongJson.skipChart = false; // Chart editor needs full chart data
+			SongJson.log = true;
+			var jsonPath = Paths.json((songName.toLowerCase() + diffSuffix).toLowerCase());
+			var jsonSize = sys.FileSystem.exists(jsonPath) ? sys.FileSystem.stat(jsonPath).size : 0;
+			trace('Loading ${jsonSize} bytes');
+			loadedChart = Song.loadFromJson(songName.toLowerCase() + diffSuffix, songName.toLowerCase());
+			SongJson.log = false;
+		}
 
-    if (loadedChart != null)
-        loadChartComplete(loadedChart);
-}
+		if (loadedChart != null)
+			loadChartComplete(loadedChart);
+	}
 
 	function loadChartComplete(chart:SwagSong):Void
 	{
@@ -3058,6 +3058,23 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var nextSection:Int = curSec + 1;
 		if(nextSection < PlayState.SONG.notes.length)
+		{
+			loadSection(nextSection);
+			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[nextSection] - Conductor.offset + 0.000001;
+		}
+	}
+
+	function jumpNextSectionUpgraded(sec:Int)
+	{
+		// Update current section notes BEFORE jumping
+		updateCurrentSectionNotesOptimized();
+
+		var nextSection:Int = curSec + sec;
+
+		if(nextSection < 0) nextSection = 0;
+		if(nextSection >= PlayState.SONG.notes.length) nextSection = PlayState.SONG.notes.length - 1;
+
+		if(PlayState.SONG.notes[nextSection] != null)
 		{
 			loadSection(nextSection);
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[nextSection] - Conductor.offset + 0.000001;
@@ -4246,6 +4263,126 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}, 120);
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
+
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 90, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 20, objY + 90, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 40, objY + 90, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 160, objY + 90, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
+			var value1:Int = Std.int(CopyLastSection.value);
+			var value2:Int = Std.int(CopyNextSection.value);
+			var repeatTimes:Int = Std.int(CopyTimes.value);
+
+			if(value1 == 0 || repeatTimes == 0) {
+				jumpNextSectionUpgraded(1);
+				return;
+			}
+
+			saveUndo('Copy Multi Section');
+
+			// JS Engine approach: Force major GC before massive operation
+			#if sys
+			cpp.vm.Gc.run(true);
+
+			// Calculate total new notes for GC optimization decision
+			var totalNewNotes:Int = 0;
+			for(rep in 0...repeatTimes) {
+				for(i in 0...value2) {
+					var sourceSectionIndex = curSec - value1 + i;
+					if(sourceSectionIndex >= 0 && sourceSectionIndex < PlayState.SONG.notes.length) {
+						if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
+							totalNewNotes += PlayState.SONG.notes[sourceSectionIndex].sectionNotes.length;
+						}
+					}
+				}
+			}
+
+			// Conditional GC disabling for massive operations (JS Engine method)
+			if (totalNewNotes > 1000000) {
+				cpp.vm.Gc.enable(false);
+			}
+			#end
+
+			// Pre-allocate arrays for each target section (optimization)
+			var targetNotesMap:Map<Int, Array<Array<Dynamic>>> = new Map();
+
+			for(rep in 0...repeatTimes) {
+				for(i in 0...value2) {
+					var sourceSectionIndex = curSec - value1 + i;
+					var targetSectionIndex = curSec + i;
+
+					if(sourceSectionIndex >= 0 && targetSectionIndex < PlayState.SONG.notes.length) {
+						if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
+							if(PlayState.SONG.notes[targetSectionIndex] != null) {
+								if(PlayState.SONG.notes[targetSectionIndex].sectionNotes == null) {
+									PlayState.SONG.notes[targetSectionIndex].sectionNotes = [];
+								}
+
+								// Pre-allocate array for this target section
+								if(!targetNotesMap.exists(targetSectionIndex)) {
+									targetNotesMap.set(targetSectionIndex, []);
+								}
+								var targetNotes = targetNotesMap.get(targetSectionIndex);
+
+								for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
+								{
+									var strum = note[0] + Conductor.stepCrochet * (getSectionBeats(sourceSectionIndex) * 4 * (targetSectionIndex - sourceSectionIndex));
+
+									var data = note[1];
+									if (swapNotes) data = Std.int(note[1] + 4) % 8;
+									var copiedNote:Array<Dynamic> = [strum, data, note[2]];
+									if(note.length > 3) copiedNote.push(note[3]);
+
+									targetNotes.push(copiedNote);
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Concat all pre-allocated arrays to target sections (optimization)
+			for(targetSectionIndex => newNotes in targetNotesMap) {
+				if(PlayState.SONG.notes[targetSectionIndex] != null && PlayState.SONG.notes[targetSectionIndex].sectionNotes != null) {
+					PlayState.SONG.notes[targetSectionIndex].sectionNotes = PlayState.SONG.notes[targetSectionIndex].sectionNotes.concat(newNotes);
+				}
+			}
+
+			targetNotesMap = null;
+
+			updateChartData();
+			_cacheSections();
+			jumpNextSectionUpgraded(value2);
+			// JS Engine approach: Always re-enable GC and force collection
+			#if sys
+			cpp.vm.Gc.enable(true);
+			cpp.vm.Gc.run(true);
+			#end
+		}, 120, 40);
+		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
+		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
+
+		CopyLastSection.onChange = function(oldValue:String, newValue:String) {
+			updateCopyMultiSectionText();
+		};
+		CopyNextSection.onChange = function(oldValue:String, newValue:String) {
+			updateCopyMultiSectionText();
+		};
+		CopyTimes.onChange = function(oldValue:String, newValue:String) {
+			updateCopyMultiSectionText();
+		};
+
+		tab_group.add(CopyLastSection);
+		tab_group.add(CopyNextSection);
+		tab_group.add(CopyTimes);
+		tab_group.add(CopyMultiSection);
+
+		function updateCopyMultiSectionText()
+		{
+			if (CopyMultiSection != null) {
+				CopyMultiSection.label = "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times";
+			}
+		}
 	}
 
 	function reloadNotesDropdowns()
