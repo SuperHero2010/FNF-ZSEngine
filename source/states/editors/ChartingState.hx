@@ -4278,8 +4278,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				return;
 			}
 
-			saveUndo('Copy Multi Section');
-
 			// JS Engine approach: Force major GC before massive operation
 			#if sys
 			cpp.vm.Gc.run(true);
@@ -4326,7 +4324,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 								for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
 								{
-									var strum = note[0] + Conductor.stepCrochet * (getSectionBeats(sourceSectionIndex) * 4 * (targetSectionIndex - sourceSectionIndex));
+									var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats != null ? PlayState.SONG.notes[sourceSectionIndex].sectionBeats : 4;
+									var strum = note[0] + Conductor.stepCrochet * (sourceSectionBeats * 4 * (targetSectionIndex - sourceSectionIndex));
 
 									var data = note[1];
 									if (swapNotes) data = Std.int(note[1] + 4) % 8;
@@ -4362,6 +4361,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
 
+		function updateCopyMultiSectionText()
+		{
+			if (CopyMultiSection != null) {
+				CopyMultiSection.label = "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times";
+			}
+		}
+
 		CopyLastSection.onChange = function(oldValue:String, newValue:String) {
 			updateCopyMultiSectionText();
 		};
@@ -4376,13 +4382,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(CopyNextSection);
 		tab_group.add(CopyTimes);
 		tab_group.add(CopyMultiSection);
-
-		function updateCopyMultiSectionText()
-		{
-			if (CopyMultiSection != null) {
-				CopyMultiSection.label = "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times";
-			}
-		}
 	}
 
 	function reloadNotesDropdowns()
