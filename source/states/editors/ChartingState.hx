@@ -4324,7 +4324,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 								for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
 								{
-									var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats != null ? PlayState.SONG.notes[sourceSectionIndex].sectionBeats : 4;
+									var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats;
+									if(Math.isNaN(sourceSectionBeats) || sourceSectionBeats <= 0) sourceSectionBeats = 4;
 									var strum = note[0] + Conductor.stepCrochet * (sourceSectionBeats * 4 * (targetSectionIndex - sourceSectionIndex));
 
 									var data = note[1];
