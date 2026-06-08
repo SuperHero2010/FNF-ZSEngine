@@ -4268,21 +4268,29 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
 		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 125, 1, 1, 0, 16384, 0);
 		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+			trace('[TRACE] CopyMultiSection button CLICKED');
+
 			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
 
+			trace('[TRACE] swapNotes=' + swapNotes + ', lastCount=' + lastCount + ', nextCount=' + nextCount + ', repeatTimes=' + repeatTimes);
+
 			if (lastCount <= 0 || repeatTimes <= 0)
 			{
+				trace('[TRACE] lastCount<=0 or repeatTimes<=0, calling jumpNextSectionUpgraded(1)');
 				jumpNextSectionUpgraded(1);
 				return;
 			}
 
 			// Source section is fixed
 			var sourceIndex:Int = curSec - lastCount;
+			trace('[TRACE] sourceIndex=' + sourceIndex + ', curSec=' + curSec);
+
 			if (sourceIndex < 0 || sourceIndex >= PlayState.SONG.notes.length)
 			{
+				trace('[TRACE] ERROR: sourceIndex out of range!');
 				showOutput("Not enough sections before current to copy from!", true);
 				return;
 			}
@@ -4290,34 +4298,57 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var sourceSection = PlayState.SONG.notes[sourceIndex];
 			if (sourceSection == null || sourceSection.sectionNotes == null)
 			{
+				trace('[TRACE] ERROR: sourceSection is null or has no sectionNotes');
 				showOutput("Source section has no notes to copy!", true);
 				return;
 			}
 
+			trace('[TRACE] sourceSection.sectionNotes.length=' + sourceSection.sectionNotes.length);
+
 			// Pre‑calculate total new notes for GC decision
 			var totalNewNotes:Int = sourceSection.sectionNotes.length * (nextCount * repeatTimes);
+			trace('[TRACE] totalNewNotes=' + totalNewNotes);
 
 			#if sys
-			if (totalNewNotes > 1000000) cpp.vm.Gc.enable(false);
+			if (totalNewNotes > 1000000)
+			{
+				trace('[TRACE] totalNewNotes > 1,000,000 - disabling GC');
+				cpp.vm.Gc.enable(false);
+			}
 			#end
 
 			// Target sections start from curSec + 1
 			var targetStart:Int = curSec + 1;
 			var sourceBeats:Float = sourceSection.sectionBeats;
 			if (Math.isNaN(sourceBeats) || sourceBeats <= 0) sourceBeats = 4;
+			trace('[TRACE] targetStart=' + targetStart + ', sourceBeats=' + sourceBeats);
+
+			var totalTargets:Int = 0;
 
 			for (rep in 0...repeatTimes)
 			{
 				for (offset in 0...nextCount)
 				{
 					var targetIndex:Int = targetStart + (rep * nextCount) + offset;
-					if (targetIndex >= PlayState.SONG.notes.length) break;
+					if (targetIndex >= PlayState.SONG.notes.length)
+					{
+						trace('[TRACE] targetIndex=' + targetIndex + ' >= song length, breaking');
+						break;
+					}
+
+					trace('[TRACE] Processing rep=' + rep + ', offset=' + offset + ', targetIndex=' + targetIndex);
 
 					var targetSection = PlayState.SONG.notes[targetIndex];
-					if (targetSection == null) continue;
+					if (targetSection == null)
+					{
+						trace('[TRACE] targetSection is null, skipping');
+						continue;
+					}
 
 					var timeShift:Float = Conductor.stepCrochet * (sourceBeats * 4 * (targetIndex - sourceIndex));
 					var newNotes:Array<Array<Dynamic>> = [];
+
+					trace('[TRACE] timeShift=' + timeShift + ', copying ' + sourceSection.sectionNotes.length + ' notes');
 
 					for (note in sourceSection.sectionNotes)
 					{
@@ -4330,16 +4361,24 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						newNotes.push(copiedNote);
 					}
 
+					trace('[TRACE] Created ' + newNotes.length + ' new notes, adding to targetSection');
 					targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotes);
+					totalTargets++;
 				}
 			}
 
+			trace('[TRACE] Total targets processed: ' + totalTargets);
+
 			updateChartData();
 			_cacheSections();
+			trace('[TRACE] updateChartData and _cacheSections complete');
 
 			// Jump to section after the last copied section
 			var finalSection:Int = curSec + (nextCount * repeatTimes);
 			if (finalSection >= PlayState.SONG.notes.length) finalSection = PlayState.SONG.notes.length - 1;
+			if (finalSection < 0) finalSection = 0;
+
+			trace('[TRACE] Jumping to finalSection=' + finalSection + ' (was curSec=' + curSec + ')');
 
 			curSec = finalSection;
 			loadSection(curSec);
@@ -4349,11 +4388,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			#if sys
 			if (totalNewNotes > 1000000)
 			{
+				trace('[TRACE] Re-enabling GC');
 				cpp.vm.Gc.enable(true);
 				cpp.vm.Gc.run(true);
 			}
 			#end
 
+			trace('[TRACE] CopyMultiSection COMPLETE');
 			showOutput("Copied sections successfully");
 		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;

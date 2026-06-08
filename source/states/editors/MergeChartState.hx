@@ -139,72 +139,120 @@ class MergeChartState extends MusicBeatState
 
 	private function mergeCharts(chartPaths:Array<String>)
 	{
-		if (chartPaths.length < 2) return;
+		trace('[TRACE] mergeCharts() called with ' + chartPaths.length + ' charts');
 
-		// Use first chart as the base
+		if (chartPaths.length < 2)
+		{
+			trace('[TRACE] mergeCharts: Less than 2 charts, returning');
+			return;
+		}
+
 		var currentMergedPath:String = chartPaths[0];
+		trace('[TRACE] mergeCharts: Starting with first chart: ' + currentMergedPath);
 		var totalCharts:Int = chartPaths.length;
 
 		for (i in 1...totalCharts)
 		{
+			trace('[TRACE] mergeCharts: Processing chart ' + (i+1) + '/' + totalCharts);
 			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
 
-			// Load only TWO charts at a time
+			trace('[TRACE] mergeCharts: Loading base chart: ' + currentMergedPath);
 			var baseData = loadChartFromFileWithProgress(currentMergedPath);
-			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
-
-			if (baseData == null || nextData == null)
+			if (baseData == null)
 			{
+				trace('[TRACE] mergeCharts: ERROR - baseData is null');
+				showMergingProgress(false, 'Failed to load base chart');
+				return;
+			}
+			trace('[TRACE] mergeCharts: Base chart loaded, size: ' + baseData.length + ' bytes');
+
+			trace('[TRACE] mergeCharts: Loading next chart: ' + chartPaths[i]);
+			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
+			if (nextData == null)
+			{
+				trace('[TRACE] mergeCharts: ERROR - nextData is null');
 				showMergingProgress(false, 'Failed to load chart ${i+1}');
 				return;
 			}
+			trace('[TRACE] mergeCharts: Next chart loaded, size: ' + nextData.length + ' bytes');
 
+			trace('[TRACE] mergeCharts: Parsing base chart...');
 			SongJson.log = true;
 			var baseChart:Dynamic = SongJson.parse(baseData);
+			trace('[TRACE] mergeCharts: Base chart parsed');
+
+			trace('[TRACE] mergeCharts: Parsing next chart...');
 			var nextChart:Dynamic = SongJson.parse(nextData);
 			SongJson.log = false;
+			trace('[TRACE] mergeCharts: Next chart parsed');
 
-			// Merge nextChart into baseChart
+			trace('[TRACE] mergeCharts: Merging into base chart...');
 			mergeInto(baseChart, nextChart);
+			trace('[TRACE] mergeCharts: Merge complete');
 
-			// Save intermediate result
 			var tempPath = "temp_merged_" + i + ".json";
+			trace('[TRACE] mergeCharts: Saving intermediate result to ' + tempPath);
 			var mergedJson:String = Json.stringify(baseChart, null, "\t");
 			File.saveContent(tempPath, mergedJson);
+			trace('[TRACE] mergeCharts: Saved ' + mergedJson.length + ' bytes');
 
 			// Free memory
 			baseData = null;
 			nextData = null;
 			baseChart = null;
 			nextChart = null;
-			#if cpp cpp.vm.Gc.run(true); #end
+			#if cpp
+			trace('[TRACE] mergeCharts: Running GC');
+			cpp.vm.Gc.run(true);
+			#end
 
 			currentMergedPath = tempPath;
+			trace('[TRACE] mergeCharts: Current merged path updated to ' + currentMergedPath);
 		}
 
-		// Move final result to user's desired location
+		trace('[TRACE] mergeCharts: Loading final merged data from ' + currentMergedPath);
 		var finalData = File.getContent(currentMergedPath);
+		trace('[TRACE] mergeCharts: Final data size: ' + finalData.length + ' bytes');
+
+		trace('[TRACE] mergeCharts: Calling saveMergedChart');
 		saveMergedChart(finalData);
 
 		// Clean up temp files
+		trace('[TRACE] mergeCharts: Cleaning up temp files');
 		for (i in 1...totalCharts)
 		{
 			var tempPath = "temp_merged_" + i + ".json";
 			if (FileSystem.exists(tempPath))
+			{
 				FileSystem.deleteFile(tempPath);
+				trace('[TRACE] mergeCharts: Deleted ' + tempPath);
+			}
 		}
+
+		trace('[TRACE] mergeCharts: COMPLETE');
 	}
 
 	private function mergeInto(base:Dynamic, next:Dynamic):Void
 	{
-		if (base.notes == null) base.notes = [];
-		if (base.events == null) base.events = [];
+		trace('[TRACE] mergeInto() called');
+
+		if (base.notes == null)
+		{
+			trace('[TRACE] mergeInto: base.notes was null, creating empty array');
+			base.notes = [];
+		}
+		if (base.events == null)
+		{
+			trace('[TRACE] mergeInto: base.events was null, creating empty array');
+			base.events = [];
+		}
 
 		// Merge notes section-by-section
 		if (next.notes != null)
 		{
 			var nextNotes:Array<Dynamic> = cast next.notes;
 			var baseNotes:Array<Dynamic> = cast base.notes;
+			trace('[TRACE] mergeInto: nextNotes length=' + nextNotes.length + ', baseNotes length=' + baseNotes.length);
 
 			for (sectionIndex in 0...nextNotes.length)
 			{
@@ -216,14 +264,20 @@ class MergeChartState extends MusicBeatState
 					{
 						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
+						trace('[TRACE] mergeInto: Section ' + sectionIndex + ' - adding ' + nextSectionNotes.length + ' notes');
 						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
 					}
 				}
 				else
 				{
+					trace('[TRACE] mergeInto: Section ' + sectionIndex + ' - pushing new section');
 					baseNotes.push(nextSection);
 				}
 			}
+		}
+		else
+		{
+			trace('[TRACE] mergeInto: next.notes is null');
 		}
 
 		// Merge events
@@ -231,32 +285,38 @@ class MergeChartState extends MusicBeatState
 		{
 			var nextEvents:Array<Dynamic> = cast next.events;
 			var baseEvents:Array<Dynamic> = cast base.events;
+			trace('[TRACE] mergeInto: Adding ' + nextEvents.length + ' events');
 			base.events = baseEvents.concat(nextEvents);
 		}
+		else
+		{
+			trace('[TRACE] mergeInto: next.events is null');
+		}
+
+		trace('[TRACE] mergeInto() COMPLETE');
 	}
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
 	{
+		trace('[TRACE] showMergingProgress called: show=' + show + ', message=' + message + ', force=' + force);
+		
 		progressBg.visible = show;
 		progressText.visible = show;
 		progressText.text = message;
-
-		// Force a unique prefix for merge status
-		var uniqueMessage = "[MERGE-STATUS] " + message;
 
 		if (Main.isConsoleAvailable)
 		{
 			var currentTime = haxe.Timer.stamp() * 1000;
 			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
 			{
-				Sys.stdout().writeString('\x1b[0G' + uniqueMessage);
+				Sys.stdout().writeString('\x1b[0G' + message);
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
 		}
 		else if (force)
 		{
-			Sys.println(uniqueMessage);
+			Sys.println(message);
 		}
 	}
 
@@ -264,6 +324,8 @@ class MergeChartState extends MusicBeatState
 	var parsedEvents:Int = 0;
 	function showMergeProgress(force:Bool = false)
 	{
+		trace('[TRACE] showMergeProgress called: force=' + force + ', parsedNotes=' + parsedNotes + ', parsedEvents=' + parsedEvents);
+		
 		if (Main.isConsoleAvailable)
 		{
 			var currentTime = haxe.Timer.stamp() * 1000;
@@ -271,9 +333,7 @@ class MergeChartState extends MusicBeatState
 			{
 				var totalNotes = parsedNotes;
 				var totalEvents = parsedEvents;
-				// Unique prefix to distinguish from SongJson
-				var uniqueMessage = '[MERGE-PROGRESS] $totalNotes notes, $totalEvents events';
-				Sys.stdout().writeString('\x1b[0G' + uniqueMessage);
+				Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events');
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
@@ -282,7 +342,7 @@ class MergeChartState extends MusicBeatState
 		{
 			var totalNotes = parsedNotes;
 			var totalEvents = parsedEvents;
-			Sys.println('[MERGE-PROGRESS] $totalNotes notes, $totalEvents events');
+			Sys.println('Merging $totalNotes notes and $totalEvents events');
 		}
 	}
 
