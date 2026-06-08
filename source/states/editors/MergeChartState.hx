@@ -241,19 +241,22 @@ class MergeChartState extends MusicBeatState
 		progressText.visible = show;
 		progressText.text = message;
 
+		// Force a unique prefix for merge status
+		var uniqueMessage = "[MERGE-STATUS] " + message;
+
 		if (Main.isConsoleAvailable)
 		{
 			var currentTime = haxe.Timer.stamp() * 1000;
 			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
 			{
-				Sys.stdout().writeString('\x1b[0G' + message);
+				Sys.stdout().writeString('\x1b[0G' + uniqueMessage);
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
 		}
 		else if (force)
 		{
-			Sys.println(message);
+			Sys.println(uniqueMessage);
 		}
 	}
 
@@ -268,9 +271,9 @@ class MergeChartState extends MusicBeatState
 			{
 				var totalNotes = parsedNotes;
 				var totalEvents = parsedEvents;
-
-				// Show both notes and events being inserted, like reloadNotes()
-				Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events');
+				// Unique prefix to distinguish from SongJson
+				var uniqueMessage = '[MERGE-PROGRESS] $totalNotes notes, $totalEvents events';
+				Sys.stdout().writeString('\x1b[0G' + uniqueMessage);
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
@@ -279,7 +282,7 @@ class MergeChartState extends MusicBeatState
 		{
 			var totalNotes = parsedNotes;
 			var totalEvents = parsedEvents;
-			Sys.println('Merging $totalNotes notes and $totalEvents events');
+			Sys.println('[MERGE-PROGRESS] $totalNotes notes, $totalEvents events');
 		}
 	}
 

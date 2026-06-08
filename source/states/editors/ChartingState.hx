@@ -4264,128 +4264,84 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 80, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 100, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 120, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 100, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 85, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 125, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
 
-			if (lastCount == 0 || repeatTimes == 0)
+			if (lastCount <= 0 || repeatTimes <= 0)
 			{
 				jumpNextSectionUpgraded(1);
 				return;
 			}
 
-			// Store original current section – do not change it during copying
-			var startSec:Int = curSec;
-			var sourceStart:Int = startSec - lastCount;
-
-			// Ensure source sections exist
-			if (sourceStart < 0)
+			// Source section is fixed
+			var sourceIndex:Int = curSec - lastCount;
+			if (sourceIndex < 0 || sourceIndex >= PlayState.SONG.notes.length)
 			{
 				showOutput("Not enough sections before current to copy from!", true);
 				return;
 			}
 
-			// Pre‑calculate total notes for GC decisions (optional)
-			var totalNewNotes:Int = 0;
-			for (i in 0...repeatTimes)
-				for (j in 0...nextCount)
-				{
-					var srcIdx = sourceStart + (j % lastCount);
-					if (srcIdx >= 0 && srcIdx < PlayState.SONG.notes.length &&
-						PlayState.SONG.notes[srcIdx] != null &&
-						PlayState.SONG.notes[srcIdx].sectionNotes != null)
-					{
-						totalNewNotes += PlayState.SONG.notes[srcIdx].sectionNotes.length;
-					}
-				}
+			var sourceSection = PlayState.SONG.notes[sourceIndex];
+			if (sourceSection == null || sourceSection.sectionNotes == null)
+			{
+				showOutput("Source section has no notes to copy!", true);
+				return;
+			}
+
+			// Pre‑calculate total new notes for GC decision
+			var totalNewNotes:Int = sourceSection.sectionNotes.length * (nextCount * repeatTimes);
 
 			#if sys
 			if (totalNewNotes > 1000000) cpp.vm.Gc.enable(false);
 			#end
 
-			// Prepare a map for target sections (avoid repeated concat inside loops)
-			var targetMap:Map<Int, Array<Array<Dynamic>>> = new Map();
-
-			// Target section index – starts right after the current section
-			var targetSec:Int = startSec + 1;
+			// Target sections start from curSec + 1
+			var targetStart:Int = curSec + 1;
+			var sourceBeats:Float = sourceSection.sectionBeats;
+			if (Math.isNaN(sourceBeats) || sourceBeats <= 0) sourceBeats = 4;
 
 			for (rep in 0...repeatTimes)
 			{
 				for (offset in 0...nextCount)
 				{
-					// Source section cycles through the last `lastCount` sections
-					var srcIdx:Int = sourceStart + (offset % lastCount);
-					if (srcIdx < 0 || srcIdx >= PlayState.SONG.notes.length) continue;
+					var targetIndex:Int = targetStart + (rep * nextCount) + offset;
+					if (targetIndex >= PlayState.SONG.notes.length) break;
 
-					var sourceSection = PlayState.SONG.notes[srcIdx];
-					if (sourceSection == null || sourceSection.sectionNotes == null) continue;
+					var targetSection = PlayState.SONG.notes[targetIndex];
+					if (targetSection == null) continue;
 
-					// Target section must exist – if not, create it (optional, but safer)
-					if (targetSec >= PlayState.SONG.notes.length)
-					{
-						// Create a new empty section (copy structure from last section)
-						var lastSec = PlayState.SONG.notes[PlayState.SONG.notes.length - 1];
-						var newSection:SwagSection = {
-							sectionNotes: [],
-							sectionBeats: lastSec.sectionBeats,
-							mustHitSection: lastSec.mustHitSection,
-							bpm: lastSec.bpm,
-							changeBPM: false,
-							altAnim: lastSec.altAnim,
-							gfSection: lastSec.gfSection
-						};
-						PlayState.SONG.notes.push(newSection);
-						_cacheSections();
-					}
-
-					if (!targetMap.exists(targetSec)) targetMap.set(targetSec, []);
-
-					var targetNotes = targetMap.get(targetSec);
-					var sectionBeats:Float = sourceSection.sectionBeats;
-					if (Math.isNaN(sectionBeats) || sectionBeats <= 0) sectionBeats = 4;
+					var timeShift:Float = Conductor.stepCrochet * (sourceBeats * 4 * (targetIndex - sourceIndex));
+					var newNotes:Array<Array<Dynamic>> = [];
 
 					for (note in sourceSection.sectionNotes)
 					{
-						var timeShift = Conductor.stepCrochet * (sectionBeats * 4 * (targetSec - srcIdx));
-						var newStrum = note[0] + timeShift;
-
-						var newData = note[1];
-						if (swapNotes) newData = Std.int((newData + 4) % 8);
+						var newStrum:Float = note[0] + timeShift;
+						var newData:Int = note[1];
+						if (swapNotes) newData = (newData + 4) % 8;
 
 						var copiedNote:Array<Dynamic> = [newStrum, newData, note[2]];
 						if (note.length > 3) copiedNote.push(note[3]);
-						targetNotes.push(copiedNote);
+						newNotes.push(copiedNote);
 					}
 
-					targetSec++;
+					targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotes);
 				}
 			}
 
-			// Apply all copied notes using concat (bulk operation)
-			for (secIdx => newNotes in targetMap)
-			{
-				var section = PlayState.SONG.notes[secIdx];
-				if (section != null)
-				{
-					section.sectionNotes = section.sectionNotes.concat(newNotes);
-				}
-			}
-
-			targetMap = null;
 			updateChartData();
 			_cacheSections();
 
-			// Jump to the section after the last copied block
-			var finalSec:Int = startSec + (nextCount * repeatTimes) + 1;
-			if (finalSec >= PlayState.SONG.notes.length) finalSec = PlayState.SONG.notes.length - 1;
-			if (finalSec < 0) finalSec = 0;
+			// Jump to section after the last copied section
+			var finalSection:Int = curSec + (nextCount * repeatTimes);
+			if (finalSection >= PlayState.SONG.notes.length) finalSection = PlayState.SONG.notes.length - 1;
 
-			curSec = finalSec;
+			curSec = finalSection;
 			loadSection(curSec);
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[curSec] - Conductor.offset + 0.000001;
 			updateCurrentSectionNotesOptimized();
