@@ -14,6 +14,7 @@ import backend.ui.PsychUIButton;
 import states.editors.content.FileDialogHandler;
 
 import haxe.Json;
+import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
 
