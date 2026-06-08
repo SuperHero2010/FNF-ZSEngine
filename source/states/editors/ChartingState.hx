@@ -4264,10 +4264,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 90, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 20, objY + 90, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 40, objY + 90, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 160, objY + 90, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 120, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 40, objY + 120, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 80, objY + 120, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 120, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
 			var value1:Int = Std.int(CopyLastSection.value);
 			var value2:Int = Std.int(CopyNextSection.value);
@@ -4278,19 +4278,20 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				return;
 			}
 
+			// JS Engine approach: Calculate total sections to copy
+			var totalSections:Int = value2 * repeatTimes;
+
 			// JS Engine approach: Force major GC before massive operation
 			#if sys
 			cpp.vm.Gc.run(true);
 
 			// Calculate total new notes for GC optimization decision
 			var totalNewNotes:Int = 0;
-			for(rep in 0...repeatTimes) {
-				for(i in 0...value2) {
-					var sourceSectionIndex = curSec - value1 + i;
-					if(sourceSectionIndex >= 0 && sourceSectionIndex < PlayState.SONG.notes.length) {
-						if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
-							totalNewNotes += PlayState.SONG.notes[sourceSectionIndex].sectionNotes.length;
-						}
+			for(i in 0...totalSections) {
+				var sourceSectionIndex = curSec - value1;
+				if(sourceSectionIndex >= 0 && sourceSectionIndex < PlayState.SONG.notes.length) {
+					if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
+						totalNewNotes += PlayState.SONG.notes[sourceSectionIndex].sectionNotes.length;
 					}
 				}
 			}
@@ -4304,40 +4305,44 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			// Pre-allocate arrays for each target section (optimization)
 			var targetNotesMap:Map<Int, Array<Array<Dynamic>>> = new Map();
 
-			for(rep in 0...repeatTimes) {
-				for(i in 0...value2) {
-					var sourceSectionIndex = curSec - value1 + i;
-					var targetSectionIndex = curSec + i;
+			// JS Engine approach: Loop through total sections, copying from source to current section
+			for(i in 0...totalSections) {
+				var sourceSectionIndex = curSec - value1;
+				var targetSectionIndex = curSec;
 
-					if(sourceSectionIndex >= 0 && targetSectionIndex < PlayState.SONG.notes.length) {
-						if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
-							if(PlayState.SONG.notes[targetSectionIndex] != null) {
-								if(PlayState.SONG.notes[targetSectionIndex].sectionNotes == null) {
-									PlayState.SONG.notes[targetSectionIndex].sectionNotes = [];
-								}
+				if(sourceSectionIndex >= 0 && targetSectionIndex < PlayState.SONG.notes.length) {
+					if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
+						if(PlayState.SONG.notes[targetSectionIndex] != null) {
+							if(PlayState.SONG.notes[targetSectionIndex].sectionNotes == null) {
+								PlayState.SONG.notes[targetSectionIndex].sectionNotes = [];
+							}
 
-								// Pre-allocate array for this target section
-								if(!targetNotesMap.exists(targetSectionIndex)) {
-									targetNotesMap.set(targetSectionIndex, []);
-								}
-								var targetNotes = targetNotesMap.get(targetSectionIndex);
+							// Pre-allocate array for this target section
+							if(!targetNotesMap.exists(targetSectionIndex)) {
+								targetNotesMap.set(targetSectionIndex, []);
+							}
+							var targetNotes = targetNotesMap.get(targetSectionIndex);
 
-								for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
-								{
-									var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats;
-									if(Math.isNaN(sourceSectionBeats) || sourceSectionBeats <= 0) sourceSectionBeats = 4;
-									var strum = note[0] + Conductor.stepCrochet * (sourceSectionBeats * 4 * (targetSectionIndex - sourceSectionIndex));
+							for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
+							{
+								var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats;
+								if(Math.isNaN(sourceSectionBeats) || sourceSectionBeats <= 0) sourceSectionBeats = 4;
+								var strum = note[0] + Conductor.stepCrochet * (sourceSectionBeats * 4 * (targetSectionIndex - sourceSectionIndex));
 
-									var data = note[1];
-									if (swapNotes) data = Std.int(note[1] + 4) % 8;
-									var copiedNote:Array<Dynamic> = [strum, data, note[2]];
-									if(note.length > 3) copiedNote.push(note[3]);
+								var data = note[1];
+								if (swapNotes) data = Std.int(note[1] + 4) % 8;
+								var copiedNote:Array<Dynamic> = [strum, data, note[2]];
+								if(note.length > 3) copiedNote.push(note[3]);
 
-									targetNotes.push(copiedNote);
-								}
+								targetNotes.push(copiedNote);
 							}
 						}
 					}
+				}
+
+				// Move to next section for next iteration
+				if(curSec < PlayState.SONG.notes.length - 1) {
+					curSec++;
 				}
 			}
 
@@ -4352,13 +4357,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			updateChartData();
 			_cacheSections();
-			jumpNextSectionUpgraded(value2);
+			jumpNextSectionUpgraded(totalSections);
 			// JS Engine approach: Always re-enable GC and force collection
 			#if sys
 			cpp.vm.Gc.enable(true);
 			cpp.vm.Gc.run(true);
 			#end
-		}, 120, 40);
+		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
 
@@ -4369,12 +4374,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 		}
 
+		CopyLastSection.onValueChange = updateCopyMultiSectionText;
 		CopyLastSection.onChange = function(oldValue:String, newValue:String) {
 			updateCopyMultiSectionText();
 		};
+		CopyNextSection.onValueChange = updateCopyMultiSectionText;
 		CopyNextSection.onChange = function(oldValue:String, newValue:String) {
 			updateCopyMultiSectionText();
 		};
+		CopyTimes.onValueChange = updateCopyMultiSectionText;
 		CopyTimes.onChange = function(oldValue:String, newValue:String) {
 			updateCopyMultiSectionText();
 		};

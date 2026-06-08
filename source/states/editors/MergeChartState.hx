@@ -63,6 +63,13 @@ class MergeChartState extends MusicBeatState
 			chartBoxes.push(box);
 			add(box);
 		}
+		for (i in 0...5)
+		{
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 4, boxWidth, boxHeight, i);
+			box.setUnlocked(true);
+			chartBoxes.push(box);
+			add(box);
+		}
 
 		mergeButton = new PsychUIButton(FlxG.width / 2 - 75, startY + boxHeight + 350, "Merge Charts", onMergeButton);
 		mergeButton.resize(150, 40);
@@ -153,7 +160,7 @@ class MergeChartState extends MusicBeatState
 
 			try
 			{
-				var rawData:String = loadChartFromFile(path);
+				var rawData:String = loadChartFromFileWithProgress(path);
 				if (rawData != null)
 				{
 					allCharts.push(rawData);
@@ -183,7 +190,10 @@ class MergeChartState extends MusicBeatState
 		{
 			try
 			{
-				var chart:Dynamic = Json.parse(chartJson);
+				// Enable SongJson progress logging during parsing
+				SongJson.log = true;
+				var chart:Dynamic = SongJson.parse(chartJson);
+				SongJson.log = false;
 				if (chart.notes != null)
 				{
 					var notesArray:Array<Dynamic> = cast chart.notes;
@@ -202,7 +212,10 @@ class MergeChartState extends MusicBeatState
 					totalEventsEstimate += eventsArray.length;
 				}
 			}
-			catch (e:Dynamic) {}
+			catch (e:Dynamic) 
+			{
+				SongJson.log = false;
+			}
 		}
 
 		showMergingProgress(true, 'Merging ${totalNotesEstimate} notes and ${totalEventsEstimate} events');
@@ -253,7 +266,8 @@ class MergeChartState extends MusicBeatState
 				var totalNotes = parsedNotes;
 				var totalEvents = parsedEvents;
 
-				Sys.stdout().writeString('\x1b[0GLoading $totalNotes notes and $totalEvents events');
+				// Show both notes and events being inserted, like reloadNotes()
+				Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events');
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
@@ -262,7 +276,7 @@ class MergeChartState extends MusicBeatState
 		{
 			var totalNotes = parsedNotes;
 			var totalEvents = parsedEvents;
-			Sys.println('Loading $totalNotes notes and $totalEvents events');
+			Sys.println('Merging $totalNotes notes and $totalEvents events');
 		}
 	}
 
@@ -284,6 +298,30 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
+	private function loadChartFromFileWithProgress(path:String):String
+	{
+		var rawData:String = null;
+
+		#if MODS_ALLOWED
+		if(FileSystem.exists(path))
+		{
+			// Enable SongJson progress logging during loading
+			SongJson.log = true;
+			showMergingProgress(true, 'Loading chart: ${Path.withoutDirectory(path)}');
+			rawData = File.getContent(path);
+			SongJson.log = false;
+		}
+		#end
+
+		if (rawData == null)
+		{
+			trace("Could not read file: " + path);
+			return null;
+		}
+
+		return rawData;
+	}
+
 	private function mergeSongData(charts:Array<String>):String
 	{
 		if (charts.length == 0) return null;
@@ -294,11 +332,16 @@ class MergeChartState extends MusicBeatState
 		{
 			try
 			{
-				var chartObj:Dynamic = Json.parse(chartJson);
+				// Enable SongJson progress logging during parsing
+				SongJson.log = true;
+				showMergingProgress(true, 'Parsing chart JSON...');
+				var chartObj:Dynamic = SongJson.parse(chartJson);
+				SongJson.log = false;
 				chartObjects.push(chartObj);
 			}
 			catch (e:Dynamic)
 			{
+				SongJson.log = false;
 				trace("Error parsing JSON: " + e);
 				return null;
 			}
@@ -306,9 +349,10 @@ class MergeChartState extends MusicBeatState
 
 		if (chartObjects.length < 2) return null;
 
-		// Reset progress counters
+		// Reset progress counters and timing
 		parsedNotes = 0;
 		parsedEvents = 0;
+		syncTime = haxe.Timer.stamp() * 1000;
 
 		// JS Engine approach: Force major GC before massive operation
 		#if sys
