@@ -4108,11 +4108,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		jumpSectionButton.normalStyle.bgColor = FlxColor.CYAN;
 		jumpSectionButton.normalStyle.textColor = FlxColor.WHITE;
 
-		deleteSectionStart = new ZSUINumericStepper(objX, objY + 40, 1, 0, 0, 999999, 0, 60, false, true, false);
+		deleteSectionStart = new ZSUINumericStepper(objX, objY + 20, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionStart.name = 'section_start';
 		deleteSectionStart.onValueChange = updateDeleteButtonText;
 
-		deleteSectionEnd = new ZSUINumericStepper(objX, objY + 60, 1, 0, 0, 999999, 0, 60, false, true, false);
+		deleteSectionEnd = new ZSUINumericStepper(objX, objY + 40, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionEnd.name = 'section_end';
 		deleteSectionEnd.onValueChange = updateDeleteButtonText;
 
@@ -4146,7 +4146,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		deleteOpponentNotes = deleteOpponentCheckBox.checked;
 		*/
 
-		deleteSections = new PsychUIButton(objX, objY + 80, "Delete Section " + Std.int(deleteSectionStart.value) + " to " + Std.int(deleteSectionEnd.value), function()
+		deleteSections = new PsychUIButton(objX, objY + 60, "Delete Section " + Std.int(deleteSectionStart.value) + " to " + Std.int(deleteSectionEnd.value), function()
 		{
 			var sectionStart:Int = Std.int(deleteSectionStart.value);
 			var sectionEnd:Int = Std.int(deleteSectionEnd.value);
@@ -4264,105 +4264,141 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 120, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 40, objY + 120, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 80, objY + 120, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 120, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 80, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 100, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 120, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 100, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
-			var value1:Int = Std.int(CopyLastSection.value);
-			var value2:Int = Std.int(CopyNextSection.value);
+			var lastCount:Int = Std.int(CopyLastSection.value);
+			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
 
-			if(value1 == 0 || repeatTimes == 0) {
+			if (lastCount == 0 || repeatTimes == 0)
+			{
 				jumpNextSectionUpgraded(1);
 				return;
 			}
 
-			// JS Engine approach: Calculate total sections to copy
-			var totalSections:Int = value2 * repeatTimes;
+			// Store original current section – do not change it during copying
+			var startSec:Int = curSec;
+			var sourceStart:Int = startSec - lastCount;
 
-			// JS Engine approach: Force major GC before massive operation
-			#if sys
-			cpp.vm.Gc.run(true);
+			// Ensure source sections exist
+			if (sourceStart < 0)
+			{
+				showOutput("Not enough sections before current to copy from!", true);
+				return;
+			}
 
-			// Calculate total new notes for GC optimization decision
+			// Pre‑calculate total notes for GC decisions (optional)
 			var totalNewNotes:Int = 0;
-			for(i in 0...totalSections) {
-				var sourceSectionIndex = curSec - value1;
-				if(sourceSectionIndex >= 0 && sourceSectionIndex < PlayState.SONG.notes.length) {
-					if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
-						totalNewNotes += PlayState.SONG.notes[sourceSectionIndex].sectionNotes.length;
+			for (i in 0...repeatTimes)
+				for (j in 0...nextCount)
+				{
+					var srcIdx = sourceStart + (j % lastCount);
+					if (srcIdx >= 0 && srcIdx < PlayState.SONG.notes.length &&
+						PlayState.SONG.notes[srcIdx] != null &&
+						PlayState.SONG.notes[srcIdx].sectionNotes != null)
+					{
+						totalNewNotes += PlayState.SONG.notes[srcIdx].sectionNotes.length;
 					}
 				}
-			}
 
-			// Conditional GC disabling for massive operations (JS Engine method)
-			if (totalNewNotes > 1000000) {
-				cpp.vm.Gc.enable(false);
-			}
+			#if sys
+			if (totalNewNotes > 1000000) cpp.vm.Gc.enable(false);
 			#end
 
-			// Pre-allocate arrays for each target section (optimization)
-			var targetNotesMap:Map<Int, Array<Array<Dynamic>>> = new Map();
+			// Prepare a map for target sections (avoid repeated concat inside loops)
+			var targetMap:Map<Int, Array<Array<Dynamic>>> = new Map();
 
-			// JS Engine approach: Loop through total sections, copying from source to current section
-			for(i in 0...totalSections) {
-				var sourceSectionIndex = curSec - value1;
-				var targetSectionIndex = curSec;
+			// Target section index – starts right after the current section
+			var targetSec:Int = startSec + 1;
 
-				if(sourceSectionIndex >= 0 && targetSectionIndex < PlayState.SONG.notes.length) {
-					if(PlayState.SONG.notes[sourceSectionIndex] != null && PlayState.SONG.notes[sourceSectionIndex].sectionNotes != null) {
-						if(PlayState.SONG.notes[targetSectionIndex] != null) {
-							if(PlayState.SONG.notes[targetSectionIndex].sectionNotes == null) {
-								PlayState.SONG.notes[targetSectionIndex].sectionNotes = [];
-							}
+			for (rep in 0...repeatTimes)
+			{
+				for (offset in 0...nextCount)
+				{
+					// Source section cycles through the last `lastCount` sections
+					var srcIdx:Int = sourceStart + (offset % lastCount);
+					if (srcIdx < 0 || srcIdx >= PlayState.SONG.notes.length) continue;
 
-							// Pre-allocate array for this target section
-							if(!targetNotesMap.exists(targetSectionIndex)) {
-								targetNotesMap.set(targetSectionIndex, []);
-							}
-							var targetNotes = targetNotesMap.get(targetSectionIndex);
+					var sourceSection = PlayState.SONG.notes[srcIdx];
+					if (sourceSection == null || sourceSection.sectionNotes == null) continue;
 
-							for (note in PlayState.SONG.notes[sourceSectionIndex].sectionNotes)
-							{
-								var sourceSectionBeats:Float = PlayState.SONG.notes[sourceSectionIndex].sectionBeats;
-								if(Math.isNaN(sourceSectionBeats) || sourceSectionBeats <= 0) sourceSectionBeats = 4;
-								var strum = note[0] + Conductor.stepCrochet * (sourceSectionBeats * 4 * (targetSectionIndex - sourceSectionIndex));
-
-								var data = note[1];
-								if (swapNotes) data = Std.int(note[1] + 4) % 8;
-								var copiedNote:Array<Dynamic> = [strum, data, note[2]];
-								if(note.length > 3) copiedNote.push(note[3]);
-
-								targetNotes.push(copiedNote);
-							}
-						}
+					// Target section must exist – if not, create it (optional, but safer)
+					if (targetSec >= PlayState.SONG.notes.length)
+					{
+						// Create a new empty section (copy structure from last section)
+						var lastSec = PlayState.SONG.notes[PlayState.SONG.notes.length - 1];
+						var newSection:SwagSection = {
+							sectionNotes: [],
+							sectionBeats: lastSec.sectionBeats,
+							mustHitSection: lastSec.mustHitSection,
+							bpm: lastSec.bpm,
+							changeBPM: false,
+							altAnim: lastSec.altAnim,
+							gfSection: lastSec.gfSection
+						};
+						PlayState.SONG.notes.push(newSection);
+						_cacheSections();
 					}
-				}
 
-				// Move to next section for next iteration
-				if(curSec < PlayState.SONG.notes.length - 1) {
-					curSec++;
+					if (!targetMap.exists(targetSec)) targetMap.set(targetSec, []);
+
+					var targetNotes = targetMap.get(targetSec);
+					var sectionBeats:Float = sourceSection.sectionBeats;
+					if (Math.isNaN(sectionBeats) || sectionBeats <= 0) sectionBeats = 4;
+
+					for (note in sourceSection.sectionNotes)
+					{
+						var timeShift = Conductor.stepCrochet * (sectionBeats * 4 * (targetSec - srcIdx));
+						var newStrum = note[0] + timeShift;
+
+						var newData = note[1];
+						if (swapNotes) newData = Std.int((newData + 4) % 8);
+
+						var copiedNote:Array<Dynamic> = [newStrum, newData, note[2]];
+						if (note.length > 3) copiedNote.push(note[3]);
+						targetNotes.push(copiedNote);
+					}
+
+					targetSec++;
 				}
 			}
 
-			// Concat all pre-allocated arrays to target sections (optimization)
-			for(targetSectionIndex => newNotes in targetNotesMap) {
-				if(PlayState.SONG.notes[targetSectionIndex] != null && PlayState.SONG.notes[targetSectionIndex].sectionNotes != null) {
-					PlayState.SONG.notes[targetSectionIndex].sectionNotes = PlayState.SONG.notes[targetSectionIndex].sectionNotes.concat(newNotes);
+			// Apply all copied notes using concat (bulk operation)
+			for (secIdx => newNotes in targetMap)
+			{
+				var section = PlayState.SONG.notes[secIdx];
+				if (section != null)
+				{
+					section.sectionNotes = section.sectionNotes.concat(newNotes);
 				}
 			}
 
-			targetNotesMap = null;
-
+			targetMap = null;
 			updateChartData();
 			_cacheSections();
-			jumpNextSectionUpgraded(totalSections);
-			// JS Engine approach: Always re-enable GC and force collection
+
+			// Jump to the section after the last copied block
+			var finalSec:Int = startSec + (nextCount * repeatTimes) + 1;
+			if (finalSec >= PlayState.SONG.notes.length) finalSec = PlayState.SONG.notes.length - 1;
+			if (finalSec < 0) finalSec = 0;
+
+			curSec = finalSec;
+			loadSection(curSec);
+			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[curSec] - Conductor.offset + 0.000001;
+			updateCurrentSectionNotesOptimized();
+
 			#if sys
-			cpp.vm.Gc.enable(true);
-			cpp.vm.Gc.run(true);
+			if (totalNewNotes > 1000000)
+			{
+				cpp.vm.Gc.enable(true);
+				cpp.vm.Gc.run(true);
+			}
 			#end
+
+			showOutput("Copied sections successfully");
 		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;

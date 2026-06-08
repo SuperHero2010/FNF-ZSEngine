@@ -14,7 +14,6 @@ import backend.ui.PsychUIButton;
 import states.editors.content.FileDialogHandler;
 
 import haxe.Json;
-import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
 
@@ -59,7 +58,7 @@ class MergeChartState extends MusicBeatState
 		}
 		for (i in 0...5)
 		{
-			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 3, boxWidth, boxHeight, i);
+			var box:ChartBox = new ChartBox(startX + i * (boxWidth + spacing), startY * 2.5, boxWidth, boxHeight, i);
 			box.setUnlocked(true);
 			chartBoxes.push(box);
 			add(box);
@@ -140,96 +139,99 @@ class MergeChartState extends MusicBeatState
 
 	private function mergeCharts(chartPaths:Array<String>)
 	{
-		showMergingProgress(true, "Loading charts...");
+		if (chartPaths.length < 2) return;
 
-		var allCharts:Array<String> = [];
+		// Use first chart as the base
+		var currentMergedPath:String = chartPaths[0];
+		var totalCharts:Int = chartPaths.length;
 
-		for (i in 0...chartPaths.length)
+		for (i in 1...totalCharts)
 		{
-			var path:String = chartPaths[i];
+			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
 
-			// Get file size in MB
-			var fileSizeMB:Float = 0;
-			#if MODS_ALLOWED
-			if(FileSystem.exists(path))
+			// Load only TWO charts at a time
+			var baseData = loadChartFromFileWithProgress(currentMergedPath);
+			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
+
+			if (baseData == null || nextData == null)
 			{
-				fileSizeMB = FileSystem.stat(path).size / (1024 * 1024);
+				showMergingProgress(false, 'Failed to load chart ${i+1}');
+				return;
 			}
-			#end
 
-			showMergingProgress(true, 'Loading chart ${i + 1}/${chartPaths.length} (${fileSizeMB} MB)');
+			SongJson.log = true;
+			var baseChart:Dynamic = SongJson.parse(baseData);
+			var nextChart:Dynamic = SongJson.parse(nextData);
+			SongJson.log = false;
 
-			try
+			// Merge nextChart into baseChart
+			mergeInto(baseChart, nextChart);
+
+			// Save intermediate result
+			var tempPath = "temp_merged_" + i + ".json";
+			var mergedJson:String = Json.stringify(baseChart, null, "\t");
+			File.saveContent(tempPath, mergedJson);
+
+			// Free memory
+			baseData = null;
+			nextData = null;
+			baseChart = null;
+			nextChart = null;
+			#if cpp cpp.vm.Gc.run(true); #end
+
+			currentMergedPath = tempPath;
+		}
+
+		// Move final result to user's desired location
+		var finalData = File.getContent(currentMergedPath);
+		saveMergedChart(finalData);
+
+		// Clean up temp files
+		for (i in 1...totalCharts)
+		{
+			var tempPath = "temp_merged_" + i + ".json";
+			if (FileSystem.exists(tempPath))
+				FileSystem.deleteFile(tempPath);
+		}
+	}
+
+	private function mergeInto(base:Dynamic, next:Dynamic):Void
+	{
+		if (base.notes == null) base.notes = [];
+		if (base.events == null) base.events = [];
+
+		// Merge notes section-by-section
+		if (next.notes != null)
+		{
+			var nextNotes:Array<Dynamic> = cast next.notes;
+			var baseNotes:Array<Dynamic> = cast base.notes;
+
+			for (sectionIndex in 0...nextNotes.length)
 			{
-				var rawData:String = loadChartFromFileWithProgress(path);
-				if (rawData != null)
+				var nextSection = nextNotes[sectionIndex];
+				if (sectionIndex < baseNotes.length)
 				{
-					allCharts.push(rawData);
-					trace("Loaded chart " + (i + 1) + " successfully");
+					var baseSection = baseNotes[sectionIndex];
+					if (nextSection.sectionNotes != null)
+					{
+						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
+						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
+						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
+					}
 				}
 				else
 				{
-					trace("Failed to load chart " + (i + 1));
+					baseNotes.push(nextSection);
 				}
 			}
-			catch (e:Dynamic)
-			{
-				trace("Error loading chart " + (i + 1) + ": " + e);
-			}
 		}
 
-		if (allCharts.length < 2)
+		// Merge events
+		if (next.events != null)
 		{
-			showMergingProgress(false, "Need at least 2 valid charts");
-			return;
-		}
-
-		// Calculate total notes and events estimate before merging
-		var totalNotesEstimate:Int = 0;
-		var totalEventsEstimate:Int = 0;
-		for (chartJson in allCharts)
-		{
-			try
-			{
-				// Enable SongJson progress logging during parsing
-				SongJson.log = true;
-				var chart:Dynamic = SongJson.parse(chartJson);
-				SongJson.log = false;
-				if (chart.notes != null)
-				{
-					var notesArray:Array<Dynamic> = cast chart.notes;
-					for (section in notesArray)
-					{
-						if (section.sectionNotes != null)
-						{
-							var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-							totalNotesEstimate += sectionNotes.length;
-						}
-					}
-				}
-				if (chart.events != null)
-				{
-					var eventsArray:Array<Dynamic> = cast chart.events;
-					totalEventsEstimate += eventsArray.length;
-				}
-			}
-			catch (e:Dynamic) 
-			{
-				SongJson.log = false;
-			}
-		}
-
-		showMergingProgress(true, 'Merging ${totalNotesEstimate} notes and ${totalEventsEstimate} events');
-		var mergedData:String = mergeSongData(allCharts);
-
-		if (mergedData != null)
-		{
-			showMergingProgress(true, "Saving merged chart...");
-			saveMergedChart(mergedData);
-		}
-		else
-		{
-			showMergingProgress(false, "Merge failed");
+			var nextEvents:Array<Dynamic> = cast next.events;
+			var baseEvents:Array<Dynamic> = cast base.events;
+			base.events = baseEvents.concat(nextEvents);
 		}
 	}
 
@@ -281,24 +283,6 @@ class MergeChartState extends MusicBeatState
 		}
 	}
 
-	private function loadChartFromFile(path:String):String
-	{
-		var rawData:String = null;
-
-		#if MODS_ALLOWED
-		if(FileSystem.exists(path))
-			rawData = File.getContent(path);
-		#end
-
-		if (rawData == null)
-		{
-			trace("Could not read file: " + path);
-			return null;
-		}
-
-		return rawData;
-	}
-
 	private function loadChartFromFileWithProgress(path:String):String
 	{
 		var rawData:String = null;
@@ -308,7 +292,6 @@ class MergeChartState extends MusicBeatState
 		{
 			// Enable SongJson progress logging during loading
 			SongJson.log = true;
-			showMergingProgress(true, 'Loading chart: ${Path.withoutDirectory(path)}');
 			rawData = File.getContent(path);
 			SongJson.log = false;
 		}
@@ -321,187 +304,6 @@ class MergeChartState extends MusicBeatState
 		}
 
 		return rawData;
-	}
-
-	private function mergeSongData(charts:Array<String>):String
-	{
-		if (charts.length == 0) return null;
-
-		// Parse all charts to Dynamic objects
-		var chartObjects:Array<Dynamic> = [];
-		for (chartJson in charts)
-		{
-			try
-			{
-				// Enable SongJson progress logging during parsing
-				SongJson.log = true;
-				showMergingProgress(true, 'Parsing chart JSON...');
-				var chartObj:Dynamic = SongJson.parse(chartJson);
-				SongJson.log = false;
-				chartObjects.push(chartObj);
-			}
-			catch (e:Dynamic)
-			{
-				SongJson.log = false;
-				trace("Error parsing JSON: " + e);
-				return null;
-			}
-		}
-
-		if (chartObjects.length < 2) return null;
-
-		// Reset progress counters and timing
-		parsedNotes = 0;
-		parsedEvents = 0;
-		syncTime = haxe.Timer.stamp() * 1000;
-
-		// JS Engine approach: Force major GC before massive operation
-		#if sys
-		cpp.vm.Gc.run(true);
-		#end
-
-		// Use first chart as base (deep copy)
-		var merged:Dynamic = Json.parse(charts[0]);
-
-		// Ensure notes and events arrays exist
-		if (merged.notes == null) merged.notes = [];
-		if (merged.events == null) merged.events = [];
-
-		// Count notes and events from first chart
-		if (merged.notes != null)
-		{
-			var mergedNotes:Array<Dynamic> = cast merged.notes;
-			for (section in mergedNotes)
-			{
-				if (section.sectionNotes != null)
-				{
-					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-					parsedNotes += sectionNotes.length;
-				}
-			}
-		}
-		if (merged.events != null)
-		{
-			var mergedEvents:Array<Dynamic> = cast merged.events;
-			parsedEvents = mergedEvents.length;
-		}
-
-		// Calculate total notes to determine if GC should be disabled
-		var totalNotesEstimate:Int = 0;
-		for (chart in chartObjects)
-		{
-			if (chart.notes != null)
-			{
-				var notesArray:Array<Dynamic> = cast chart.notes;
-				for (section in notesArray)
-				{
-					if (section.sectionNotes != null)
-					{
-						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-						totalNotesEstimate += sectionNotes.length;
-					}
-				}
-			}
-		}
-
-		// Conditional GC disabling for massive operations (JS Engine method)
-		#if sys
-		if (totalNotesEstimate > 1000000) {
-			cpp.vm.Gc.enable(false);
-		}
-		#end
-
-		// Merge additional charts (starting from index 1) - section-by-section merge
-		for (i in 1...chartObjects.length)
-		{
-			var chart:Dynamic = chartObjects[i];
-
-			// Merge notes section-by-section
-			if (chart.notes != null)
-			{
-				var notesArray:Array<Dynamic> = cast chart.notes;
-				var mergedNotes:Array<Dynamic> = cast merged.notes;
-
-				for (sectionIndex in 0...notesArray.length)
-				{
-					var chartSection:Dynamic = notesArray[sectionIndex];
-
-					// If merged chart has this section, append notes to it
-					if (sectionIndex < mergedNotes.length)
-					{
-						var mergedSection:Dynamic = mergedNotes[sectionIndex];
-						if (chartSection.sectionNotes != null)
-						{
-							var chartSectionNotes:Array<Dynamic> = cast chartSection.sectionNotes;
-							var mergedSectionNotes:Array<Dynamic> = cast mergedSection.sectionNotes;
-
-							// Use concat for faster array joining (dupeNotes approach)
-							mergedSection.sectionNotes = mergedSectionNotes.concat(chartSectionNotes);
-							parsedNotes += chartSectionNotes.length;
-						}
-					}
-					else
-					{
-						// If merged chart doesn't have this section, add it
-						mergedNotes.push(chartSection);
-						if (chartSection.sectionNotes != null)
-						{
-							var sectionNotes:Array<Dynamic> = cast chartSection.sectionNotes;
-							parsedNotes += sectionNotes.length;
-						}
-					}
-
-					// Show progress periodically
-					showMergeProgress();
-				}
-			}
-
-			// Merge events - append all events using concat
-			if (chart.events != null)
-			{
-				var eventsArray:Array<Dynamic> = cast chart.events;
-				var mergedEvents:Array<Dynamic> = cast merged.events;
-
-				// Use concat for faster array joining
-				merged.events = mergedEvents.concat(eventsArray);
-				parsedEvents += eventsArray.length;
-				showMergeProgress();
-			}
-		}
-
-		// Count total notes and events
-		var totalNotes:Int = 0;
-		var totalEvents:Int = 0;
-
-		if (merged.notes != null)
-		{
-			var mergedNotes:Array<Dynamic> = cast merged.notes;
-			for (section in mergedNotes)
-			{
-				if (section.sectionNotes != null)
-				{
-					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-					totalNotes += sectionNotes.length;
-				}
-			}
-		}
-
-		if (merged.events != null)
-		{
-			var mergedEvents:Array<Dynamic> = cast merged.events;
-			totalEvents = mergedEvents.length;
-		}
-
-		trace("Merged " + totalNotes + " notes and " + totalEvents + " events");
-
-		// JS Engine approach: Always re-enable GC and force collection
-		#if sys
-		cpp.vm.Gc.enable(true);
-		cpp.vm.Gc.run(true);
-		#end
-
-		// Return merged as JSON string
-		return Json.stringify(merged, null, "\t");
 	}
 
 	private function saveMergedChart(mergedData:String)
