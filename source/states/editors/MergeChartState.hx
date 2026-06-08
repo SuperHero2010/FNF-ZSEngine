@@ -178,13 +178,20 @@ class MergeChartState extends MusicBeatState
 
 			trace('[TRACE] mergeCharts: Parsing base chart...');
 			SongJson.log = true;
-			var baseChart:Dynamic = SongJson.parse(baseData);
+			var baseObj:Dynamic = SongJson.parse(baseData);
 			trace('[TRACE] mergeCharts: Base chart parsed');
 
 			trace('[TRACE] mergeCharts: Parsing next chart...');
-			var nextChart:Dynamic = SongJson.parse(nextData);
+			var nextObj:Dynamic = SongJson.parse(nextData);
 			SongJson.log = false;
 			trace('[TRACE] mergeCharts: Next chart parsed');
+
+			var baseChart = baseObj.song != null ? baseObj.song : baseObj;
+			var nextChart = nextObj.song != null ? nextObj.song : nextObj;
+
+			parsedNotes = 0;
+			parsedEvents = 0;
+			syncTime = haxe.Timer.stamp() * 1000;
 
 			trace('[TRACE] mergeCharts: Merging into base chart...');
 			mergeInto(baseChart, nextChart);
@@ -192,13 +199,26 @@ class MergeChartState extends MusicBeatState
 
 			var tempPath = "temp_merged_" + i + ".json";
 			trace('[TRACE] mergeCharts: Saving intermediate result to ' + tempPath);
-			var mergedJson:String = Json.stringify(baseChart, null, "\t");
+
+			var mergedJson:String;
+			if (baseObj.song != null)
+			{
+				baseObj.song = baseChart;
+				mergedJson = Json.stringify(baseObj, null, "\t");
+			}
+			else
+			{
+				mergedJson = Json.stringify(baseChart, null, "\t");
+			}
+
 			File.saveContent(tempPath, mergedJson);
 			trace('[TRACE] mergeCharts: Saved ' + mergedJson.length + ' bytes');
 
 			// Free memory
 			baseData = null;
 			nextData = null;
+			baseObj = null;
+			nextObj = null;
 			baseChart = null;
 			nextChart = null;
 			#if cpp
@@ -232,27 +252,27 @@ class MergeChartState extends MusicBeatState
 		trace('[TRACE] mergeCharts: COMPLETE');
 	}
 
-	private function mergeInto(base:Dynamic, next:Dynamic):Void
+	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
 	{
 		trace('[TRACE] mergeInto() called');
 
-		if (base.notes == null)
+		// Ensure base has notes and events arrays
+		if (baseSong.notes == null)
 		{
-			trace('[TRACE] mergeInto: base.notes was null, creating empty array');
-			base.notes = [];
+			trace('[TRACE] baseSong.notes was null, creating empty array');
+			baseSong.notes = [];
 		}
-		if (base.events == null)
+		if (baseSong.events == null)
 		{
-			trace('[TRACE] mergeInto: base.events was null, creating empty array');
-			base.events = [];
+			trace('[TRACE] baseSong.events was null, creating empty array');
+			baseSong.events = [];
 		}
 
-		// Merge notes section-by-section
-		if (next.notes != null)
+		// Merge notes
+		if (nextSong.notes != null)
 		{
-			var nextNotes:Array<Dynamic> = cast next.notes;
-			var baseNotes:Array<Dynamic> = cast base.notes;
-			trace('[TRACE] mergeInto: nextNotes length=' + nextNotes.length + ', baseNotes length=' + baseNotes.length);
+			var nextNotes:Array<Dynamic> = cast nextSong.notes;
+			var baseNotes:Array<Dynamic> = cast baseSong.notes;
 
 			for (sectionIndex in 0...nextNotes.length)
 			{
@@ -264,33 +284,33 @@ class MergeChartState extends MusicBeatState
 					{
 						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
-						trace('[TRACE] mergeInto: Section ' + sectionIndex + ' - adding ' + nextSectionNotes.length + ' notes');
 						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
+
+						// Update progress after each section
+						parsedNotes += nextSectionNotes.length;
+						showMergeProgress();
 					}
 				}
 				else
 				{
-					trace('[TRACE] mergeInto: Section ' + sectionIndex + ' - pushing new section');
 					baseNotes.push(nextSection);
+					if (nextSection.sectionNotes != null)
+					{
+						parsedNotes += nextSection.sectionNotes.length;
+						showMergeProgress();
+					}
 				}
 			}
 		}
-		else
-		{
-			trace('[TRACE] mergeInto: next.notes is null');
-		}
 
 		// Merge events
-		if (next.events != null)
+		if (nextSong.events != null)
 		{
-			var nextEvents:Array<Dynamic> = cast next.events;
-			var baseEvents:Array<Dynamic> = cast base.events;
-			trace('[TRACE] mergeInto: Adding ' + nextEvents.length + ' events');
-			base.events = baseEvents.concat(nextEvents);
-		}
-		else
-		{
-			trace('[TRACE] mergeInto: next.events is null');
+			var nextEvents:Array<Dynamic> = cast nextSong.events;
+			var baseEvents:Array<Dynamic> = cast baseSong.events;
+			baseSong.events = baseEvents.concat(nextEvents);
+			parsedEvents += nextEvents.length;
+			showMergeProgress(true); // Force update
 		}
 
 		trace('[TRACE] mergeInto() COMPLETE');
