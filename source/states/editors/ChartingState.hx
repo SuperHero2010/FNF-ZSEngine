@@ -4267,7 +4267,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 85, 1, 1, 0, 16384, 0);
 		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
 		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 125, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 100, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
