@@ -310,8 +310,10 @@ class MergeChartState extends MusicBeatState
 		tempDir = "/tmp";
 		#end
 
+		SongJson.log = true;
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
+		SongJson.log = false;
 		var baseChart:Dynamic;
 		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
 			baseChart = baseObj.song;
@@ -330,8 +332,10 @@ class MergeChartState extends MusicBeatState
 			var baseChart = loadChartBinary(currentMergedPath);
 			if (baseChart == null) return;
 
+			SongJson.log = true;
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
+			SongJson.log = false;
 			var nextChart:Dynamic;
 			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
 				nextChart = nextObj.song;

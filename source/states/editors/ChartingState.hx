@@ -4281,12 +4281,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var originalCopiedNotes = copiedNotes.copy();
 			var originalCopiedEvents = copiedEvents.copy();
 
-			var targetStart:Int = curSec + 1;
+			var targetStart:Int = curSec;
 			var lastTarget:Int = targetStart + (nextCount * repeatTimes) - 1;
 
 			if (lastTarget >= PlayState.SONG.notes.length)
 			{
-				showOutput("Not enough sections after current to paste into!", true);
+				showOutput("Not enough sections to paste into!", true);
 				return;
 			}
 
@@ -4299,6 +4299,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 
 			var totalPastes:Int = 0;
+			var chunkSize:Int = 5000;
+
+			#if cpp
+			if (copiedNotes.length > 30000) cpp.vm.Gc.enable(false);
+			#end
 
 			for (offset in 0...(nextCount * repeatTimes))
 			{
@@ -4308,20 +4313,45 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var oldCurSec = curSec;
 				curSec = targetIndex;
 
-				pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
+				if (copiedNotes.length > 30000)
+				{
+					var tempNotes = copiedNotes.copy();
+					var tempEvents = copiedEvents.copy();
+
+					copiedNotes = [];
+					copiedEvents = [];
+
+					for (chunk in 0...Std.int(Math.ceil(tempNotes.length / chunkSize)))
+					{
+						var start = chunk * chunkSize;
+						var end = Std.int(Math.min(start + chunkSize, tempNotes.length));
+
+						copiedNotes = tempNotes.slice(start, end);
+						pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
+
+						#if cpp
+						if (chunk % 5 == 0) cpp.vm.Gc.run(false);
+						#end
+					}
+
+					copiedNotes = tempNotes;
+					copiedEvents = tempEvents;
+				}
+				else
+				{
+					pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
+				}
 
 				curSec = oldCurSec;
-
 				totalPastes++;
-
-				if (totalPastes % 10 == 0)
-				{
-					#if cpp cpp.vm.Gc.run(false); #end
-				}
 			}
 
 			copiedNotes = originalCopiedNotes;
 			copiedEvents = originalCopiedEvents;
+
+			#if cpp
+			if (copiedNotes.length > 30000) cpp.vm.Gc.enable(true);
+			#end
 
 			updateChartData();
 			_cacheSections();
@@ -4335,7 +4365,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[curSec] - Conductor.offset + 0.000001;
 			updateCurrentSectionNotesOptimized();
 
-			showOutput("Copied section " + lastCount + " behind, pasted into " + totalPastes + " sections");
+			showOutput("Pasted into " + totalPastes + " sections");
 		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
