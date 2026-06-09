@@ -595,32 +595,24 @@ class MergeChartState extends MusicBeatState
 	private function saveMergedChart(chart:Dynamic):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
+		var jsonString:String = Json.stringify(chart);
 
-		fileDialog.save(defaultName, null,
+		fileDialog.saveWithPath(defaultName, jsonString,
 			function(path:String)
 			{
-				try
-				{
-					showMergingProgress(true, "Saving merged chart...", true);
-					saveChartStreaming(chart, path, false);
-					showMergingProgress(false, "Merge complete!", true);
-					trace("Chart saved to: " + path);
-				}
-				catch(e:Dynamic)
-				{
-					showMergingProgress(false, "Error saving: " + e, true);
-					trace("Error saving chart: " + e);
-				}
+				showMergingProgress(false, "Merge complete!", true);
+				trace("Chart saved to: " + path);
 			},
 			function()
 			{
 				showMergingProgress(false, "Save cancelled", true);
 				trace("Save cancelled by user");
 			},
-			function(e:Dynamic)
+			function(e:Dynamic) // Add error parameter
 			{
-				showMergingProgress(false, "Error: " + e, true);
-				trace("Save error: " + e);
+				var errorMsg = Std.string(e);
+				showMergingProgress(false, "Error: " + errorMsg, true);
+				trace("Save error: " + errorMsg);
 			}
 		);
 	}
