@@ -9,13 +9,131 @@ import flixel.util.FlxColor;
 
 import backend.Song;
 import backend.SongJson;
-import backend.ui.PsychUIBox;
-import backend.ui.PsychUIButton;
+import backend.ui.*;
 import states.editors.content.FileDialogHandler;
 
 import haxe.Json;
 import sys.FileSystem;
 import sys.io.File;
+
+import hxbitmini.Serializable;
+import hxbitmini.Serializer;
+import hxbitmini.Unserializer;
+
+@:hxbit.Serializable
+class SerializableChart
+{
+    public var song:String;
+    public var notes:Array<SerializableSection>;
+    public var events:Array<Array<Dynamic>>;
+    public var bpm:Float;
+    public var needsVoices:Bool;
+    public var speed:Float;
+    public var offset:Float;
+    public var player1:String;
+    public var player2:String;
+    public var gfVersion:String;
+    public var stage:String;
+    public var format:String;
+
+    public function new() {}
+
+    public static function fromDynamic(data:Dynamic):SerializableChart
+    {
+        var chart = new SerializableChart();
+        chart.song = data.song;
+        chart.bpm = data.bpm;
+        chart.needsVoices = data.needsVoices;
+        chart.speed = data.speed;
+        chart.offset = data.offset;
+        chart.player1 = data.player1;
+        chart.player2 = data.player2;
+        chart.gfVersion = data.gfVersion;
+        chart.stage = data.stage;
+        chart.format = data.format;
+
+        // Convert notes
+        chart.notes = [];
+        if (data.notes != null)
+        {
+            for (section in data.notes)
+            {
+                chart.notes.push(SerializableSection.fromDynamic(section));
+            }
+        }
+
+        // Convert events
+        chart.events = data.events != null ? data.events : [];
+
+        return chart;
+    }
+
+    public function toDynamic():Dynamic
+    {
+        var data:Dynamic = {};
+        data.song = song;
+        data.bpm = bpm;
+        data.needsVoices = needsVoices;
+        data.speed = speed;
+        data.offset = offset;
+        data.player1 = player1;
+        data.player2 = player2;
+        data.gfVersion = gfVersion;
+        data.stage = stage;
+        data.format = format;
+
+        // Convert notes
+        data.notes = [];
+        for (section in notes)
+        {
+            data.notes.push(section.toDynamic());
+        }
+
+        data.events = events;
+
+        return data;
+    }
+}
+
+@:hxbit.Serializable
+class SerializableSection
+{
+    public var sectionNotes:Array<Array<Dynamic>>;
+    public var sectionBeats:Float;
+    public var mustHitSection:Bool;
+    public var changeBPM:Bool;
+    public var bpm:Float;
+    public var altAnim:Bool;
+    public var gfSection:Bool;
+
+    public function new() {}
+
+    public static function fromDynamic(data:Dynamic):SerializableSection
+    {
+        var section = new SerializableSection();
+        section.sectionNotes = data.sectionNotes != null ? data.sectionNotes : [];
+        section.sectionBeats = data.sectionBeats;
+        section.mustHitSection = data.mustHitSection;
+        section.changeBPM = data.changeBPM;
+        section.bpm = data.bpm;
+        section.altAnim = data.altAnim;
+        section.gfSection = data.gfSection;
+        return section;
+    }
+
+    public function toDynamic():Dynamic
+    {
+        return {
+            sectionNotes: sectionNotes,
+            sectionBeats: sectionBeats,
+            mustHitSection: mustHitSection,
+            changeBPM: changeBPM,
+            bpm: bpm,
+            altAnim: altAnim,
+            gfSection: gfSection
+        };
+    }
+}
 
 class MergeChartState extends MusicBeatState
 {
@@ -27,6 +145,9 @@ class MergeChartState extends MusicBeatState
 	private var progressBg:FlxSprite;
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.1;
+	var indentation:Bool = false;
+	var mergeChartSave:FlxSave = new FlxSave();
+	mergeChartSave.bind("MergeChartState", CoolUtil.getSavePath());
 
 	override function create()
 	{
@@ -81,6 +202,15 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
+		var indentationCheckbox:PsychUICheckBox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
+			mergeChartSave.data.indentation = indentationCheckbox.checked;
+			mergeChartSave.flush();
+			indentation = indentationCheckbox.checked;
+		});
+		indentationCheckbox.checked = (mergeChartSave.data.indentation == true);
+		indentation = indentationCheckbox.checked;
+		add(indentationCheckbox);
+
 		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
 		progressBg.alpha = 0.8;
 		progressBg.visible = false;
@@ -94,6 +224,9 @@ class MergeChartState extends MusicBeatState
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
 		fileDialog.onComplete = onFileSelected;
+
+		if (mergeChartSave.data.indentation == null) mergeChartSave.data.indentation = false;
+		indentation = mergeChartSave.data.indentation;
 	}
 
 	private function onFileSelected()
@@ -137,119 +270,97 @@ class MergeChartState extends MusicBeatState
 		mergeCharts(chartPaths);
 	}
 
+	function saveChartBinary(chart:Dynamic, path:String):Void
+	{
+		var serializable = SerializableChart.fromDynamic(chart);
+		var serializer = new Serializer();
+		serializer.serialize(serializable);
+		var bytes = serializer.getBytes();
+
+		var output = File.write(path, true);
+		output.writeBytes(bytes, 0, bytes.length);
+		output.close();
+	}
+
+	function loadChartBinary(path:String):Dynamic
+	{
+		if (!FileSystem.exists(path)) return null;
+
+		var bytes = File.getBytes(path);
+		var unserializer = new Unserializer();
+		unserializer.setBytes(bytes);
+		var serializable:SerializableChart = unserializer.unserialize();
+
+		return serializable != null ? serializable.toDynamic() : null;
+	}
+
 	private function mergeCharts(chartPaths:Array<String>)
 	{
-		trace('[TRACE] mergeCharts() called with ' + chartPaths.length + ' charts');
+		if (chartPaths.length < 2) return;
 
-		if (chartPaths.length < 2)
-		{
-			trace('[TRACE] mergeCharts: Less than 2 charts, returning');
-			return;
-		}
+		var tempDir:String;
+		#if windows
+		tempDir = Sys.getEnv("TEMP");
+		#else
+		tempDir = "/tmp";
+		#end
 
-		var currentMergedPath:String = chartPaths[0];
-		trace('[TRACE] mergeCharts: Starting with first chart: ' + currentMergedPath);
+		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
+		var baseObj = SongJson.parse(baseData);
+		var baseChart = baseObj.song != null ? baseObj.song : baseObj;
+
+		var currentMergedPath = tempDir + "/temp_merged_base.bin";
+		saveChartBinary(baseChart, currentMergedPath);
+
 		var totalCharts:Int = chartPaths.length;
 
 		for (i in 1...totalCharts)
 		{
-			trace('[TRACE] mergeCharts: Processing chart ' + (i+1) + '/' + totalCharts);
 			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
 
-			trace('[TRACE] mergeCharts: Loading base chart: ' + currentMergedPath);
-			var baseData = loadChartFromFileWithProgress(currentMergedPath);
-			if (baseData == null)
-			{
-				trace('[TRACE] mergeCharts: ERROR - baseData is null');
-				showMergingProgress(false, 'Failed to load base chart');
-				return;
-			}
-			trace('[TRACE] mergeCharts: Base chart loaded, size: ' + baseData.length + ' bytes');
+			var baseChart = loadChartBinary(currentMergedPath);
+			if (baseChart == null) return;
 
-			trace('[TRACE] mergeCharts: Loading next chart: ' + chartPaths[i]);
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
-			if (nextData == null)
-			{
-				trace('[TRACE] mergeCharts: ERROR - nextData is null');
-				showMergingProgress(false, 'Failed to load chart ${i+1}');
-				return;
-			}
-			trace('[TRACE] mergeCharts: Next chart loaded, size: ' + nextData.length + ' bytes');
-
-			trace('[TRACE] mergeCharts: Parsing base chart...');
-			SongJson.log = true;
-			var baseObj:Dynamic = SongJson.parse(baseData);
-			trace('[TRACE] mergeCharts: Base chart parsed');
-
-			trace('[TRACE] mergeCharts: Parsing next chart...');
-			var nextObj:Dynamic = SongJson.parse(nextData);
-			SongJson.log = false;
-			trace('[TRACE] mergeCharts: Next chart parsed');
-
-			var baseChart = baseObj.song != null ? baseObj.song : baseObj;
+			var nextObj = SongJson.parse(nextData);
 			var nextChart = nextObj.song != null ? nextObj.song : nextObj;
+
+			var baseNotesCount = 0;
+			var baseEventsCount = 0;
+			for (section in baseChart.notes)
+				if (section.sectionNotes != null)
+					baseNotesCount += section.sectionNotes.length;
+			if (baseChart.events != null) baseEventsCount = baseChart.events.length;
 
 			parsedNotes = 0;
 			parsedEvents = 0;
 			syncTime = haxe.Timer.stamp() * 1000;
 
-			trace('[TRACE] mergeCharts: Merging into base chart...');
 			mergeInto(baseChart, nextChart);
-			trace('[TRACE] mergeCharts: Merge complete');
 
-			var tempPath = "temp_merged_" + i + ".json";
-			trace('[TRACE] mergeCharts: Saving intermediate result to ' + tempPath);
+			saveChartBinary(baseChart, currentMergedPath);
 
-			var mergedJson:String;
-			if (baseObj.song != null)
-			{
-				baseObj.song = baseChart;
-				mergedJson = Json.stringify(baseObj, null, "\t");
-			}
-			else
-			{
-				mergedJson = Json.stringify(baseChart, null, "\t");
-			}
-
-			File.saveContent(tempPath, mergedJson);
-			trace('[TRACE] mergeCharts: Saved ' + mergedJson.length + ' bytes');
-
-			// Free memory
-			baseData = null;
-			nextData = null;
-			baseObj = null;
-			nextObj = null;
 			baseChart = null;
+			nextObj = null;
 			nextChart = null;
+
 			#if cpp
-			trace('[TRACE] mergeCharts: Running GC');
 			cpp.vm.Gc.run(true);
 			#end
-
-			currentMergedPath = tempPath;
-			trace('[TRACE] mergeCharts: Current merged path updated to ' + currentMergedPath);
 		}
 
-		trace('[TRACE] mergeCharts: Loading final merged data from ' + currentMergedPath);
-		var finalData = File.getContent(currentMergedPath);
-		trace('[TRACE] mergeCharts: Final data size: ' + finalData.length + ' bytes');
-
-		trace('[TRACE] mergeCharts: Calling saveMergedChart');
-		saveMergedChart(finalData);
-
-		// Clean up temp files
-		trace('[TRACE] mergeCharts: Cleaning up temp files');
-		for (i in 1...totalCharts)
-		{
-			var tempPath = "temp_merged_" + i + ".json";
-			if (FileSystem.exists(tempPath))
-			{
-				FileSystem.deleteFile(tempPath);
-				trace('[TRACE] mergeCharts: Deleted ' + tempPath);
-			}
+		var finalChart = loadChartBinary(currentMergedPath);
+		var finalJson:String;
+		if (indentation) {
+			finalJson = Json.stringify(finalChart, null, "\t");
 		}
+		else {
+			finalJson = Json.stringify(finalChart);
+		}
+		saveMergedChart(finalJson);
 
-		trace('[TRACE] mergeCharts: COMPLETE');
+		if (FileSystem.exists(currentMergedPath))
+			FileSystem.deleteFile(currentMergedPath);
 	}
 
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
@@ -318,8 +429,6 @@ class MergeChartState extends MusicBeatState
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
 	{
-		trace('[TRACE] showMergingProgress called: show=' + show + ', message=' + message + ', force=' + force);
-		
 		progressBg.visible = show;
 		progressText.visible = show;
 		progressText.text = message;
@@ -344,8 +453,6 @@ class MergeChartState extends MusicBeatState
 	var parsedEvents:Int = 0;
 	function showMergeProgress(force:Bool = false)
 	{
-		trace('[TRACE] showMergeProgress called: force=' + force + ', parsedNotes=' + parsedNotes + ', parsedEvents=' + parsedEvents);
-		
 		if (Main.isConsoleAvailable)
 		{
 			var currentTime = haxe.Timer.stamp() * 1000;

@@ -4267,8 +4267,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 85, 1, 1, 0, 16384, 0);
 		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
 		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 125, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
-			var swapNotes:Bool = FlxG.keys.pressed.CONTROL;
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 100, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
@@ -4279,78 +4278,54 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				return;
 			}
 
-			// Source section index
-			var sourceIndex:Int = curSec - lastCount;
-			if (sourceIndex < 0 || sourceIndex >= PlayState.SONG.notes.length)
-			{
-				showOutput("Not enough sections before current to copy from!", true);
-				return;
-			}
-
-			// Get source notes from visual notes array using time range
-			var sourceMinTime:Float = cachedSectionTimes[sourceIndex];
-			var sourceMaxTime:Float = cachedSectionTimes[sourceIndex + 1];
-			var sourceNotes:Array<Array<Dynamic>> = [];
-
-			for (note in notes)
-			{
-				if (note == null || note.isEvent) continue;
-				if (note.strumTime >= sourceMinTime && note.strumTime < sourceMaxTime)
-				{
-					sourceNotes.push(note.songData);
-				}
-			}
-
-			if (sourceNotes.length == 0)
-			{
-				showOutput("No notes found in source section!", true);
-				return;
-			}
-
-			var sourceBeats:Float = PlayState.SONG.notes[sourceIndex].sectionBeats;
-			if (Math.isNaN(sourceBeats) || sourceBeats <= 0) sourceBeats = 4;
-			var totalNewNotes:Int = sourceNotes.length * (nextCount * repeatTimes);
-
-			#if sys
-			if (totalNewNotes > 1000000) cpp.vm.Gc.enable(false);
-			#end
+			var originalCopiedNotes = copiedNotes.copy();
+			var originalCopiedEvents = copiedEvents.copy();
 
 			var targetStart:Int = curSec + 1;
-			var totalTargets:Int = 0;
+			var lastTarget:Int = targetStart + (nextCount * repeatTimes) - 1;
 
-			for (rep in 0...repeatTimes)
+			if (lastTarget >= PlayState.SONG.notes.length)
 			{
-				for (offset in 0...nextCount)
+				showOutput("Not enough sections after current to paste into!", true);
+				return;
+			}
+
+			copyNotesOnSection(lastCount, false);
+
+			if (copiedNotes.length == 0 && copiedEvents.length == 0)
+			{
+				showOutput("Nothing to copy from the last section!", true);
+				return;
+			}
+
+			var totalPastes:Int = 0;
+
+			for (offset in 0...(nextCount * repeatTimes))
+			{
+				var targetIndex = targetStart + offset;
+				if (targetIndex >= PlayState.SONG.notes.length) break;
+
+				var oldCurSec = curSec;
+				curSec = targetIndex;
+
+				pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
+
+				curSec = oldCurSec;
+
+				totalPastes++;
+
+				if (totalPastes % 10 == 0)
 				{
-					var targetIndex:Int = targetStart + (rep * nextCount) + offset;
-					if (targetIndex >= PlayState.SONG.notes.length) break;
-
-					var targetSection = PlayState.SONG.notes[targetIndex];
-					if (targetSection == null) continue;
-
-					var timeShift:Float = Conductor.stepCrochet * (sourceBeats * 4 * (targetIndex - sourceIndex));
-					var newNotes:Array<Array<Dynamic>> = [];
-
-					for (note in sourceNotes)
-					{
-						var newStrum:Float = note[0] + timeShift;
-						var newData:Int = note[1];
-						if (swapNotes) newData = (newData + 4) % 8;
-
-						var copiedNote:Array<Dynamic> = [newStrum, newData, note[2]];
-						if (note.length > 3) copiedNote.push(note[3]);
-						newNotes.push(copiedNote);
-					}
-
-					targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotes);
-					totalTargets++;
+					#if cpp cpp.vm.Gc.run(false); #end
 				}
 			}
+
+			copiedNotes = originalCopiedNotes;
+			copiedEvents = originalCopiedEvents;
 
 			updateChartData();
 			_cacheSections();
 
-			// Jump to section after last copied section
 			var finalSection:Int = curSec + (nextCount * repeatTimes);
 			if (finalSection >= PlayState.SONG.notes.length) finalSection = PlayState.SONG.notes.length - 1;
 			if (finalSection < 0) finalSection = 0;
@@ -4360,15 +4335,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[curSec] - Conductor.offset + 0.000001;
 			updateCurrentSectionNotesOptimized();
 
-			#if sys
-			if (totalNewNotes > 1000000)
-			{
-				cpp.vm.Gc.enable(true);
-				cpp.vm.Gc.run(true);
-			}
-			#end
-
-			showOutput("Copied " + totalTargets + " sections successfully");
+			showOutput("Copied section " + lastCount + " behind, pasted into " + totalPastes + " sections");
 		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
