@@ -227,7 +227,7 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
-		indentationCheckbox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
+		indentationCheckbox = new PsychUICheckBox(20, FlxG.height + 60, "Use Indentation", 140, function() {
 			mergeChartSave.data.indentation = indentationCheckbox.checked;
 			mergeChartSave.flush();
 			indentation = indentationCheckbox.checked;
@@ -311,8 +311,12 @@ class MergeChartState extends MusicBeatState
 		#end
 
 		SongJson.log = true;
+		showMergingProgress(true, 'Loading base chart...');
+		trace('[DEBUG] Main.isConsoleAvailable: ${Main.isConsoleAvailable}');
+		trace('[DEBUG] SongJson.log: ${SongJson.log}');
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
+		trace('[DEBUG] Base chart parsed');
 		SongJson.log = false;
 		var baseChart:Dynamic;
 		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
@@ -327,14 +331,17 @@ class MergeChartState extends MusicBeatState
 
 		for (i in 1...totalCharts)
 		{
-			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
+			showMergingProgress(true, 'Merging chart ${i + 1}/${totalCharts}...');
 
 			var baseChart = loadChartBinary(currentMergedPath);
 			if (baseChart == null) return;
 
 			SongJson.log = true;
+			showMergingProgress(true, 'Parsing chart ${i + 1}/${totalCharts}...');
+			trace('[DEBUG] SongJson.log: ${SongJson.log}');
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
+			trace('[DEBUG] Next ${i + 1} chart parsed');
 			SongJson.log = false;
 			var nextChart:Dynamic;
 			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
@@ -623,7 +630,8 @@ class MergeChartState extends MusicBeatState
 
 	private function onBackButton()
 	{
-		FlxG.switchState(new MasterEditorMenu());
+		MusicBeatState.switchState(new MasterEditorMenu());
+		FlxG.sound.playMusic(Paths.music('freakyMenu'));
 	}
 
 	override function update(elapsed:Float)
@@ -660,7 +668,7 @@ class ChartBox extends FlxGroup
 		border.pixels.fillRect(new flash.geom.Rectangle(width - 2, 0, 2, height), FlxColor.WHITE);
 		add(border);
 
-		openButton = new PsychUIButton(x + width / 2 - 50, y + height / 2 - 15, "Open Chart", onOpenButton);
+		openButton = new PsychUIButton(x + width / 2 - 75, y + height / 2 - 15, "Open Chart", onOpenButton);
 		openButton.normalStyle.bgColor = FlxColor.BLUE;
 		openButton.normalStyle.textColor = FlxColor.WHITE;
 		add(openButton);

@@ -100,19 +100,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	public static var GRID_SIZE = 40;
 	final BACKUP_EXT = '.bkp';
 
-	public var quantizations:Array<Int> = [
-		4,
-		8,
-		12,
-		16,
-		20,
-		24,
-		32,
-		48,
-		64,
-		96,
-		192
-	];
+	public var quantizations:Array<Int> = [4, 8, 12, 16, 20, 24, 32, 48, 64, 96, 192];
 	public var quantColors:Array<FlxColor> = [
 		0xFFDF0000,
 		0xFF4040CF,
@@ -155,28 +143,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformSprite:FlxSprite;
 	var scrollY:Float = 0;
 
-	var zoomList:Array<Float> = [
-		0.25,
-		0.5,
-		1,
-		2,
-		3,
-		4,
-		6,
-		8,
-		12,
-		16,
-		24,
-		32,
-		36,
-		48,
-		64,
-		72,
-		96,
-		128,
-		192,
-		256
-	];
+	var zoomList:Array<Float> = [0.25, 0.5, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 36, 48, 64, 72, 96, 128, 192, 256];
 	var curZoom:Float = 1;
 
 	var mustHitIndicator:FlxSprite;
@@ -4157,51 +4124,72 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				return;
 			}
 
-			// Build time ranges
-			var deleteRanges:Array<{min:Float, max:Float}> = [];
-			for (sectionIndex in sectionStart...sectionEnd + 1)
-			{
-				deleteRanges.push({
-					min: cachedSectionTimes[sectionIndex],
-					max: cachedSectionTimes[sectionIndex + 1]
-				});
-			}
+			var notesDeleted:Int = 0;
+			var eventsDeleted:Int = 0;
 
-			// Single pass removal with splice (backwards iteration)
-			var i:Int = notes.length - 1;
-			while(i >= 0)
-			{
-				var note = notes[i];
-				if (note != null && !note.isEvent)
-				{
-					for (range in deleteRanges)
-					{
-						if (note.strumTime >= range.min && note.strumTime < range.max)
-						{
-							notes.splice(i, 1);
-							selectedNotes.remove(note);
-							note.destroy();
-							break;
-						}
-					}
-				}
-				i--;
-			}
-
-			// Clear sectionNotes
 			for (sectionIndex in sectionStart...sectionEnd + 1)
 			{
 				var currentSection = PlayState.SONG.notes[sectionIndex];
-				if (currentSection != null)
+				if (currentSection == null) continue;
+
+				var minTime:Float = cachedSectionTimes[sectionIndex];
+				var maxTime:Float = cachedSectionTimes[sectionIndex + 1];
+
+				var visualRemove:Array<MetaNote> = [];
+				for (note in notes)
 				{
-					currentSection.sectionNotes = [];
+					if (note == null) continue;
+					if (note.strumTime >= minTime && note.strumTime < maxTime)
+					{
+						if (!note.isEvent && affectNotes.checked)
+						{
+							visualRemove.push(note);
+							notesDeleted++;
+						}
+						if (note.isEvent && affectEvents.checked)
+						{
+							visualRemove.push(note);
+							eventsDeleted++;
+						}
+					}
+				}
+
+				for (note in visualRemove)
+				{
+					notes.remove(note);
+					selectedNotes.remove(note);
+					note.destroy();
+				}
+
+				var i:Int = currentSection.sectionNotes.length - 1;
+				while(i >= 0)
+				{
+					var note = currentSection.sectionNotes[i];
+					if (note != null && note.length > 1)
+					{
+						var isEvent = (note[1] < 0);
+						if (!isEvent && affectNotes.checked)
+						{
+							currentSection.sectionNotes.splice(i, 1);
+						}
+						else if (isEvent && affectEvents.checked)
+						{
+							currentSection.sectionNotes.splice(i, 1);
+						}
+					}
+					i--;
 				}
 			}
 
 			_cacheSections();
 			// updateCurrentSectionNotesNoSectionNotes();
+			forceDataUpdate = true;
 
-			showOutput('Deleted sections ' + sectionStart + ' to ' + sectionEnd);
+			var msg = "";
+			if (notesDeleted > 0) msg += notesDeleted + " notes ";
+			if (eventsDeleted > 0) msg += eventsDeleted + " events ";
+			if (msg == "") msg = "Nothing ";
+			showOutput(msg + "deleted from sections " + sectionStart + " to " + sectionEnd);
 		}, 120, 20);
 		deleteSections.normalStyle.bgColor = FlxColor.YELLOW;
 		deleteSections.normalStyle.textColor = FlxColor.WHITE;
@@ -4264,9 +4252,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 85, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX, objY + 125, 1, 1, 0, 16384, 0);
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX + 70, objY + 85, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 70, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 70, objY + 125, 1, 1, 0, 16384, 0);
 		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
@@ -4299,48 +4287,23 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 
 			var totalPastes:Int = 0;
-			var chunkSize:Int = 5000;
+			var chunkSize:Int = 2000; // Smaller chunk size
+			var sourceNotes = copiedNotes.copy();
+			var sourceEvents = copiedEvents.copy();
 
 			#if cpp
-			if (copiedNotes.length > 30000) cpp.vm.Gc.enable(false);
+			if (sourceNotes.length > 30000) cpp.vm.Gc.enable(false);
 			#end
 
 			for (offset in 0...(nextCount * repeatTimes))
 			{
-				var targetIndex = targetStart + offset;
+				var targetIndex = curSec + offset;
 				if (targetIndex >= PlayState.SONG.notes.length) break;
 
 				var oldCurSec = curSec;
 				curSec = targetIndex;
 
-				if (copiedNotes.length > 30000)
-				{
-					var tempNotes = copiedNotes.copy();
-					var tempEvents = copiedEvents.copy();
-
-					copiedNotes = [];
-					copiedEvents = [];
-
-					for (chunk in 0...Std.int(Math.ceil(tempNotes.length / chunkSize)))
-					{
-						var start = chunk * chunkSize;
-						var end = Std.int(Math.min(start + chunkSize, tempNotes.length));
-
-						copiedNotes = tempNotes.slice(start, end);
-						pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
-
-						#if cpp
-						if (chunk % 5 == 0) cpp.vm.Gc.run(false);
-						#end
-					}
-
-					copiedNotes = tempNotes;
-					copiedEvents = tempEvents;
-				}
-				else
-				{
-					pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked, false);
-				}
+				pasteCopiedNotesToSectionOptimized(affectNotes.checked, affectEvents.checked, false);
 
 				curSec = oldCurSec;
 				totalPastes++;
@@ -4350,7 +4313,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			copiedEvents = originalCopiedEvents;
 
 			#if cpp
-			if (copiedNotes.length > 30000) cpp.vm.Gc.enable(true);
+			if (sourceNotes.length > 30000) cpp.vm.Gc.enable(true);
 			#end
 
 			updateChartData();
@@ -4365,7 +4328,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[curSec] - Conductor.offset + 0.000001;
 			updateCurrentSectionNotesOptimized();
 
-			showOutput("Pasted into " + totalPastes + " sections");
+			showOutput("Pasted " + totalPastes + " sections successfully");
 		}, 140, 40);
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
@@ -4531,6 +4494,100 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(str.length > 0) showOutput(str);
 		}
 		addUndoAction(ADD_NOTE, {notes: nts, events: evs});
+		return pushedNotes;
+	}
+
+	function pasteCopiedNotesToSectionOptimized(?canCopyNotes:Bool = true, ?canCopyEvents:Bool = true, ?showMessage:Bool = true):Array<Dynamic>
+	{
+		var curSectionTime:Null<Float> = cachedSectionTimes[curSec];
+		if(curSectionTime == null)
+		{
+			if(showMessage) showOutput('ERROR: Unknown section??', true);
+			return [];
+		}
+
+		var targetSection = PlayState.SONG.notes[curSec];
+		if (targetSection == null) return [];
+
+		var newNotesData:Array<Array<Dynamic>> = [];
+		var newEventsData:Array<Array<Dynamic>> = [];
+		var pushedNotes:Array<Dynamic> = [];
+
+		if(canCopyNotes && copiedNotes.length > 0)
+		{
+			for (noteData in copiedNotes)
+			{
+				if(noteData == null) continue;
+				var dataCopy:Array<Dynamic> = makeNoteDataCopy(noteData, false);
+				dataCopy[0] += curSectionTime;
+				newNotesData.push(dataCopy);
+			}
+		}
+
+		if(canCopyEvents && copiedEvents.length > 0)
+		{
+			for (eventData in copiedEvents)
+			{
+				if(eventData == null) continue;
+				var dataCopy:Array<Dynamic> = makeNoteDataCopy(eventData, true);
+				dataCopy[0] += curSectionTime;
+				newEventsData.push(dataCopy);
+			}
+		}
+
+		if (newNotesData.length > 0)
+		{
+			targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotesData);
+
+			for (noteData in newNotesData)
+			{
+				var createdNote = createNote(noteData, curSec);
+				notes.push(createdNote);
+				pushedNotes.push(createdNote);
+			}
+		}
+
+		if (newEventsData.length > 0)
+		{
+			targetSection.sectionNotes = targetSection.sectionNotes.concat(newEventsData);
+
+			for (eventData in newEventsData)
+			{
+				var createdEvent = createEvent(eventData);
+				events.push(createdEvent);
+				pushedNotes.push(createdEvent);
+			}
+		}
+
+		if (newNotesData.length > 0 || newEventsData.length > 0)
+		{
+			notes.sort(PlayState.sortByTime);
+			events.sort(PlayState.sortByTime);
+		}
+
+		loadSection();
+
+		if(showMessage)
+		{
+			if(pushedNotes.length == 0)
+			{
+				showOutput('Nothing to paste!', true);
+				return [];
+			}
+
+			var noteCount = newNotesData.length;
+			var eventCount = newEventsData.length;
+			var str:String = '';
+			if(noteCount > 0) str += 'Notes Added: $noteCount';
+			if(eventCount > 0)
+			{
+				if(str.length > 0) str += '\n';
+				str += 'Events Added: $eventCount';
+			}
+			if(str.length > 0) showOutput(str);
+		}
+
+		addUndoAction(ADD_NOTE, {notes: pushedNotes.filter(n -> !Std.isOfType(n, EventMetaNote)), events: pushedNotes.filter(n -> Std.isOfType(n, EventMetaNote))});
 		return pushedNotes;
 	}
 
