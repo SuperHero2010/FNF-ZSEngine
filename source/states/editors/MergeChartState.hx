@@ -147,10 +147,10 @@ class MergeChartState extends MusicBeatState
 	private var progressUpdateTime:Float = 0.1;
 	var indentation:Bool = false;
 	var mergeChartSave:FlxSave = new FlxSave();
-	mergeChartSave.bind("MergeChartState", CoolUtil.getSavePath());
 
 	override function create()
 	{
+		mergeChartSave.bind("MergeChartState", CoolUtil.getSavePath());
 		super.create();
 
 		FlxG.mouse.visible = true;
