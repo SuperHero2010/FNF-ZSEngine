@@ -6,6 +6,7 @@ import flixel.group.FlxGroup;
 import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.util.FlxColor;
+import flixel.util.FlxSave;
 
 import backend.Song;
 import backend.SongJson;
@@ -16,123 +17,137 @@ import haxe.Json;
 import sys.FileSystem;
 import sys.io.File;
 
-import hxbitmini.Serializable;
-import hxbitmini.Serializer;
-import hxbitmini.Unserializer;
+import haxe.io.Bytes;
+import haxe.io.BytesOutput;
+import haxe.io.BytesInput;
 
-@:hxbit.Serializable
-class SerializableChart
+function saveChartBinary(chart:Dynamic, path:String):Void
 {
-    public var song:String;
-    public var notes:Array<SerializableSection>;
-    public var events:Array<Array<Dynamic>>;
-    public var bpm:Float;
-    public var needsVoices:Bool;
-    public var speed:Float;
-    public var offset:Float;
-    public var player1:String;
-    public var player2:String;
-    public var gfVersion:String;
-    public var stage:String;
-    public var format:String;
+    var output = new BytesOutput();
 
-    public function new() {}
+    output.writeString("CHRT");
+    output.writeInt32(1);
 
-    public static function fromDynamic(data:Dynamic):SerializableChart
+    output.writeString(chart.song);
+    output.writeFloat(chart.bpm);
+    output.writeBool(chart.needsVoices);
+    output.writeFloat(chart.speed);
+    output.writeFloat(chart.offset);
+    output.writeString(chart.player1);
+    output.writeString(chart.player2);
+    output.writeString(chart.gfVersion);
+    output.writeString(chart.stage);
+    output.writeString(chart.format);
+
+    var sections:Array<Dynamic> = cast chart.notes;
+    output.writeInt32(sections.length);
+
+    for (section in sections)
     {
-        var chart = new SerializableChart();
-        chart.song = data.song;
-        chart.bpm = data.bpm;
-        chart.needsVoices = data.needsVoices;
-        chart.speed = data.speed;
-        chart.offset = data.offset;
-        chart.player1 = data.player1;
-        chart.player2 = data.player2;
-        chart.gfVersion = data.gfVersion;
-        chart.stage = data.stage;
-        chart.format = data.format;
+        output.writeFloat(section.sectionBeats);
+        output.writeBool(section.mustHitSection);
+        output.writeBool(section.changeBPM);
+        output.writeFloat(section.bpm);
+        output.writeBool(section.altAnim);
+        output.writeBool(section.gfSection);
 
-        // Convert notes
-        chart.notes = [];
-        if (data.notes != null)
+        var notes:Array<Dynamic> = cast section.sectionNotes;
+        output.writeInt32(notes.length);
+
+        for (note in notes)
         {
-            for (section in data.notes)
-            {
-                chart.notes.push(SerializableSection.fromDynamic(section));
-            }
+            output.writeFloat(note[0]);
+            output.writeInt32(note[1]);
+            output.writeFloat(note[2]);
+            if (note.length > 3)
+                output.writeString(note[3]);
+            else
+                output.writeString("");
         }
-
-        // Convert events
-        chart.events = data.events != null ? data.events : [];
-
-        return chart;
     }
 
-    public function toDynamic():Dynamic
+    var events:Array<Dynamic> = cast chart.events;
+    output.writeInt32(events.length);
+    for (event in events)
     {
-        var data:Dynamic = {};
-        data.song = song;
-        data.bpm = bpm;
-        data.needsVoices = needsVoices;
-        data.speed = speed;
-        data.offset = offset;
-        data.player1 = player1;
-        data.player2 = player2;
-        data.gfVersion = gfVersion;
-        data.stage = stage;
-        data.format = format;
-
-        // Convert notes
-        data.notes = [];
-        for (section in notes)
-        {
-            data.notes.push(section.toDynamic());
-        }
-
-        data.events = events;
-
-        return data;
+        output.writeFloat(event[0]);
+        output.writeString(event[1]);
+        output.writeString(event[2] != null ? Std.string(event[2]) : "");
+        output.writeString(event[3] != null ? Std.string(event[3]) : "");
     }
+
+    File.saveBytes(path, output.getBytes());
 }
 
-@:hxbit.Serializable
-class SerializableSection
+function loadChartBinary(path:String):Dynamic
 {
-    public var sectionNotes:Array<Array<Dynamic>>;
-    public var sectionBeats:Float;
-    public var mustHitSection:Bool;
-    public var changeBPM:Bool;
-    public var bpm:Float;
-    public var altAnim:Bool;
-    public var gfSection:Bool;
+    if (!FileSystem.exists(path)) return null;
 
-    public function new() {}
+    var bytes = File.getBytes(path);
+    var input = new BytesInput(bytes);
 
-    public static function fromDynamic(data:Dynamic):SerializableSection
+    var magic = input.readString(4);
+    if (magic != "CHRT") return null;
+    var version = input.readInt32();
+    if (version != 1) return null;
+
+    var chart:Dynamic = {};
+    chart.song = input.readString();
+    chart.bpm = input.readFloat();
+    chart.needsVoices = input.readBool();
+    chart.speed = input.readFloat();
+    chart.offset = input.readFloat();
+    chart.player1 = input.readString();
+    chart.player2 = input.readString();
+    chart.gfVersion = input.readString();
+    chart.stage = input.readString();
+    chart.format = input.readString();
+
+    var sectionCount = input.readInt32();
+    chart.notes = [];
+
+    for (i in 0...sectionCount)
     {
-        var section = new SerializableSection();
-        section.sectionNotes = data.sectionNotes != null ? data.sectionNotes : [];
-        section.sectionBeats = data.sectionBeats;
-        section.mustHitSection = data.mustHitSection;
-        section.changeBPM = data.changeBPM;
-        section.bpm = data.bpm;
-        section.altAnim = data.altAnim;
-        section.gfSection = data.gfSection;
-        return section;
+        var section:Dynamic = {};
+        section.sectionBeats = input.readFloat();
+        section.mustHitSection = input.readBool();
+        section.changeBPM = input.readBool();
+        section.bpm = input.readFloat();
+        section.altAnim = input.readBool();
+        section.gfSection = input.readBool();
+
+        var noteCount = input.readInt32();
+        section.sectionNotes = [];
+
+        for (j in 0...noteCount)
+        {
+            var note:Array<Dynamic> = [
+                input.readFloat(),
+                input.readInt32(),
+                input.readFloat()
+            ];
+            var noteType = input.readString();
+            if (noteType != "") note.push(noteType);
+            section.sectionNotes.push(note);
+        }
+
+        chart.notes.push(section);
     }
 
-    public function toDynamic():Dynamic
+    var eventCount = input.readInt32();
+    chart.events = [];
+    for (i in 0...eventCount)
     {
-        return {
-            sectionNotes: sectionNotes,
-            sectionBeats: sectionBeats,
-            mustHitSection: mustHitSection,
-            changeBPM: changeBPM,
-            bpm: bpm,
-            altAnim: altAnim,
-            gfSection: gfSection
-        };
+        var event:Array<Dynamic> = [
+            input.readFloat(),
+            input.readString(),
+            input.readString(),
+            input.readString()
+        ];
+        chart.events.push(event);
     }
+
+    return chart;
 }
 
 class MergeChartState extends MusicBeatState
@@ -270,33 +285,13 @@ class MergeChartState extends MusicBeatState
 		mergeCharts(chartPaths);
 	}
 
-	function saveChartBinary(chart:Dynamic, path:String):Void
-	{
-		var serializable = SerializableChart.fromDynamic(chart);
-		var serializer = new Serializer();
-		serializer.serialize(serializable);
-		var bytes = serializer.getBytes();
-
-		var output = File.write(path, true);
-		output.writeBytes(bytes, 0, bytes.length);
-		output.close();
-	}
-
-	function loadChartBinary(path:String):Dynamic
-	{
-		if (!FileSystem.exists(path)) return null;
-
-		var bytes = File.getBytes(path);
-		var unserializer = new Unserializer();
-		unserializer.setBytes(bytes);
-		var serializable:SerializableChart = unserializer.unserialize();
-
-		return serializable != null ? serializable.toDynamic() : null;
-	}
-
 	private function mergeCharts(chartPaths:Array<String>)
 	{
 		if (chartPaths.length < 2) return;
+
+		#if cpp
+		cpp.vm.Gc.enable(false);
+		#end
 
 		var tempDir:String;
 		#if windows
@@ -358,6 +353,11 @@ class MergeChartState extends MusicBeatState
 			finalJson = Json.stringify(finalChart);
 		}
 		saveMergedChart(finalJson);
+
+		#if cpp
+		cpp.vm.Gc.enable(true);
+		cpp.vm.Gc.run(true);
+		#end
 
 		if (FileSystem.exists(currentMergedPath))
 			FileSystem.deleteFile(currentMergedPath);
@@ -496,26 +496,96 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	private function saveMergedChart(mergedData:String)
+	function saveChartStreaming(chart:Dynamic, path:String, useWrapper:Bool = false):Void
 	{
-		// Extract song name from the merged data
-		var songName:String = "merged";
-		try
+		var file = sys.io.File.write(path, false);
+		var isFirst = true;
+
+		// Helper to write a field
+		function writeField(name:String, value:Dynamic):Void
 		{
-			var mergedObj:Dynamic = Json.parse(mergedData);
-			if (mergedObj.song != null) songName = mergedObj.song;
+			if (!isFirst) file.writeString(",");
+			isFirst = false;
+			file.writeString('"' + name + '":');
+
+			if (Std.isOfType(value, String))
+				file.writeString('"' + value + '"');
+			else if (Std.isOfType(value, Bool))
+				file.writeString(value ? "true" : "false");
+			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+				file.writeString(Std.string(value));
+			else if (value == null)
+				file.writeString("null");
+			else
+				file.writeString(Json.stringify(value));
 		}
-		catch (e:Dynamic) {}
 
-		var defaultName:String = songName + "-merged.json";
+		// Write opening wrapper if needed
+		if (useWrapper)
+		{
+			file.writeString('{"song":');
+			isFirst = true;
+		}
 
-		fileDialog.save(defaultName, mergedData,
-			function()
-			{
-				showMergingProgress(false, "Merge complete!");
-			}, null, function()
-			{
-				showMergingProgress(false, "Error saving chart");
+		file.writeString("{");
+
+		// Core fields (always present)
+		writeField("song", chart.song);
+		writeField("notes", chart.notes);
+		writeField("events", chart.events != null ? chart.events : []);
+		writeField("bpm", chart.bpm);
+		writeField("needsVoices", chart.needsVoices);
+		writeField("speed", chart.speed);
+		writeField("player1", chart.player1);
+		writeField("player2", chart.player2);
+		writeField("gfVersion", chart.gfVersion);
+		writeField("stage", chart.stage);
+
+		// V1 fields (optional)
+		if (Reflect.hasField(chart, "offset"))
+			writeField("offset", chart.offset);
+
+		if (Reflect.hasField(chart, "format"))
+			writeField("format", chart.format);
+
+		// Extra optional fields
+		if (Reflect.hasField(chart, "gameOverChar") && chart.gameOverChar != null)
+			writeField("gameOverChar", chart.gameOverChar);
+		if (Reflect.hasField(chart, "gameOverSound") && chart.gameOverSound != null)
+			writeField("gameOverSound", chart.gameOverSound);
+		if (Reflect.hasField(chart, "gameOverLoop") && chart.gameOverLoop != null)
+			writeField("gameOverLoop", chart.gameOverLoop);
+		if (Reflect.hasField(chart, "gameOverEnd") && chart.gameOverEnd != null)
+			writeField("gameOverEnd", chart.gameOverEnd);
+		if (Reflect.hasField(chart, "disableNoteRGB") && chart.disableNoteRGB != null)
+			writeField("disableNoteRGB", chart.disableNoteRGB);
+		if (Reflect.hasField(chart, "arrowSkin") && chart.arrowSkin != null)
+			writeField("arrowSkin", chart.arrowSkin);
+		if (Reflect.hasField(chart, "splashSkin") && chart.splashSkin != null)
+			writeField("splashSkin", chart.splashSkin);
+
+		file.writeString("}");
+
+		// Close wrapper if needed
+		if (useWrapper)
+			file.writeString("}");
+
+		file.close();
+	}
+
+	private function saveMergedChart(chart:Dynamic):Void
+	{
+		var defaultName:String = chart.song + "-merged.json";
+
+		fileDialog.save(defaultName, null, function(path:String) {
+			showMergingProgress(true, "Saving merged chart...", true);
+
+			saveChartStreaming(chart, path, false);
+
+			showMergingProgress(false, "Merge complete!", true);
+			showOutput("Chart saved to: " + path);
+			}, null, function() {
+				showMergingProgress(false, "Error saving chart", true);
 			});
 	}
 
