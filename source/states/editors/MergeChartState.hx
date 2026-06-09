@@ -30,14 +30,14 @@ function saveChartBinary(chart:Dynamic, path:String):Void
 
     output.writeString(chart.song);
     output.writeFloat(chart.bpm);
-    output.writeBool(chart.needsVoices);
+    output.writeByte(chart.needsVoices ? 1 : 0);
     output.writeFloat(chart.speed);
-    output.writeFloat(chart.offset);
+    output.writeFloat(chart.offset != null ? chart.offset : 0);
     output.writeString(chart.player1);
     output.writeString(chart.player2);
     output.writeString(chart.gfVersion);
     output.writeString(chart.stage);
-    output.writeString(chart.format);
+    output.writeString(chart.format != null ? chart.format : "");
 
     var sections:Array<Dynamic> = cast chart.notes;
     output.writeInt32(sections.length);
@@ -45,11 +45,11 @@ function saveChartBinary(chart:Dynamic, path:String):Void
     for (section in sections)
     {
         output.writeFloat(section.sectionBeats);
-        output.writeBool(section.mustHitSection);
-        output.writeBool(section.changeBPM);
+        output.writeByte(section.mustHitSection ? 1 : 0);
+        output.writeByte(section.changeBPM ? 1 : 0);
         output.writeFloat(section.bpm);
-        output.writeBool(section.altAnim);
-        output.writeBool(section.gfSection);
+        output.writeByte(section.altAnim ? 1 : 0);
+        output.writeByte(section.gfSection ? 1 : 0);
 
         var notes:Array<Dynamic> = cast section.sectionNotes;
         output.writeInt32(notes.length);
@@ -59,10 +59,14 @@ function saveChartBinary(chart:Dynamic, path:String):Void
             output.writeFloat(note[0]);
             output.writeInt32(note[1]);
             output.writeFloat(note[2]);
-            if (note.length > 3)
+            if (note.length > 3 && note[3] != null && note[3] != "")
+            {
                 output.writeString(note[3]);
+            }
             else
+            {
                 output.writeString("");
+            }
         }
     }
 
@@ -71,7 +75,7 @@ function saveChartBinary(chart:Dynamic, path:String):Void
     for (event in events)
     {
         output.writeFloat(event[0]);
-        output.writeString(event[1]);
+        output.writeString(event[1] != null ? Std.string(event[1]) : "");
         output.writeString(event[2] != null ? Std.string(event[2]) : "");
         output.writeString(event[3] != null ? Std.string(event[3]) : "");
     }
@@ -94,7 +98,7 @@ function loadChartBinary(path:String):Dynamic
     var chart:Dynamic = {};
     chart.song = input.readString();
     chart.bpm = input.readFloat();
-    chart.needsVoices = input.readBool();
+    chart.needsVoices = input.readByte() == 1;
     chart.speed = input.readFloat();
     chart.offset = input.readFloat();
     chart.player1 = input.readString();
@@ -102,6 +106,7 @@ function loadChartBinary(path:String):Dynamic
     chart.gfVersion = input.readString();
     chart.stage = input.readString();
     chart.format = input.readString();
+    if (chart.format == "") chart.format = null;
 
     var sectionCount = input.readInt32();
     chart.notes = [];
@@ -110,11 +115,11 @@ function loadChartBinary(path:String):Dynamic
     {
         var section:Dynamic = {};
         section.sectionBeats = input.readFloat();
-        section.mustHitSection = input.readBool();
-        section.changeBPM = input.readBool();
+        section.mustHitSection = input.readByte() == 1;
+        section.changeBPM = input.readByte() == 1;
         section.bpm = input.readFloat();
-        section.altAnim = input.readBool();
-        section.gfSection = input.readBool();
+        section.altAnim = input.readByte() == 1;
+        section.gfSection = input.readByte() == 1;
 
         var noteCount = input.readInt32();
         section.sectionNotes = [];
@@ -144,6 +149,9 @@ function loadChartBinary(path:String):Dynamic
             input.readString(),
             input.readString()
         ];
+        if (event[1] == "") event[1] = null;
+        if (event[2] == "") event[2] = null;
+        if (event[3] == "") event[3] = null;
         chart.events.push(event);
     }
 
@@ -162,6 +170,7 @@ class MergeChartState extends MusicBeatState
 	private var progressUpdateTime:Float = 0.1;
 	var indentation:Bool = false;
 	var mergeChartSave:FlxSave = new FlxSave();
+	var indentationCheckbox:PsychUICheckBox;
 
 	override function create()
 	{
@@ -217,7 +226,7 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
-		var indentationCheckbox:PsychUICheckBox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
+		indentationCheckbox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
 			mergeChartSave.data.indentation = indentationCheckbox.checked;
 			mergeChartSave.flush();
 			indentation = indentationCheckbox.checked;
@@ -302,7 +311,11 @@ class MergeChartState extends MusicBeatState
 
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
-		var baseChart = baseObj.song != null ? baseObj.song : baseObj;
+		var baseChart:Dynamic;
+		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
+			baseChart = baseObj.song;
+		else
+			baseChart = baseObj;
 
 		var currentMergedPath = tempDir + "/temp_merged_base.bin";
 		saveChartBinary(baseChart, currentMergedPath);
@@ -318,7 +331,11 @@ class MergeChartState extends MusicBeatState
 
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
-			var nextChart = nextObj.song != null ? nextObj.song : nextObj;
+			var nextChart:Dynamic;
+			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
+				nextChart = nextObj.song;
+			else
+				nextChart = nextObj;
 
 			var baseNotesCount = 0;
 			var baseEventsCount = 0;
@@ -577,16 +594,33 @@ class MergeChartState extends MusicBeatState
 	{
 		var defaultName:String = chart.song + "-merged.json";
 
-		fileDialog.save(defaultName, null, function(path:String) {
-			showMergingProgress(true, "Saving merged chart...", true);
-
-			saveChartStreaming(chart, path, false);
-
-			showMergingProgress(false, "Merge complete!", true);
-			showOutput("Chart saved to: " + path);
-			}, null, function() {
-				showMergingProgress(false, "Error saving chart", true);
-			});
+		fileDialog.save(defaultName, null,
+			function(path:String)
+			{
+				try
+				{
+					showMergingProgress(true, "Saving merged chart...", true);
+					saveChartStreaming(chart, path, false);
+					showMergingProgress(false, "Merge complete!", true);
+					trace("Chart saved to: " + path);
+				}
+				catch(e:Dynamic)
+				{
+					showMergingProgress(false, "Error saving: " + e, true);
+					trace("Error saving chart: " + e);
+				}
+			},
+			function()
+			{
+				showMergingProgress(false, "Save cancelled", true);
+				trace("Save cancelled by user");
+			},
+			function(e:Dynamic)
+			{
+				showMergingProgress(false, "Error: " + e, true);
+				trace("Save error: " + e);
+			}
+		);
 	}
 
 	private function onBackButton()
