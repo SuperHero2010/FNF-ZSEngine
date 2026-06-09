@@ -96,16 +96,17 @@ function loadChartBinary(path:String):Dynamic
     if (version != 1) return null;
 
     var chart:Dynamic = {};
-    chart.song = input.readString();
+	var strLen = input.readInt32();
+	chart.song = input.readString(strLen);
     chart.bpm = input.readFloat();
     chart.needsVoices = input.readByte() == 1;
     chart.speed = input.readFloat();
     chart.offset = input.readFloat();
-    chart.player1 = input.readString();
-    chart.player2 = input.readString();
-    chart.gfVersion = input.readString();
-    chart.stage = input.readString();
-    chart.format = input.readString();
+    chart.player1 = input.readString(strLen);
+    chart.player2 = input.readString(strLen);
+    chart.gfVersion = input.readString(strLen);
+    chart.stage = input.readString(strLen);
+    chart.format = input.readString(strLen);
     if (chart.format == "") chart.format = null;
 
     var sectionCount = input.readInt32();
@@ -131,7 +132,7 @@ function loadChartBinary(path:String):Dynamic
                 input.readInt32(),
                 input.readFloat()
             ];
-            var noteType = input.readString();
+            var noteType = input.readString(strLen);
             if (noteType != "") note.push(noteType);
             section.sectionNotes.push(note);
         }
@@ -145,9 +146,9 @@ function loadChartBinary(path:String):Dynamic
     {
         var event:Array<Dynamic> = [
             input.readFloat(),
-            input.readString(),
-            input.readString(),
-            input.readString()
+            input.readString(strLen),
+            input.readString(strLen),
+            input.readString(strLen)
         ];
         if (event[1] == "") event[1] = null;
         if (event[2] == "") event[2] = null;
@@ -339,7 +340,8 @@ class MergeChartState extends MusicBeatState
 
 			var baseNotesCount = 0;
 			var baseEventsCount = 0;
-			for (section in baseChart.notes)
+			var baseNotes:Array<Dynamic> = cast baseChart.notes;
+			for (section in baseNotes)
 				if (section.sectionNotes != null)
 					baseNotesCount += section.sectionNotes.length;
 			if (baseChart.events != null) baseEventsCount = baseChart.events.length;
