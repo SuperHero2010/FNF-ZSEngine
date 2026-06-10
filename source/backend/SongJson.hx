@@ -38,8 +38,7 @@ class SongJson
 	var pos:Int;
 	var time:Float = Timer.stamp();
 	public static var skipChart:Bool = false;
-	// Do not depend on console availability for correctness.
-	public static var log:Bool = false;
+	public static var log:Bool = true;
 
 	function new(str:String)
 	{
@@ -300,18 +299,6 @@ class SongJson
 		if (Timer.stamp() - time > 0.1)
 		{
 			if (Main.isConsoleAvailable && log)
-			{
-				try {
-					Sys.stdout().writeString('\x1b[0G$pos/${str.length}');
-					Sys.stdout().flush();
-				}
-				catch (_:Dynamic) {}
-			}
-			time = Timer.stamp();
-		}
-		else if (log && pos == 0)
-		{
-			if (Main.isConsoleAvailable)
 			{
 				try {
 					Sys.stdout().writeString('\x1b[0G$pos/${str.length}');

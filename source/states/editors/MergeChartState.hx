@@ -23,6 +23,7 @@ import haxe.io.BytesInput;
 
 function saveChartBinary(chart:Dynamic, path:String):Void
 {
+	trace('saveChartBinary called');
     var output = new BytesOutput();
 
     output.writeString("CHRT");
@@ -85,6 +86,7 @@ function saveChartBinary(chart:Dynamic, path:String):Void
 
 function loadChartBinary(path:String):Dynamic
 {
+	trace('loadChartBinary called');
     if (!FileSystem.exists(path)) return null;
 
     var bytes = File.getBytes(path);
@@ -227,7 +229,7 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
-		indentationCheckbox = new PsychUICheckBox(20, FlxG.height + 60, "Use Indentation", 140, function() {
+		indentationCheckbox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
 			mergeChartSave.data.indentation = indentationCheckbox.checked;
 			mergeChartSave.flush();
 			indentation = indentationCheckbox.checked;
@@ -297,7 +299,12 @@ class MergeChartState extends MusicBeatState
 
 	private function mergeCharts(chartPaths:Array<String>)
 	{
-		if (chartPaths.length < 2) return;
+		trace('mergeCharts() called with ' + chartPaths.length + ' charts');
+
+		if (chartPaths.length < 2) {
+			trace('mergeCharts: Less than 2 charts, returning');
+			return;
+		}
 
 		#if cpp
 		cpp.vm.Gc.enable(false);
@@ -311,18 +318,18 @@ class MergeChartState extends MusicBeatState
 		#end
 
 		SongJson.log = true;
-		showMergingProgress(true, 'Loading base chart...');
-		trace('[DEBUG] Main.isConsoleAvailable: ${Main.isConsoleAvailable}');
-		trace('[DEBUG] SongJson.log: ${SongJson.log}');
+		showMergingProgress(true, 'Loading base chart...\n');
+		trace('Main.isConsoleAvailable: ${Main.isConsoleAvailable}');
+		trace('SongJson.log: ${SongJson.log}');
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
-		trace('[DEBUG] Base chart parsed');
-		SongJson.log = false;
+		trace('Base chart parsed');
 		var baseChart:Dynamic;
 		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
 			baseChart = baseObj.song;
 		else
 			baseChart = baseObj;
+		SongJson.log = false;
 
 		var currentMergedPath = tempDir + "/temp_merged_base.bin";
 		saveChartBinary(baseChart, currentMergedPath);
@@ -338,16 +345,16 @@ class MergeChartState extends MusicBeatState
 
 			SongJson.log = true;
 			showMergingProgress(true, 'Parsing chart ${i + 1}/${totalCharts}...');
-			trace('[DEBUG] SongJson.log: ${SongJson.log}');
+			trace('SongJson.log: ${SongJson.log}');
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
-			trace('[DEBUG] Next ${i + 1} chart parsed');
-			SongJson.log = false;
+			trace('Next ${i + 1} chart parsed');
 			var nextChart:Dynamic;
 			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
 				nextChart = nextObj.song;
 			else
 				nextChart = nextObj;
+			SongJson.log = false;
 
 			var baseNotesCount = 0;
 			var baseEventsCount = 0;
@@ -395,17 +402,17 @@ class MergeChartState extends MusicBeatState
 
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
 	{
-		trace('[TRACE] mergeInto() called');
+		trace('mergeInto() called');
 
 		// Ensure base has notes and events arrays
 		if (baseSong.notes == null)
 		{
-			trace('[TRACE] baseSong.notes was null, creating empty array');
+			trace('baseSong.notes was null, creating empty array');
 			baseSong.notes = [];
 		}
 		if (baseSong.events == null)
 		{
-			trace('[TRACE] baseSong.events was null, creating empty array');
+			trace('baseSong.events was null, creating empty array');
 			baseSong.events = [];
 		}
 
@@ -454,7 +461,7 @@ class MergeChartState extends MusicBeatState
 			showMergeProgress(true); // Force update
 		}
 
-		trace('[TRACE] mergeInto() COMPLETE');
+		trace('mergeInto() COMPLETE');
 	}
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
@@ -508,13 +515,7 @@ class MergeChartState extends MusicBeatState
 		var rawData:String = null;
 
 		#if MODS_ALLOWED
-		if(FileSystem.exists(path))
-		{
-			// Enable SongJson progress logging during loading
-			SongJson.log = true;
-			rawData = File.getContent(path);
-			SongJson.log = false;
-		}
+		if(FileSystem.exists(path)) rawData = File.getContent(path);
 		#end
 
 		if (rawData == null)
@@ -606,24 +607,29 @@ class MergeChartState extends MusicBeatState
 	private function saveMergedChart(chart:Dynamic):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
-		var jsonString:String = Json.stringify(chart);
+
+		var tempPath = "temp_merged_final.json";
+		saveChartStreaming(chart, tempPath, false);
+
+		var jsonString:String = File.getContent(tempPath);
 
 		fileDialog.saveWithPath(defaultName, jsonString,
 			function(path:String)
 			{
+				File.copy(tempPath, path);
+				FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Merge complete!", true);
 				trace("Chart saved to: " + path);
 			},
 			function()
 			{
+				FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Save cancelled", true);
-				trace("Save cancelled by user");
 			},
-			function(e:Dynamic) // Add error parameter
+			function(e:String)
 			{
-				var errorMsg = Std.string(e);
-				showMergingProgress(false, "Error: " + errorMsg, true);
-				trace("Save error: " + errorMsg);
+				FileSystem.deleteFile(tempPath);
+				showMergingProgress(false, "Error: " + e, true);
 			}
 		);
 	}
@@ -668,7 +674,7 @@ class ChartBox extends FlxGroup
 		border.pixels.fillRect(new flash.geom.Rectangle(width - 2, 0, 2, height), FlxColor.WHITE);
 		add(border);
 
-		openButton = new PsychUIButton(x + width / 2 - 75, y + height / 2 - 15, "Open Chart", onOpenButton);
+		openButton = new PsychUIButton(x + width / 2 - 45, y + height / 2 - 15, "Open Chart", onOpenButton);
 		openButton.normalStyle.bgColor = FlxColor.BLUE;
 		openButton.normalStyle.textColor = FlxColor.WHITE;
 		add(openButton);
