@@ -43,7 +43,7 @@ onCountdownTick<counter>:
 	-/ counter = 3 -> "Go!"
 	-/ counter = 4 -> Nothing happens lol, tho it is triggered at the same time as onSongStart i think
 
-onSpawnNote<id, data, type, isSustainNote, strumTime>:
+onSpawnNote<id>, <data>, <type>, <isSustainNote>, <strumTime>:
 	-/You can use id to get other properties from notes, for example:
 	-/getPropertyFromGroup<'notes', id, 'texture'>
 
@@ -110,13 +110,13 @@ onGhostTap<key>:
 
 -/ Note miss/hit
 -/-/ PRE
-goodNoteHitPre<id, noteData, noteType, isSustainNote>:
+goodNoteHitPre<id>, <noteData>, <noteType>, <isSustainNote>:
 	-/ called when you hit a note (***before*** note hit calculations)
 	-/ id: The note member id, you can get whatever variable you want from this note, example: "getPropertyFromGroup('notes', id, 'strumTime')"
 	-/ noteData: 0 = Left, 1 = Down, 2 = Up, 3 = Right
 	-/ noteType: The note type string
 	-/ isSustainNote: If it's a hold note, can be either true or false
-opponentNoteHitPre<id, noteData, noteType, isSustainNote>:
+opponentNoteHitPre<id>, <noteData>, <noteType>, <isSustainNote>:
 	-/ called when the opponent hits a note (***before*** note hit calculations)
 	-/ id: The note member id, you can get whatever variable you want from this note, example: "getPropertyFromGroup('notes', id, 'strumTime')"
 	-/ noteData: 0 = Left, 1 = Down, 2 = Up, 3 = Right
@@ -124,13 +124,13 @@ opponentNoteHitPre<id, noteData, noteType, isSustainNote>:
 	-/ isSustainNote: If it's a hold note, can be either true or false
 
 -/-/ POST
-goodNoteHit<id, noteData, noteType, isSustainNote>:
+goodNoteHit<id>, <noteData>, <noteType>, <isSustainNote>:
 	-/ called when you hit a note (***after*** note hit calculations)
 	-/ id: The note member id, you can get whatever variable you want from this note, example: "getPropertyFromGroup('notes', id, 'strumTime')"
 	-/ noteData: 0 = Left, 1 = Down, 2 = Up, 3 = Right
 	-/ noteType: The note type string
 	-/ isSustainNote: If it's a hold note, can be either true or false
-opponentNoteHit<id, noteData, noteType, isSustainNote>:
+opponentNoteHit<id>, <noteData>, <noteType>, <isSustainNote>:
 	-/ called when the opponent hits a note (***after*** note hit calculations)
 	-/ id: The note member id, you can get whatever variable you want from this note, example: "getPropertyFromGroup('notes', id, 'strumTime')"
 	-/ noteData: 0 = Left, 1 = Down, 2 = Up, 3 = Right
@@ -141,7 +141,7 @@ noteMissPress<direction>:
 	-/ Called after the note press miss calculations
 	-/ Player pressed a button, but there was no note to hit (ghost miss)
 
-noteMiss<id, direction, noteType, isSustainNote>:
+noteMiss<id>, <direction>, <noteType>, <isSustainNote>:
 	-/ Called after the note miss calculations
 	-/ Player missed a note by letting it go offscreen
 
@@ -166,28 +166,29 @@ onRecalculateRating:
 onMoveCamera<focus>:
 	-/Called when the camera focuses to a character
 
-	if <focus> == <boyfri> then
-		-/ Called when the camera focuses on boyfri	else if focus == 'dad' then
+	if <focus> == ‘boyfri’ then
+		-/ Called when the camera focuses on boyfri
+	else if <focus> == ‘dad’ then
 		-/ Called when the camera focuses on dad
-	else if <focus> == <gf> then
+	else if <focus> == ‘gf’ then
 		-/ Called when the camera focuses on girlfri	
 
 -/ Event notes hooks
-onEvent<name, value1, value2, strumTime>:
+onEvent<name>, <value1>, <value2>, <strumTime>:
 	-/ Event note triggered
 
-	-/ print: ‘Event triggered: ’, name, value1, value2, strumTime;
+	-/ print: ‘Event triggered: ’ + <name> + <value1> + <value2> + <strumTime>
 
-onEventPushed<name, value1, value2, strumTime>:
+onEventPushed<name>, <value1>, <value2>, <strumTime>:
 	-/ Called for every event note, recommed to precache assets
 
-eventEarlyTrigger<name, value1, value2, strumTime>:
+eventEarlyTrigger<name>, <value1>, <value2>, <strumTime>:
 	*/-
 	Here's a port of the Kill Henchmen early trigger but on Lua instead of Haxe:
 
 	if name == 'Kill Henchmen' then
 		give 280;
-	
+
 	This makes the "Kill Henchmen" event be triggered 280 miliseconds earlier so that the kill sound is perfectly timed with the song
 	/-*
 
@@ -201,10 +202,10 @@ onCustomSubstateCreate<name>:
 onCustomSubstateCreatePost<name>:
 	-/ "name" is defined on "openCustomSubstate<name>:"
 
-onCustomSubstateUpdate<name, elapsed>:
+onCustomSubstateUpdate<name>, <elapsed>:
 	-/ "name" is defined on "openCustomSubstate<name>:"
 
-onCustomSubstateUpdatePost<name, elapsed>:
+onCustomSubstateUpdatePost<name>, <elapsed>:
 	-/ "name" is defined on "openCustomSubstate<name>:"
 
 onCustomSubstateDestroy<name>:
@@ -213,11 +214,11 @@ onCustomSubstateDestroy<name>:
 
 
 -/ Tween/Timer/Sound hooks
-onTweenCompleted<tag, vars>:
+onTweenCompleted<tag>, <vars>:
 	-/ A tween you called has been completed, value "tag" is it's tag
 	-/ vars = the tag of the sprite that was tweened
 
-onTimerCompleted<tag, loops, loopsLeft>:
+onTimerCompleted<tag>, <loops>, <loopsLeft>:
 	-/ A loop from a timer you called has been completed, value "tag" is it's tag
 	-/ loops = how many loops it will have done when it s completely
 	-/ loopsLeft = how many are remaining
