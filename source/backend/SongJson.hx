@@ -302,7 +302,19 @@ class SongJson
 			if (Main.isConsoleAvailable && log)
 			{
 				try {
-					Sys.stdout().writeString('\x1b[0G[JSON-PARSE] $pos/${str.length}');
+					Sys.stdout().writeString('\x1b[0G$pos/${str.length}');
+					Sys.stdout().flush();
+				}
+				catch (_:Dynamic) {}
+			}
+			time = Timer.stamp();
+		}
+		else if (log && pos == 0)
+		{
+			if (Main.isConsoleAvailable)
+			{
+				try {
+					Sys.stdout().writeString('\x1b[0G$pos/${str.length}');
 					Sys.stdout().flush();
 				}
 				catch (_:Dynamic) {}
