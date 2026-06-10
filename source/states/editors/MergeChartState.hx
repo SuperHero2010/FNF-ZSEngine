@@ -29,16 +29,23 @@ function saveChartBinary(chart:Dynamic, path:String):Void
     output.writeString("CHRT");
     output.writeInt32(1);
 
-    output.writeString(chart.song);
+    function writeString(str:String):Void
+    {
+        var bytes = haxe.io.Bytes.ofString(str);
+        output.writeInt32(bytes.length);
+        output.writeBytes(bytes, 0, bytes.length);
+    }
+
+    writeString(chart.song);
     output.writeFloat(chart.bpm);
     output.writeByte(chart.needsVoices ? 1 : 0);
     output.writeFloat(chart.speed);
     output.writeFloat(chart.offset != null ? chart.offset : 0);
-    output.writeString(chart.player1);
-    output.writeString(chart.player2);
-    output.writeString(chart.gfVersion);
-    output.writeString(chart.stage);
-    output.writeString(chart.format != null ? chart.format : "");
+    writeString(chart.player1);
+    writeString(chart.player2);
+    writeString(chart.gfVersion);
+    writeString(chart.stage);
+    writeString(chart.format != null ? chart.format : "");
 
     var sections:Array<Dynamic> = cast chart.notes;
     output.writeInt32(sections.length);
@@ -60,14 +67,8 @@ function saveChartBinary(chart:Dynamic, path:String):Void
             output.writeFloat(note[0]);
             output.writeInt32(note[1]);
             output.writeFloat(note[2]);
-            if (note.length > 3 && note[3] != null && note[3] != "")
-            {
-                output.writeString(note[3]);
-            }
-            else
-            {
-                output.writeString("");
-            }
+            var noteType:String = (note.length > 3 && note[3] != null) ? Std.string(note[3]) : "";
+            writeString(noteType);
         }
     }
 
@@ -76,9 +77,9 @@ function saveChartBinary(chart:Dynamic, path:String):Void
     for (event in events)
     {
         output.writeFloat(event[0]);
-        output.writeString(event[1] != null ? Std.string(event[1]) : "");
-        output.writeString(event[2] != null ? Std.string(event[2]) : "");
-        output.writeString(event[3] != null ? Std.string(event[3]) : "");
+        writeString(event[1] != null ? Std.string(event[1]) : "");
+        writeString(event[2] != null ? Std.string(event[2]) : "");
+        writeString(event[3] != null ? Std.string(event[3]) : "");
     }
 
     File.saveBytes(path, output.getBytes());
@@ -92,28 +93,33 @@ function loadChartBinary(path:String):Dynamic
     var bytes = File.getBytes(path);
     var input = new BytesInput(bytes);
 
+    function readString():String
+    {
+        var len = input.readInt32();
+        if (len < 0 || len > bytes.length) throw "Invalid string length";
+        return input.readString(len);
+    }
+
     var magic = input.readString(4);
     if (magic != "CHRT") return null;
     var version = input.readInt32();
     if (version != 1) return null;
 
     var chart:Dynamic = {};
-	var strLen = input.readInt32();
-	chart.song = input.readString(strLen);
+    chart.song = readString();
     chart.bpm = input.readFloat();
     chart.needsVoices = input.readByte() == 1;
     chart.speed = input.readFloat();
     chart.offset = input.readFloat();
-    chart.player1 = input.readString(strLen);
-    chart.player2 = input.readString(strLen);
-    chart.gfVersion = input.readString(strLen);
-    chart.stage = input.readString(strLen);
-    chart.format = input.readString(strLen);
+    chart.player1 = readString();
+    chart.player2 = readString();
+    chart.gfVersion = readString();
+    chart.stage = readString();
+    chart.format = readString();
     if (chart.format == "") chart.format = null;
 
     var sectionCount = input.readInt32();
     chart.notes = [];
-
     for (i in 0...sectionCount)
     {
         var section:Dynamic = {};
@@ -126,7 +132,6 @@ function loadChartBinary(path:String):Dynamic
 
         var noteCount = input.readInt32();
         section.sectionNotes = [];
-
         for (j in 0...noteCount)
         {
             var note:Array<Dynamic> = [
@@ -134,11 +139,10 @@ function loadChartBinary(path:String):Dynamic
                 input.readInt32(),
                 input.readFloat()
             ];
-            var noteType = input.readString(strLen);
+            var noteType = readString();
             if (noteType != "") note.push(noteType);
             section.sectionNotes.push(note);
         }
-
         chart.notes.push(section);
     }
 
@@ -148,13 +152,11 @@ function loadChartBinary(path:String):Dynamic
     {
         var event:Array<Dynamic> = [
             input.readFloat(),
-            input.readString(strLen),
-            input.readString(strLen),
-            input.readString(strLen)
+            readString(),
+            readString(),
+            readString()
         ];
-        if (event[1] == "") event[1] = null;
-        if (event[2] == "") event[2] = null;
-        if (event[3] == "") event[3] = null;
+        for (j in 1...4) if (event[j] == "") event[j] = null;
         chart.events.push(event);
     }
 
@@ -229,7 +231,7 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
-		indentationCheckbox = new PsychUICheckBox(20, FlxG.height - 10, "Use Indentation", 140, function() {
+		indentationCheckbox = new PsychUICheckBox(20, FlxG.height + 10, "Use Indentation", 140, function() {
 			mergeChartSave.data.indentation = indentationCheckbox.checked;
 			mergeChartSave.flush();
 			indentation = indentationCheckbox.checked;
@@ -674,7 +676,7 @@ class ChartBox extends FlxGroup
 		border.pixels.fillRect(new flash.geom.Rectangle(width - 2, 0, 2, height), FlxColor.WHITE);
 		add(border);
 
-		openButton = new PsychUIButton(x + width / 2 - 45, y + height / 2 - 15, "Open Chart", onOpenButton);
+		openButton = new PsychUIButton(x + width / 2 - 40, y + height / 2 - 15, "Open Chart", onOpenButton);
 		openButton.normalStyle.bgColor = FlxColor.BLUE;
 		openButton.normalStyle.textColor = FlxColor.WHITE;
 		add(openButton);
