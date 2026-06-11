@@ -31,9 +31,11 @@ function saveChartBinary(chart:Dynamic, path:String):Void
 
     function writeString(str:String):Void
     {
-        var bytes = haxe.io.Bytes.ofString(str);
-        output.writeInt32(bytes.length);
-        output.writeBytes(bytes, 0, bytes.length);
+        if (str == null) str = "";
+        var len = str.length;
+        output.writeInt32(len);
+        for (i in 0...len)
+            output.writeByte(str.charCodeAt(i));
     }
 
     writeString(chart.song);
@@ -96,8 +98,11 @@ function loadChartBinary(path:String):Dynamic
     function readString():String
     {
         var len = input.readInt32();
-        if (len < 0 || len > bytes.length) throw "Invalid string length";
-        return input.readString(len);
+        if (len < 0 || len > bytes.length) return "";
+        var str = "";
+        for (i in 0...len)
+            str += String.fromCharCode(input.readByte());
+        return str;
     }
 
     var magic = input.readString(4);
@@ -107,14 +112,19 @@ function loadChartBinary(path:String):Dynamic
 
     var chart:Dynamic = {};
     chart.song = readString();
+    if (chart.song == "") chart.song = null;
     chart.bpm = input.readFloat();
     chart.needsVoices = input.readByte() == 1;
     chart.speed = input.readFloat();
     chart.offset = input.readFloat();
     chart.player1 = readString();
+    if (chart.player1 == "") chart.player1 = null;
     chart.player2 = readString();
+    if (chart.player2 == "") chart.player2 = null;
     chart.gfVersion = readString();
+    if (chart.gfVersion == "") chart.gfVersion = null;
     chart.stage = readString();
+    if (chart.stage == "") chart.stage = null;
     chart.format = readString();
     if (chart.format == "") chart.format = null;
 
@@ -231,7 +241,7 @@ class MergeChartState extends MusicBeatState
 		backButton.resize(100, 40);
 		add(backButton);
 
-		indentationCheckbox = new PsychUICheckBox(20, FlxG.height + 10, "Use Indentation", 140, function() {
+		indentationCheckbox = new PsychUICheckBox(20, backButton.y - 30, "Use Indentation", 140, function() {
 			mergeChartSave.data.indentation = indentationCheckbox.checked;
 			mergeChartSave.flush();
 			indentation = indentationCheckbox.checked;
@@ -463,7 +473,7 @@ class MergeChartState extends MusicBeatState
 			showMergeProgress(true); // Force update
 		}
 
-		trace('mergeInto() COMPLETE');
+		trace('\nmergeInto() COMPLETE');
 	}
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
