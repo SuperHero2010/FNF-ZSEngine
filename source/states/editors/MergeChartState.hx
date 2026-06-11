@@ -376,7 +376,7 @@ class MergeChartState extends MusicBeatState
 		var totalNotes:Int = 0;
 		if (chart.notes != null)
 		{
-			for (section in chart.notes)
+			for (section in cast chart.notes)
 			{
 				if (section.sectionNotes != null)
 					totalNotes += section.sectionNotes.length;
