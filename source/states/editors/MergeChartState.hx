@@ -167,27 +167,26 @@ class MergeChartState extends MusicBeatState
 		#end
 
 		SongJson.log = true;
-		showMergingProgress(true, 'Loading base chart...\n');
-		trace('Main.isConsoleAvailable: ${Main.isConsoleAvailable}');
-		trace('SongJson.log: ${SongJson.log}');
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
 
+		var hasWrapper = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic));
 		var baseChart:Dynamic;
-		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
+		if (hasWrapper)
 			baseChart = baseObj.song;
 		else
 			baseChart = baseObj;
+
 		SongJson.log = false;
 
 		var tempPath = "temp_merged.json";
-		saveChartStreaming(baseChart, tempPath, false);
+		saveChartStreaming(baseChart, tempPath, hasWrapper);
 
 		var totalCharts:Int = chartPaths.length;
 
 		for (i in 1...totalCharts)
 		{
-			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
+			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...\n');
 
 			SongJson.log = true;
 			var baseJson = File.getContent(tempPath);
@@ -212,7 +211,7 @@ class MergeChartState extends MusicBeatState
 
 			mergeInto(baseChart2, nextChart);
 
-			saveChartStreaming(baseChart2, tempPath, false);
+			saveChartStreaming(baseChart2, tempPath, hasWrapper);
 
 			baseChart2 = null;
 			nextObj = null;
@@ -232,7 +231,7 @@ class MergeChartState extends MusicBeatState
 		else
 			finalChart = finalObj;
 
-		saveMergedChart(finalChart);
+		saveMergedChart(finalChart, indentation);
 
 		#if cpp
 		cpp.vm.Gc.enable(true);
@@ -370,16 +369,20 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, useWrapper:Bool = false):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true):Void
 	{
 		var file = sys.io.File.write(path, false);
-		var isFirst = true;
 
-		// Helper to write a field
-		function writeField(name:String, value:Dynamic):Void
+		if (hasWrapper)
+			file.writeString('{"song":');
+
+		file.writeString("{");
+
+		function writeField(name:String, value:Dynamic, isFirst:Bool):Bool
 		{
+			if (value == null) return isFirst;
+
 			if (!isFirst) file.writeString(",");
-			isFirst = false;
 			file.writeString('"' + name + '":');
 
 			if (Std.isOfType(value, String))
@@ -388,90 +391,59 @@ class MergeChartState extends MusicBeatState
 				file.writeString(value ? "true" : "false");
 			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
 				file.writeString(Std.string(value));
-			else if (value == null)
-				file.writeString("null");
+			else if (Std.isOfType(value, Array))
+				file.writeString(Json.stringify(value));
 			else
 				file.writeString(Json.stringify(value));
+
+			return false;
 		}
 
-		// Write opening wrapper if needed
-		if (useWrapper)
-		{
-			file.writeString('{"song":');
-			isFirst = true;
-		}
-
-		file.writeString("{");
-
-		// Core fields (always present)
-		writeField("song", chart.song);
-		writeField("notes", chart.notes);
-		writeField("events", chart.events != null ? chart.events : []);
-		writeField("bpm", chart.bpm);
-		writeField("needsVoices", chart.needsVoices);
-		writeField("speed", chart.speed);
-		writeField("player1", chart.player1);
-		writeField("player2", chart.player2);
-		writeField("gfVersion", chart.gfVersion);
-		writeField("stage", chart.stage);
-
-		// V1 fields (optional)
-		if (Reflect.hasField(chart, "offset"))
-			writeField("offset", chart.offset);
-
-		if (Reflect.hasField(chart, "format"))
-			writeField("format", chart.format);
-
-		// Extra optional fields
-		if (Reflect.hasField(chart, "gameOverChar") && chart.gameOverChar != null)
-			writeField("gameOverChar", chart.gameOverChar);
-		if (Reflect.hasField(chart, "gameOverSound") && chart.gameOverSound != null)
-			writeField("gameOverSound", chart.gameOverSound);
-		if (Reflect.hasField(chart, "gameOverLoop") && chart.gameOverLoop != null)
-			writeField("gameOverLoop", chart.gameOverLoop);
-		if (Reflect.hasField(chart, "gameOverEnd") && chart.gameOverEnd != null)
-			writeField("gameOverEnd", chart.gameOverEnd);
-		if (Reflect.hasField(chart, "disableNoteRGB") && chart.disableNoteRGB != null)
-			writeField("disableNoteRGB", chart.disableNoteRGB);
-		if (Reflect.hasField(chart, "arrowSkin") && chart.arrowSkin != null)
-			writeField("arrowSkin", chart.arrowSkin);
-		if (Reflect.hasField(chart, "splashSkin") && chart.splashSkin != null)
-			writeField("splashSkin", chart.splashSkin);
+		var first = true;
+		first = writeField("song", chart.song, first);
+		first = writeField("notes", chart.notes, first);
+		first = writeField("events", chart.events != null ? chart.events : [], first);
+		first = writeField("bpm", chart.bpm, first);
+		first = writeField("needsVoices", chart.needsVoices, first);
+		first = writeField("speed", chart.speed, first);
+		first = writeField("offset", chart.offset, first);
+		first = writeField("player1", chart.player1, first);
+		first = writeField("player2", chart.player2, first);
+		first = writeField("gfVersion", chart.gfVersion, first);
+		first = writeField("stage", chart.stage, first);
+		first = writeField("format", chart.format, first);
 
 		file.writeString("}");
 
 		// Close wrapper if needed
-		if (useWrapper)
+		if (hasWrapper)
 			file.writeString("}");
 
 		file.close();
 	}
 
-	private function saveMergedChart(chart:Dynamic):Void
+	private function saveMergedChart(chart:Dynamic, indentation:Bool):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
 
-		var tempPath = "temp_merged_final.json";
-		saveChartStreaming(chart, tempPath, false);
-
-		var jsonString:String = File.getContent(tempPath);
+		var jsonString:String;
+		if (indentation)
+			jsonString = Json.stringify(chart, null, "\t");
+		else
+			jsonString = Json.stringify(chart);
 
 		fileDialog.saveWithPath(defaultName, jsonString,
 			function(path:String)
 			{
-				File.copy(tempPath, path);
-				FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Merge complete!", true);
 				trace("Chart saved to: " + path);
 			},
 			function()
 			{
-				FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Save cancelled", true);
 			},
 			function(e:String)
 			{
-				FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Error: " + e, true);
 			}
 		);
