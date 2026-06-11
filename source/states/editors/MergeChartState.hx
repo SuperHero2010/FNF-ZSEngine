@@ -204,7 +204,7 @@ class MergeChartState extends MusicBeatState
 		{
 			showMergingProgress(true, 'Merging chart ${i + 1}/${totalCharts}...\n');
 
-			var baseChart2:Dynamic;
+			var baseChart2:Dynamic = null;
 			if (temp) {
 				SongJson.log = true;
 				var baseJson = File.getContent(tempPath);
