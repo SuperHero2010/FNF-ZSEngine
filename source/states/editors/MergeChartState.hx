@@ -12,7 +12,7 @@ import flixel.FlxSubState;
 import backend.Song;
 import backend.SongJson;
 import backend.ui.*;
-import states.editors.content.FileDialogHandler;
+import states.editors.content.*;
 
 import haxe.Json;
 import sys.FileSystem;
@@ -371,7 +371,7 @@ class MergeChartState extends MusicBeatState
 
 		trace('Copying content between arrays...');
 
-		inputFile.seek(notesEndPos + 1);
+		inputFile.seek(sys.io.FileSeek.SeekBegin, notesEndPos + 1);
 		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1);
 
 		trace('Writing ${newEvents.length} new events...');
@@ -399,7 +399,7 @@ class MergeChartState extends MusicBeatState
 
 		trace('Copying remaining content...');
 
-		inputFile.seek(eventsEndPos + 1);
+		inputFile.seek(sys.io.FileSeek.SeekBegin, eventsEndPos + 1);
 		var remainingBytes = inputFile.readAll();
 		outputFile.write(remainingBytes);
 
@@ -437,7 +437,8 @@ class MergeChartState extends MusicBeatState
 		var chunk = file.read(4096);
 		file.close();
 
-		return chunk.indexOf('\n\t') != -1 || chunk.indexOf('\n  ') != -1;
+		var chunkStr = chunk.toString();
+		return chunkStr.indexOf('\n\t') != -1 || chunkStr.indexOf('\n  ') != -1;
 	}
 
 	private function findArrayEndPositionInFile(filePath:String, arrayName:String):Int
@@ -874,7 +875,7 @@ class MergeChartState extends MusicBeatState
 		if (temp && !rewrite) {
 			var mergedTempPath = "temp_merged.json";
 			if (FileSystem.exists(mergedTempPath)) {
-            	FileSystem.copy(mergedTempPath, tempPath);
+				sys.io.File.copy(mergedTempPath, tempPath);
 			} else {
 				saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
 			}
