@@ -376,7 +376,8 @@ class MergeChartState extends MusicBeatState
 		var totalNotes:Int = 0;
 		if (chart.notes != null)
 		{
-			for (section in cast chart.notes)
+			var notesArray:Array<Dynamic> = cast chart.notes;
+			for (section in notesArray)
 			{
 				if (section.sectionNotes != null)
 					totalNotes += section.sectionNotes.length;
@@ -454,7 +455,8 @@ class MergeChartState extends MusicBeatState
 						var section = arr[i];
 						if (section.sectionNotes != null)
 						{
-							processedItems += section.sectionNotes.length;
+							var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+							processedItems += sectionNotes.length;
 							updateProgress();
 						}
 					}

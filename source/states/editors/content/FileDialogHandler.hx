@@ -109,7 +109,7 @@ class FileDialogHandler extends FlxBasic
 		}
 
 		this._dialogMode = SAVE;
-		_startUpString(onComplete, onCancel, onError);
+		_startUpPath(onComplete, onCancel, onError);
 
 		removeEvents();
 		_currentEvent = onSaveFileComplete;
@@ -240,17 +240,6 @@ class FileDialogHandler extends FlxBasic
 	}
 
 	function _startUp(onComplete:Void->Void, onCancel:Void->Void, onError:Void->Void)
-	{
-		this.onComplete = onComplete;
-		this.onCancel = onCancel;
-		this.onError = onError;
-		this.completed = false;
-
-		this.data = null;
-		this.path = null;
-	}
-
-	function _startUpString(onComplete:String->Void, onCancel:Void->Void, onError:String->Void)
 	{
 		this.onComplete = onComplete;
 		this.onCancel = onCancel;
