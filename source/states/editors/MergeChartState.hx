@@ -27,9 +27,11 @@ class MergeChartState extends MusicBeatState
 	private var progressBg:FlxSprite;
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.1;
-	var indentation:Bool = false;
 	var mergeChartSave:FlxSave = new FlxSave();
+	var indentation:Bool = false;
 	var indentationCheckbox:PsychUICheckBox;
+	var temp:Bool = true;
+	var tempCheckbox:PsychUICheckBox;
 
 	override function create()
 	{
@@ -94,6 +96,15 @@ class MergeChartState extends MusicBeatState
 		indentation = indentationCheckbox.checked;
 		add(indentationCheckbox);
 
+		tempCheckbox = new PsychUICheckBox(20, backButton.y - 60, "Use Temp file (fast)", 200, function() {
+			mergeChartSave.data.temp = tempCheckbox.checked;
+			mergeChartSave.flush();
+			temp = tempCheckbox.checked;
+		});
+		tempCheckbox.checked = (mergeChartSave.data.temp == true);
+		temp = tempCheckbox.checked;
+		add(tempCheckbox);
+
 		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
 		progressBg.alpha = 0.8;
 		progressBg.visible = false;
@@ -110,6 +121,8 @@ class MergeChartState extends MusicBeatState
 
 		if (mergeChartSave.data.indentation == null) mergeChartSave.data.indentation = false;
 		indentation = mergeChartSave.data.indentation;
+		if (mergeChartSave.data.temp == null) mergeChartSave.data.temp = true;
+		temp = mergeChartSave.data.temp;
 	}
 
 	private function onFileSelected()
@@ -179,25 +192,31 @@ class MergeChartState extends MusicBeatState
 
 		SongJson.log = false;
 
-		var tempPath = "temp_merged.json";
-		saveChartStreaming(baseChart, tempPath, hasWrapper);
+		if (temp) {
+			var tempPath = "temp_merged.json";
+			saveChartStreaming(baseChart, tempPath, hasWrapper, false, "temp");
+		}
 
 		var totalCharts:Int = chartPaths.length;
 
 		for (i in 1...totalCharts)
 		{
-			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...\n');
+			showMergingProgress(true, 'Merging chart ${i + 1}/${totalCharts}...\n');
+
+			if (temp) {
+				SongJson.log = true;
+				var baseJson = File.getContent(tempPath);
+				var baseObj2 = SongJson.parse(baseJson);
+
+				var baseChart2:Dynamic;
+				if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
+					baseChart2 = baseObj2.song;
+				else
+					baseChart2 = baseObj2;
+				SongJson.log = false;
+			}
 
 			SongJson.log = true;
-			var baseJson = File.getContent(tempPath);
-			var baseObj2 = SongJson.parse(baseJson);
-
-			var baseChart2:Dynamic;
-			if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
-				baseChart2 = baseObj2.song;
-			else
-				baseChart2 = baseObj2;
-
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
 
@@ -206,14 +225,15 @@ class MergeChartState extends MusicBeatState
 				nextChart = nextObj.song;
 			else
 				nextChart = nextObj;
-
 			SongJson.log = false;
 
-			mergeInto(baseChart2, nextChart);
+			if (temp) {
+				mergeInto(baseChart2, nextChart);
+				saveChartStreaming(baseChart2, tempPath, hasWrapper, false, '${i + 1}');
+				baseChart2 = null;
+			}
+			else mergeInto(baseChart, nextChart);
 
-			saveChartStreaming(baseChart2, tempPath, hasWrapper);
-
-			baseChart2 = null;
 			nextObj = null;
 			nextChart = null;
 
@@ -222,7 +242,9 @@ class MergeChartState extends MusicBeatState
 			#end
 		}
 
-		var finalJson = File.getContent(tempPath);
+		var finalJson:Dynamic;
+		if (temp) finalJson = File.getContent(tempPath);
+		else finalJson = baseChart;
 		var finalObj = SongJson.parse(finalJson);
 
 		var finalChart:Dynamic;
@@ -369,7 +391,7 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String):Void
 	{
 		var file = sys.io.File.write(path, false);
 
@@ -392,7 +414,7 @@ class MergeChartState extends MusicBeatState
 			if (totalItems > 0)
 			{
 				var percent = Std.int((processedItems / totalItems) * 100);
-				showMergingProgress(true, 'Writing final chart... $percent%', false);
+				showMergingProgress(true, 'Writing ' + message + ' chart... $percent%', false);
 			}
 		}
 
@@ -514,7 +536,7 @@ class MergeChartState extends MusicBeatState
 
 		file.close();
 
-		showMergingProgress(true, 'File written: $path', true);
+		showMergingProgress(true, '\nFile written: $path\n', true);
 	}
 
 	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
@@ -522,8 +544,7 @@ class MergeChartState extends MusicBeatState
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
-		showMergingProgress(true, "Writing final chart...\n", true);
-		saveChartStreaming(chart, tempPath, hasWrapper, indentation);
+		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
 
 		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
