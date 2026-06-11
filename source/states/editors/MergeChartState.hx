@@ -172,7 +172,12 @@ class MergeChartState extends MusicBeatState
 		trace('SongJson.log: ${SongJson.log}');
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
-		var baseChart = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic)) ? baseObj.song : baseObj;
+
+		var baseChart:Dynamic;
+		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
+			baseChart = baseObj.song;
+		else
+			baseChart = baseObj;
 		SongJson.log = false;
 
 		var tempPath = "temp_merged.json";
@@ -182,23 +187,34 @@ class MergeChartState extends MusicBeatState
 
 		for (i in 1...totalCharts)
 		{
-			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...\n');
+			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...');
 
 			SongJson.log = true;
 			var baseJson = File.getContent(tempPath);
-			var baseObj = SongJson.parse(baseJson);
-			var baseChart = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic)) ? baseObj.song : baseObj;
+			var baseObj2 = SongJson.parse(baseJson);
+
+			var baseChart2:Dynamic;
+			if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
+				baseChart2 = baseObj2.song;
+			else
+				baseChart2 = baseObj2;
 
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
-			var nextChart = (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic)) ? nextObj.song : nextObj;
+
+			var nextChart:Dynamic;
+			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
+				nextChart = nextObj.song;
+			else
+				nextChart = nextObj;
+
 			SongJson.log = false;
 
-			mergeInto(baseChart, nextChart);
+			mergeInto(baseChart2, nextChart);
 
-			saveChartStreaming(baseChart, tempPath, false);
+			saveChartStreaming(baseChart2, tempPath, false);
 
-			baseChart = null;
+			baseChart2 = null;
 			nextObj = null;
 			nextChart = null;
 
@@ -209,7 +225,13 @@ class MergeChartState extends MusicBeatState
 
 		var finalJson = File.getContent(tempPath);
 		var finalObj = SongJson.parse(finalJson);
-		var finalChart = (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic)) ? finalObj.song : finalObj;
+
+		var finalChart:Dynamic;
+		if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
+			finalChart = finalObj.song;
+		else
+			finalChart = finalObj;
+
 		saveMergedChart(finalChart);
 
 		#if cpp
