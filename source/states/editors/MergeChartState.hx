@@ -17,162 +17,6 @@ import haxe.Json;
 import sys.FileSystem;
 import sys.io.File;
 
-import haxe.io.Bytes;
-import haxe.io.BytesOutput;
-import haxe.io.BytesInput;
-
-function saveChartBinary(chart:Dynamic, path:String):Void
-{
-	trace('saveChartBinary called');
-    var output = new BytesOutput();
-
-    output.writeString("CHRT");
-    output.writeInt32(1);
-
-    function writeString(str:String):Void
-    {
-        if (str == null) str = "";
-        var len = str.length;
-        output.writeInt32(len);
-        for (i in 0...len)
-            output.writeByte(str.charCodeAt(i));
-    }
-
-    writeString(chart.song);
-    output.writeFloat(chart.bpm);
-    output.writeByte(chart.needsVoices ? 1 : 0);
-    output.writeFloat(chart.speed);
-    output.writeFloat(chart.offset != null ? chart.offset : 0);
-    writeString(chart.player1);
-    writeString(chart.player2);
-    writeString(chart.gfVersion);
-    writeString(chart.stage);
-    writeString(chart.format != null ? chart.format : "");
-
-    var sections:Array<Dynamic> = cast chart.notes;
-    output.writeInt32(sections.length);
-
-    for (section in sections)
-    {
-        output.writeFloat(section.sectionBeats);
-        output.writeByte(section.mustHitSection ? 1 : 0);
-        output.writeByte(section.changeBPM ? 1 : 0);
-        output.writeFloat(section.bpm);
-        output.writeByte(section.altAnim ? 1 : 0);
-        output.writeByte(section.gfSection ? 1 : 0);
-
-        var notes:Array<Dynamic> = cast section.sectionNotes;
-        output.writeInt32(notes.length);
-
-        for (note in notes)
-        {
-            output.writeFloat(note[0]);
-            output.writeInt32(note[1]);
-            output.writeFloat(note[2]);
-            var noteType:String = (note.length > 3 && note[3] != null) ? Std.string(note[3]) : "";
-            writeString(noteType);
-        }
-    }
-
-    var events:Array<Dynamic> = cast chart.events;
-    output.writeInt32(events.length);
-    for (event in events)
-    {
-        output.writeFloat(event[0]);
-        writeString(event[1] != null ? Std.string(event[1]) : "");
-        writeString(event[2] != null ? Std.string(event[2]) : "");
-        writeString(event[3] != null ? Std.string(event[3]) : "");
-    }
-
-    File.saveBytes(path, output.getBytes());
-}
-
-function loadChartBinary(path:String):Dynamic
-{
-	trace('loadChartBinary called');
-    if (!FileSystem.exists(path)) return null;
-
-    var bytes = File.getBytes(path);
-    var input = new BytesInput(bytes);
-
-    function readString():String
-    {
-        var len = input.readInt32();
-        if (len < 0 || len > bytes.length) return "";
-        var str = "";
-        for (i in 0...len)
-            str += String.fromCharCode(input.readByte());
-        return str;
-    }
-
-    var magic = input.readString(4);
-    if (magic != "CHRT") return null;
-    var version = input.readInt32();
-    if (version != 1) return null;
-
-    var chart:Dynamic = {};
-    chart.song = readString();
-    if (chart.song == "") chart.song = null;
-    chart.bpm = input.readFloat();
-    chart.needsVoices = input.readByte() == 1;
-    chart.speed = input.readFloat();
-    chart.offset = input.readFloat();
-    chart.player1 = readString();
-    if (chart.player1 == "") chart.player1 = null;
-    chart.player2 = readString();
-    if (chart.player2 == "") chart.player2 = null;
-    chart.gfVersion = readString();
-    if (chart.gfVersion == "") chart.gfVersion = null;
-    chart.stage = readString();
-    if (chart.stage == "") chart.stage = null;
-    chart.format = readString();
-    if (chart.format == "") chart.format = null;
-
-    var sectionCount = input.readInt32();
-    chart.notes = [];
-    for (i in 0...sectionCount)
-    {
-        var section:Dynamic = {};
-        section.sectionBeats = input.readFloat();
-        section.mustHitSection = input.readByte() == 1;
-        section.changeBPM = input.readByte() == 1;
-        section.bpm = input.readFloat();
-        section.altAnim = input.readByte() == 1;
-        section.gfSection = input.readByte() == 1;
-
-        var noteCount = input.readInt32();
-        section.sectionNotes = [];
-        for (j in 0...noteCount)
-        {
-            var note:Array<Dynamic> = [
-                input.readFloat(),
-                input.readInt32(),
-                input.readFloat()
-            ];
-            var noteType = readString();
-            if (noteType != "") note.push(noteType);
-            section.sectionNotes.push(note);
-        }
-        chart.notes.push(section);
-    }
-
-    var eventCount = input.readInt32();
-    chart.events = [];
-    for (i in 0...eventCount)
-    {
-        var event:Array<Dynamic> = [
-            input.readFloat(),
-            readString(),
-            readString(),
-            readString()
-        ];
-        for (j in 1...4) if (event[j] == "") event[j] = null;
-        chart.events.push(event);
-    }
-
-    return chart;
-}
-
 class MergeChartState extends MusicBeatState
 {
 	private var chartBoxes:Array<ChartBox> = [];
@@ -322,67 +166,37 @@ class MergeChartState extends MusicBeatState
 		cpp.vm.Gc.enable(false);
 		#end
 
-		var tempDir:String;
-		#if windows
-		tempDir = Sys.getEnv("TEMP");
-		#else
-		tempDir = "/tmp";
-		#end
-
 		SongJson.log = true;
 		showMergingProgress(true, 'Loading base chart...\n');
 		trace('Main.isConsoleAvailable: ${Main.isConsoleAvailable}');
 		trace('SongJson.log: ${SongJson.log}');
 		var baseData = loadChartFromFileWithProgress(chartPaths[0]);
 		var baseObj = SongJson.parse(baseData);
-		trace('Base chart parsed');
-		var baseChart:Dynamic;
-		if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
-			baseChart = baseObj.song;
-		else
-			baseChart = baseObj;
+		var baseChart = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic)) ? baseObj.song : baseObj;
 		SongJson.log = false;
 
-		var currentMergedPath = tempDir + "/temp_merged_base.bin";
-		saveChartBinary(baseChart, currentMergedPath);
+		var tempPath = "temp_merged.json";
+		saveChartStreaming(baseChart, tempPath, false);
 
 		var totalCharts:Int = chartPaths.length;
 
 		for (i in 1...totalCharts)
 		{
-			showMergingProgress(true, 'Merging chart ${i + 1}/${totalCharts}...');
-
-			var baseChart = loadChartBinary(currentMergedPath);
-			if (baseChart == null) return;
+			showMergingProgress(true, 'Merging chart ${i+1}/${totalCharts}...\n');
 
 			SongJson.log = true;
-			showMergingProgress(true, 'Parsing chart ${i + 1}/${totalCharts}...');
-			trace('SongJson.log: ${SongJson.log}');
+			var baseJson = File.getContent(tempPath);
+			var baseObj = SongJson.parse(baseJson);
+			var baseChart = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic)) ? baseObj.song : baseObj;
+
 			var nextData = loadChartFromFileWithProgress(chartPaths[i]);
 			var nextObj = SongJson.parse(nextData);
-			trace('Next ${i + 1} chart parsed');
-			var nextChart:Dynamic;
-			if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
-				nextChart = nextObj.song;
-			else
-				nextChart = nextObj;
+			var nextChart = (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic)) ? nextObj.song : nextObj;
 			SongJson.log = false;
-
-			var baseNotesCount = 0;
-			var baseEventsCount = 0;
-			var baseNotes:Array<Dynamic> = cast baseChart.notes;
-			for (section in baseNotes)
-				if (section.sectionNotes != null)
-					baseNotesCount += section.sectionNotes.length;
-			if (baseChart.events != null) baseEventsCount = baseChart.events.length;
-
-			parsedNotes = 0;
-			parsedEvents = 0;
-			syncTime = haxe.Timer.stamp() * 1000;
 
 			mergeInto(baseChart, nextChart);
 
-			saveChartBinary(baseChart, currentMergedPath);
+			saveChartStreaming(baseChart, tempPath, false);
 
 			baseChart = null;
 			nextObj = null;
@@ -393,23 +207,18 @@ class MergeChartState extends MusicBeatState
 			#end
 		}
 
-		var finalChart = loadChartBinary(currentMergedPath);
-		var finalJson:String;
-		if (indentation) {
-			finalJson = Json.stringify(finalChart, null, "\t");
-		}
-		else {
-			finalJson = Json.stringify(finalChart);
-		}
-		saveMergedChart(finalJson);
+		var finalJson = File.getContent(tempPath);
+		var finalObj = SongJson.parse(finalJson);
+		var finalChart = (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic)) ? finalObj.song : finalObj;
+		saveMergedChart(finalChart);
 
 		#if cpp
 		cpp.vm.Gc.enable(true);
 		cpp.vm.Gc.run(true);
 		#end
 
-		if (FileSystem.exists(currentMergedPath))
-			FileSystem.deleteFile(currentMergedPath);
+		if (FileSystem.exists(tempPath))
+			FileSystem.deleteFile(tempPath);
 	}
 
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
