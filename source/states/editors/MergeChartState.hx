@@ -231,7 +231,7 @@ class MergeChartState extends MusicBeatState
 		else
 			finalChart = finalObj;
 
-		saveMergedChart(finalChart, indentation);
+		saveMergedChart(finalChart, hasWrapper, indentation);
 
 		#if cpp
 		cpp.vm.Gc.enable(true);
@@ -303,7 +303,7 @@ class MergeChartState extends MusicBeatState
 			showMergeProgress(true); // Force update
 		}
 
-		trace('\nmergeInto() COMPLETE');
+		showMergingProgress(true, '\nmergeInto() COMPLETE');
 	}
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
@@ -369,21 +369,68 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
 	{
 		var file = sys.io.File.write(path, false);
 
+		var totalNotes:Int = 0;
+		if (chart.notes != null)
+		{
+			for (section in chart.notes)
+			{
+				if (section.sectionNotes != null)
+					totalNotes += section.sectionNotes.length;
+			}
+		}
+		var totalEvents:Int = chart.events != null ? chart.events.length : 0;
+		var totalItems:Int = totalNotes + totalEvents;
+		var processedItems:Int = 0;
+
+		function updateProgress():Void
+		{
+			if (totalItems > 0)
+			{
+				var percent = Std.int((processedItems / totalItems) * 100);
+				showMergingProgress(true, 'Writing final chart... $percent%', false);
+			}
+		}
+
+		var indent = useIndentation ? "\t" : "";
+		var newline = useIndentation ? "\n" : "";
+
+		function writeIndent(level:Int):Void
+		{
+			if (useIndentation)
+			{
+				for (i in 0...level)
+					file.writeString("\t");
+			}
+		}
+
 		if (hasWrapper)
+		{
 			file.writeString('{"song":');
+			if (useIndentation) file.writeString(newline);
+		}
 
+		writeIndent(useIndentation ? 1 : 0);
 		file.writeString("{");
+		if (useIndentation) file.writeString(newline);
 
-		function writeField(name:String, value:Dynamic, isFirst:Bool):Bool
+		function writeField(name:String, value:Dynamic, level:Int, isFirst:Bool):Bool
 		{
 			if (value == null) return isFirst;
 
-			if (!isFirst) file.writeString(",");
+			if (!isFirst)
+			{
+				file.writeString(",");
+				if (useIndentation) file.writeString(newline);
+			}
+
+			writeIndent(level);
 			file.writeString('"' + name + '":');
+			if (useIndentation && (Std.isOfType(value, Array) || Std.isOfType(value, Dynamic)))
+				file.writeString(" ");
 
 			if (Std.isOfType(value, String))
 				file.writeString('"' + value + '"');
@@ -392,59 +439,105 @@ class MergeChartState extends MusicBeatState
 			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
 				file.writeString(Std.string(value));
 			else if (Std.isOfType(value, Array))
-				file.writeString(Json.stringify(value));
+			{
+				file.writeString("[");
+				var arr:Array<Dynamic> = cast value;
+				for (i in 0...arr.length)
+				{
+					if (i > 0) file.writeString(",");
+					if (useIndentation) file.writeString(newline);
+					writeIndent(level + 1);
+					file.writeString(Json.stringify(arr[i]));
+
+					if (name == "notes")
+					{
+						var section = arr[i];
+						if (section.sectionNotes != null)
+						{
+							processedItems += section.sectionNotes.length;
+							updateProgress();
+						}
+					}
+				}
+				if (useIndentation && arr.length > 0) file.writeString(newline);
+				writeIndent(level);
+				file.writeString("]");
+			}
 			else
 				file.writeString(Json.stringify(value));
 
 			return false;
 		}
 
+		var level = hasWrapper ? 2 : 1;
 		var first = true;
-		first = writeField("song", chart.song, first);
-		first = writeField("notes", chart.notes, first);
-		first = writeField("events", chart.events != null ? chart.events : [], first);
-		first = writeField("bpm", chart.bpm, first);
-		first = writeField("needsVoices", chart.needsVoices, first);
-		first = writeField("speed", chart.speed, first);
-		first = writeField("offset", chart.offset, first);
-		first = writeField("player1", chart.player1, first);
-		first = writeField("player2", chart.player2, first);
-		first = writeField("gfVersion", chart.gfVersion, first);
-		first = writeField("stage", chart.stage, first);
-		first = writeField("format", chart.format, first);
+		first = writeField("song", chart.song, level, first);
+		first = writeField("notes", chart.notes, level, first);
+		first = writeField("events", chart.events != null ? chart.events : [], level, first);
+		first = writeField("bpm", chart.bpm, level, first);
+		first = writeField("needsVoices", chart.needsVoices, level, first);
+		first = writeField("speed", chart.speed, level, first);
+		first = writeField("offset", chart.offset, level, first);
+		first = writeField("player1", chart.player1, level, first);
+		first = writeField("player2", chart.player2, level, first);
+		first = writeField("gfVersion", chart.gfVersion, level, first);
+		first = writeField("stage", chart.stage, level, first);
+		first = writeField("format", chart.format, level, first);
 
+		if (Reflect.hasField(chart, "arrowSkin"))
+			first = writeField("arrowSkin", chart.arrowSkin, level, first);
+		if (Reflect.hasField(chart, "splashSkin"))
+			first = writeField("splashSkin", chart.splashSkin, level, first);
+		if (Reflect.hasField(chart, "gameOverChar"))
+			first = writeField("gameOverChar", chart.gameOverChar, level, first);
+		if (Reflect.hasField(chart, "gameOverSound"))
+			first = writeField("gameOverSound", chart.gameOverSound, level, first);
+		if (Reflect.hasField(chart, "gameOverLoop"))
+			first = writeField("gameOverLoop", chart.gameOverLoop, level, first);
+		if (Reflect.hasField(chart, "gameOverEnd"))
+			first = writeField("gameOverEnd", chart.gameOverEnd, level, first);
+		if (Reflect.hasField(chart, "disableNoteRGB"))
+			first = writeField("disableNoteRGB", chart.disableNoteRGB, level, first);
+
+		if (useIndentation) file.writeString(newline);
+		writeIndent(level - 1);
 		file.writeString("}");
 
-		// Close wrapper if needed
 		if (hasWrapper)
+		{
+			if (useIndentation) file.writeString(newline);
+			writeIndent(0);
 			file.writeString("}");
+		}
 
 		file.close();
+
+		showMergingProgress(true, 'File written: $path', true);
 	}
 
-	private function saveMergedChart(chart:Dynamic, indentation:Bool):Void
+	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
+		var tempPath = "temp_final_merged.json";
 
-		var jsonString:String;
-		if (indentation)
-			jsonString = Json.stringify(chart, null, "\t");
-		else
-			jsonString = Json.stringify(chart);
+		showMergingProgress(true, "Writing final chart...\n", true);
+		saveChartStreaming(chart, tempPath, hasWrapper, indentation);
 
-		fileDialog.saveWithPath(defaultName, jsonString,
+		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
 			{
-				showMergingProgress(false, "Merge complete!", true);
+				showMergingProgress(false, "Merge complete!\n", true);
 				trace("Chart saved to: " + path);
 			},
 			function()
 			{
-				showMergingProgress(false, "Save cancelled", true);
+				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				showMergingProgress(false, "Save cancelled\n", true);
 			},
 			function(e:String)
 			{
-				showMergingProgress(false, "Error: " + e, true);
+				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				showMergingProgress(false, "Error saving chart: " + e + "\n", true);
 			}
 		);
 	}

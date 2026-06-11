@@ -4172,7 +4172,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						{
 							currentSection.sectionNotes.splice(i, 1);
 						}
-						else if (isEvent && affectEvents.checked)
+						if (isEvent && affectEvents.checked)
 						{
 							currentSection.sectionNotes.splice(i, 1);
 						}

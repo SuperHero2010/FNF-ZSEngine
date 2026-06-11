@@ -101,6 +101,46 @@ class FileDialogHandler extends FlxBasic
 		_fileRef.save(dataToSave, fileName);
 	}
 
+	public function saveFile(sourcePath:String, ?fileName:String = '', ?onComplete:String->Void, ?onCancel:Void->Void, ?onError:String->Void)
+	{
+		if(!completed)
+		{
+			throw new Exception('You must finish previous operation before starting a new one.');
+		}
+
+		this._dialogMode = SAVE;
+		_startUp(onComplete, onCancel, onError);
+
+		removeEvents();
+		_currentEvent = onSaveFileComplete;
+		_fileRef.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEvent);
+		_fileRef.addEventListener(IOErrorEvent.IO_ERROR, onErrorFnPath);
+
+		_tempSourcePath = sourcePath;
+		_fileRef.save("", fileName);
+	}
+
+	private var _tempSourcePath:String;
+
+	private function onSaveFileComplete(_):Void
+	{
+		@:privateAccess
+		var targetPath = _fileRef._trackSavedPath;
+
+		if (targetPath != null && targetPath.length > 0 && _tempSourcePath != null && FileSystem.exists(_tempSourcePath))
+		{
+			File.copy(_tempSourcePath, targetPath);
+			FileSystem.deleteFile(_tempSourcePath);
+			_tempSourcePath = null;
+			this.path = targetPath;
+			trace('Saved file from temp to: $targetPath');
+		}
+
+		removeEvents();
+		this.completed = true;
+		if(onComplete != null) onComplete();
+	}
+
 	private var _onCompletePath:String->Void;
 	private var _currentEventPath:openfl.events.Event->Void;
 	private var _onErrorPath:String->Void;
