@@ -230,7 +230,7 @@ class MergeChartState extends MusicBeatState
 
 			if (temp) {
 				mergeInto(baseChart2, nextChart);
-				saveChartStreaming(baseChart2, tempPath, hasWrapper, false, '${i + 1}');
+				saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
 				baseChart2 = null;
 			}
 			else mergeInto(baseChart, nextChart);
@@ -301,7 +301,8 @@ class MergeChartState extends MusicBeatState
 
 						// Update progress after each section
 						parsedNotes += nextSectionNotes.length;
-						showMergeProgress();
+						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
+						else showMergeProgress();
 					}
 				}
 				else
@@ -310,7 +311,8 @@ class MergeChartState extends MusicBeatState
 					if (nextSection.sectionNotes != null)
 					{
 						parsedNotes += nextSection.sectionNotes.length;
-						showMergeProgress();
+						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
+						else showMergeProgress();
 					}
 				}
 			}
@@ -323,7 +325,7 @@ class MergeChartState extends MusicBeatState
 			var baseEvents:Array<Dynamic> = cast baseSong.events;
 			baseSong.events = baseEvents.concat(nextEvents);
 			parsedEvents += nextEvents.length;
-			showMergeProgress(true); // Force update
+			showMergeProgress(false, true);
 		}
 
 		showMergingProgress(true, '\nmergeInto() COMPLETE');
@@ -353,7 +355,7 @@ class MergeChartState extends MusicBeatState
 
 	var parsedNotes:Int = 0;
 	var parsedEvents:Int = 0;
-	function showMergeProgress(force:Bool = false)
+	function showMergeProgress(force:Bool = false, ?newLine:Bool = false)
 	{
 		if (Main.isConsoleAvailable)
 		{
@@ -362,7 +364,8 @@ class MergeChartState extends MusicBeatState
 			{
 				var totalNotes = parsedNotes;
 				var totalEvents = parsedEvents;
-				Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events');
+				if (newLine) Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events\n');
+				else Sys.stdout().writeString('\x1b[0GMerging $totalNotes notes and $totalEvents events');
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
@@ -371,7 +374,8 @@ class MergeChartState extends MusicBeatState
 		{
 			var totalNotes = parsedNotes;
 			var totalEvents = parsedEvents;
-			Sys.println('Merging $totalNotes notes and $totalEvents events');
+			if (newLine) Sys.println('Merging $totalNotes notes and $totalEvents events\n');
+			else Sys.println('Merging $totalNotes notes and $totalEvents events');
 		}
 	}
 
