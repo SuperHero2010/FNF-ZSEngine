@@ -192,8 +192,9 @@ class MergeChartState extends MusicBeatState
 
 		SongJson.log = false;
 
+		var tempPath:String = "";
 		if (temp) {
-			var tempPath = "temp_merged.json";
+			tempPath = "temp_merged.json";
 			saveChartStreaming(baseChart, tempPath, hasWrapper, false, "temp");
 		}
 
@@ -203,12 +204,12 @@ class MergeChartState extends MusicBeatState
 		{
 			showMergingProgress(true, 'Merging chart ${i + 1}/${totalCharts}...\n');
 
+			var baseChart2:Dynamic;
 			if (temp) {
 				SongJson.log = true;
 				var baseJson = File.getContent(tempPath);
 				var baseObj2 = SongJson.parse(baseJson);
 
-				var baseChart2:Dynamic;
 				if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
 					baseChart2 = baseObj2.song;
 				else
