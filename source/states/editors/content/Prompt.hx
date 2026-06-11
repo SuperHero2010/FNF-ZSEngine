@@ -56,8 +56,8 @@ class Prompt extends BasePrompt
 
 	override function close()
 	{
-		if(noFunction != null) noFunction();
 		super.close();
+		if(noFunction != null) noFunction();
 	}
 }
 

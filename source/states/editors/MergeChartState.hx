@@ -7,6 +7,7 @@ import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.util.FlxColor;
 import flixel.util.FlxSave;
+import flixel.FlxSubState;
 
 import backend.Song;
 import backend.SongJson;
@@ -32,6 +33,8 @@ class MergeChartState extends MusicBeatState
 	var indentationCheckbox:PsychUICheckBox;
 	var temp:Bool = true;
 	var tempCheckbox:PsychUICheckBox;
+	var rewrite:Bool = false;
+	var rewriteCheckbox:PsychUICheckBox;
 
 	override function create()
 	{
@@ -105,6 +108,24 @@ class MergeChartState extends MusicBeatState
 		temp = tempCheckbox.checked;
 		add(tempCheckbox);
 
+		rewriteCheckbox = new PsychUICheckBox(20, backButton.y - 90, "Rewrite mode", 200, function() {
+			mergeChartSave.data.rewrite = rewriteCheckbox.checked;
+			mergeChartSave.flush();
+			rewrite = rewriteCheckbox.checked;
+			var funcYes:Void->Void = function() {
+				rewrite = true;
+				rewriteCheckbox.checked = true;
+			};
+			var funcNo:Void->Void = function() {
+				rewrite = false;
+				rewriteCheckbox.checked = false;
+			};
+			openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
+		});
+		rewriteCheckbox.checked = (mergeChartSave.data.rewrite == true);
+		rewrite = rewriteCheckbox.checked;
+		add(rewriteCheckbox);
+
 		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
 		progressBg.alpha = 0.8;
 		progressBg.visible = false;
@@ -123,6 +144,8 @@ class MergeChartState extends MusicBeatState
 		indentation = mergeChartSave.data.indentation;
 		if (mergeChartSave.data.temp == null) mergeChartSave.data.temp = true;
 		temp = mergeChartSave.data.temp;
+		if (mergeChartSave.data.rewrite == null) mergeChartSave.data.rewrite = false;
+		rewrite = mergeChartSave.data.rewrite;
 	}
 
 	private function onFileSelected()
@@ -229,11 +252,21 @@ class MergeChartState extends MusicBeatState
 			SongJson.log = false;
 
 			if (temp) {
-				mergeInto(baseChart2, nextChart);
-				saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
-				baseChart2 = null;
+				if (rewrite) {
+					mergeInto(baseChart2, nextChart);
+					showMergingProgress(true, "\n");
+					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+					baseChart2 = null;
+				}
+				else {
+					showMergingProgress(true, "\n");
+					appendChartToTempFile(tempPath, nextChart, hasWrapper, i + 1, indentation);
+				}
 			}
-			else mergeInto(baseChart, nextChart);
+			else {
+				mergeInto(baseChart, nextChart);
+				showMergingProgress(true, "\n");
+			}
 
 			nextObj = null;
 			nextChart = null;
@@ -263,6 +296,295 @@ class MergeChartState extends MusicBeatState
 
 		if (FileSystem.exists(tempPath))
 			FileSystem.deleteFile(tempPath);
+	}
+
+	private function appendChartToTempFile(tempPath:String, nextChart:Dynamic, hasWrapper:Bool, chartIndex:Int, indentation:Bool = false):Void
+	{
+		trace('appendChartToTempFile() called for chart $chartIndex');
+
+		var newNotes = extractNewNotesFromChart(nextChart);
+		var newEvents = extractNewEventsFromChart(nextChart);
+
+		if (newNotes.length == 0 && newEvents.length == 0) {
+			trace('No new notes or events to append');
+			return;
+		}
+
+		var fileIndentation = detectIndentation(tempPath);
+		var useIndentation = fileIndentation || indentation;
+
+		trace('Finding append positions...');
+
+		var notesEndPos = findArrayEndPositionInFile(tempPath, "notes");
+		var eventsEndPos = findArrayEndPositionInFile(tempPath, "events");
+
+		if (notesEndPos == -1 || eventsEndPos == -1) {
+			var funcYes = function() {
+				trace('Could not find array end positions, falling back to full rewrite');
+				var tempContent = File.getContent(tempPath);
+				var tempObj = SongJson.parse(tempContent);
+				var tempChart:Dynamic;
+				if (tempObj.song != null && Std.isOfType(tempObj.song, Dynamic)) {
+					tempChart = tempObj.song;
+				} else {
+					tempChart = tempObj;
+				}
+				mergeInto(tempChart, nextChart);
+				saveChartStreaming(tempChart, tempPath, hasWrapper, false, 'chart $chartIndex');
+				return;
+			};
+			var funcNo = function() {
+				return;
+			};
+			openSubState(new Prompt("Error! Could not find array end positions, falling back to full rewrite. Continue?", funcYes, funcNo));
+		}
+
+		trace('Copying file content...');
+
+		var inputFile = sys.io.File.read(tempPath, false);
+		var outputFile = sys.io.File.write(tempPath + ".new", false);
+
+		copyChunk(inputFile, outputFile, notesEndPos);
+
+		trace('Writing ${newNotes.length} new notes...');
+
+		if (newNotes.length > 0) {
+			if (useIndentation) outputFile.writeString(",\n\t\t");
+			else outputFile.writeString(",");
+			for (i in 0...newNotes.length) {
+				if (useIndentation) outputFile.writeString("\t\t\t");
+				outputFile.writeString(Json.stringify(newNotes[i]));
+				if (i < newNotes.length - 1) {
+					if (useIndentation) outputFile.writeString(",\n\t\t\t");
+					else outputFile.writeString(",");
+				}
+
+				if (i % 10000 == 0) {
+					showMergingProgress(true, 'Writing notes: $i/${newNotes.length}');
+				}
+			}
+			if (useIndentation) outputFile.writeString("\n\t");
+		}
+
+		if (useIndentation) outputFile.writeString("\n\t");
+		outputFile.writeString("]");
+
+		trace('Copying content between arrays...');
+
+		inputFile.seek(notesEndPos + 1);
+		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1);
+
+		trace('Writing ${newEvents.length} new events...');
+
+		if (newEvents.length > 0) {
+			if (useIndentation) outputFile.writeString(",\n\t\t");
+			else outputFile.writeString(",");
+			for (i in 0...newEvents.length) {
+				if (useIndentation) outputFile.writeString("\t\t\t");
+				outputFile.writeString(Json.stringify(newEvents[i]));
+				if (i < newEvents.length - 1) {
+					if (useIndentation) outputFile.writeString(",\n\t\t\t");
+					else outputFile.writeString(",");
+				}
+
+				if (i % 1000 == 0) {
+					showMergingProgress(true, 'Writing events: $i/${newEvents.length}');
+				}
+			}
+			if (useIndentation) outputFile.writeString("\n\t");
+		}
+
+		if (useIndentation) outputFile.writeString("\n\t");
+		outputFile.writeString("]");
+
+		trace('Copying remaining content...');
+
+		inputFile.seek(eventsEndPos + 1);
+		var remainingBytes = inputFile.readAll();
+		outputFile.write(remainingBytes);
+
+		inputFile.close();
+		outputFile.close();
+
+		trace('Replacing original file...');
+
+		FileSystem.deleteFile(tempPath);
+		FileSystem.rename(tempPath + ".new", tempPath);
+
+		trace('Appended ${newNotes.length} notes and ${newEvents.length} events');
+	}
+
+	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int):Void
+	{
+		var bufferSize = 65536;
+		var bytesCopied = 0;
+
+		while (bytesCopied < bytesToCopy) {
+			var bytesToRead = bufferSize;
+			if (bytesCopied + bufferSize > bytesToCopy) {
+				bytesToRead = bytesToCopy - bytesCopied;
+			}
+
+			var chunk = inputFile.read(bytesToRead);
+			outputFile.write(chunk);
+			bytesCopied += bytesToRead;
+		}
+	}
+
+	private function detectIndentation(filePath:String):Bool
+	{
+		var file = sys.io.File.read(filePath, false);
+		var chunk = file.read(4096);
+		file.close();
+
+		return chunk.indexOf('\n\t') != -1 || chunk.indexOf('\n  ') != -1;
+	}
+
+	private function findArrayEndPositionInFile(filePath:String, arrayName:String):Int
+	{
+		var file = sys.io.File.read(filePath, false);
+		var bufferSize = 65536;
+		var buffer = "";
+		var totalRead = 0;
+		var pattern = '"$arrayName"\\s*:\\s*\\[';
+		var patternFound = false;
+		var bracketCount = 0;
+		var inString = false;
+		var escapeNext = false;
+
+		try {
+			while (true) {
+				var chunk = file.read(bufferSize);
+				if (chunk.length == 0) break;
+
+				buffer += chunk;
+				totalRead += chunk.length;
+
+				if (!patternFound) {
+					var patternIndex = buffer.indexOf(pattern);
+					if (patternIndex != -1) {
+						patternFound = true;
+						buffer = buffer.substr(patternIndex);
+						bracketCount = 1;
+					}
+				}
+
+				if (patternFound) {
+					for (i in 0...buffer.length) {
+						var char = buffer.charAt(i);
+
+						if (escapeNext) {
+							escapeNext = false;
+							continue;
+						}
+
+						if (char == '\\') {
+							escapeNext = true;
+							continue;
+						}
+
+						if (char == '"') {
+							inString = !inString;
+							continue;
+						}
+
+						if (!inString) {
+							if (char == '[') bracketCount++;
+							else if (char == ']') {
+								bracketCount--;
+								if (bracketCount == 0) {
+									file.close();
+									return totalRead - buffer.length + i;
+								}
+							}
+						}
+					}
+
+					// Keep last part of buffer for pattern matching across chunks
+					if (buffer.length > 1000) {
+						buffer = buffer.substr(buffer.length - 1000);
+					}
+				}
+			}
+		} catch (e:Dynamic) {
+			file.close();
+		}
+
+		file.close();
+		return -1;
+	}
+
+	private function findArrayEndPosition(content:String, arrayName:String):Int
+	{
+		var pattern = '"$arrayName"\\s*:\\s*\\[';
+		var startIndex = content.indexOf(pattern);
+		if (startIndex == -1) return -1;
+
+		var bracketCount = 0;
+		var inString = false;
+		var escapeNext = false;
+
+		for (i in startIndex...content.length) {
+			var char = content.charAt(i);
+
+			if (escapeNext) {
+				escapeNext = false;
+				continue;
+			}
+
+			if (char == '\\') {
+				escapeNext = true;
+				continue;
+			}
+
+			if (char == '"') {
+				inString = !inString;
+				continue;
+			}
+
+			if (!inString) {
+				if (char == '[') bracketCount++;
+				else if (char == ']') {
+					bracketCount--;
+					if (bracketCount == 0) return i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
+	private function extractNewNotesFromChart(chart:Dynamic):Array<Dynamic>
+	{
+		var newNotes:Array<Dynamic> = [];
+
+		if (chart.notes != null) {
+			var notes:Array<Dynamic> = cast chart.notes;
+			for (section in notes) {
+				if (section.sectionNotes != null) {
+					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+					for (note in sectionNotes) {
+						newNotes.push(note);
+					}
+				}
+			}
+		}
+
+		return newNotes;
+	}
+
+	private function extractNewEventsFromChart(chart:Dynamic):Array<Dynamic>
+	{
+		var newEvents:Array<Dynamic> = [];
+
+		if (chart.events != null) {
+			var events:Array<Dynamic> = cast chart.events;
+			for (event in events) {
+				newEvents.push(event);
+			}
+		}
+
+		return newEvents;
 	}
 
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
@@ -419,7 +741,7 @@ class MergeChartState extends MusicBeatState
 			if (totalItems > 0)
 			{
 				var percent = Std.int((processedItems / totalItems) * 100);
-				showMergingProgress(true, 'Writing ' + message + ' chart... $percent%', false);
+				showMergingProgress(true, 'Writing ' + message + ' ... $percent%', false);
 			}
 		}
 
@@ -549,7 +871,16 @@ class MergeChartState extends MusicBeatState
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
-		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		if (temp && !rewrite) {
+			var mergedTempPath = "temp_merged.json";
+			if (FileSystem.exists(mergedTempPath)) {
+            	FileSystem.copy(mergedTempPath, tempPath);
+			} else {
+				saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+			}
+		} else {
+			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		}
 
 		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
@@ -579,6 +910,16 @@ class MergeChartState extends MusicBeatState
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
+	}
+
+	override function openSubState(SubState:FlxSubState)
+	{
+		super.openSubState(SubState);
+	}
+
+	override function closeSubState()
+	{
+		super.closeSubState();
 	}
 }
 
