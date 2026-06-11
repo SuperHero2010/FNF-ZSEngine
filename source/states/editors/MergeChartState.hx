@@ -371,7 +371,7 @@ class MergeChartState extends MusicBeatState
 
 		trace('Copying content between arrays...');
 
-		inputFile.seek(sys.io.FileSeek.SeekBegin, notesEndPos + 1);
+		inputFile.seek(notesEndPos + 1, sys.io.FileSeek.SeekBegin);
 		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1);
 
 		trace('Writing ${newEvents.length} new events...');
@@ -399,7 +399,7 @@ class MergeChartState extends MusicBeatState
 
 		trace('Copying remaining content...');
 
-		inputFile.seek(sys.io.FileSeek.SeekBegin, eventsEndPos + 1);
+		inputFile.seek(eventsEndPos + 1, sys.io.FileSeek.SeekBegin);
 		var remainingBytes = inputFile.readAll();
 		outputFile.write(remainingBytes);
 
