@@ -38,7 +38,7 @@ class MergeChartState extends MusicBeatState
 	var rewrite:Bool = false;
 	var rewriteCheckbox:PsychUICheckBox;
 
-	public var mergeThread:sys.thread.Thread;
+	static public var mergeThread:sys.thread.Thread;
 	private var mergeComplete:Bool = false;
 	private var mergeError:String = null;
 	private var mergeProgress:Float = 0;
