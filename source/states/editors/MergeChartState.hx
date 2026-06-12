@@ -7,6 +7,7 @@ import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.util.FlxColor;
 import flixel.util.FlxSave;
+import flixel.util.FlxTimer;
 import flixel.FlxSubState;
 
 import backend.Song;
@@ -35,6 +36,11 @@ class MergeChartState extends MusicBeatState
 	var tempCheckbox:PsychUICheckBox;
 	var rewrite:Bool = false;
 	var rewriteCheckbox:PsychUICheckBox;
+
+	private var mergeThread:sys.thread.Thread;
+	private var mergeComplete:Bool = false;
+	private var mergeError:String = null;
+	private var mergeProgress:Float = 0;
 
 	override function create()
 	{
@@ -139,6 +145,140 @@ class MergeChartState extends MusicBeatState
 		rewrite = mergeChartSave.data.rewrite;
 	}
 
+	private function callLater(callback:Void->Void, delay:Float):Void
+	{
+		new FlxTimer().start(delay, function(_) { callback(); });
+	}
+
+	private function mergeChartsThread(chartPaths:Array<String>):Void
+	{
+		var startTime = haxe.Timer.stamp();
+
+		var updateUI = function(msg:String) {
+			callLater(function() {
+				showMergingProgress(true, msg, true);
+			}, 0);
+		};
+
+		try
+		{
+			#if cpp
+			cpp.vm.Gc.enable(false);
+			#end
+
+			updateUI('Loading first chart...');
+
+			SongJson.log = true;
+			var baseData = loadChartFromFileWithProgress(chartPaths[0]);
+			var baseObj = SongJson.parse(baseData);
+
+			var hasWrapper = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic));
+			var baseChart:Dynamic;
+			if (hasWrapper)
+				baseChart = baseObj.song;
+			else
+				baseChart = baseObj;
+
+			SongJson.log = false;
+
+			var tempPath = "temp_merged.json";
+			if (temp) {
+				updateUI('Writing temp file...');
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base");
+			}
+
+			var totalCharts:Int = chartPaths.length;
+
+			for (i in 1...totalCharts)
+			{
+				var progressMsg = 'Merging chart ${i + 1}/${totalCharts}...';
+				updateUI(progressMsg);
+
+				var baseChart2:Dynamic = null;
+				if (temp) {
+					SongJson.log = true;
+					var baseJson = File.getContent(tempPath);
+					var baseObj2 = SongJson.parse(baseJson);
+
+					if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
+						baseChart2 = baseObj2.song;
+					else
+						baseChart2 = baseObj2;
+					SongJson.log = false;
+				}
+
+				SongJson.log = true;
+				var nextData = loadChartFromFileWithProgress(chartPaths[i]);
+				var nextObj = SongJson.parse(nextData);
+
+				var nextChart:Dynamic;
+				if (nextObj.song != null && Std.isOfType(nextObj.song, Dynamic))
+					nextChart = nextObj.song;
+				else
+					nextChart = nextObj;
+				SongJson.log = false;
+
+				if (temp) {
+					if (rewrite) {
+						mergeInto(baseChart2, nextChart);
+						updateUI('Saving merged result...\n');
+						saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+						baseChart2 = null;
+					}
+					else {
+						updateUI('Appending chart ${i + 1}...\n');
+						appendChartToTempFile(tempPath, nextChart, hasWrapper, i + 1, indentation);
+					}
+				}
+				else {
+					mergeInto(baseChart, nextChart);
+				}
+
+				nextObj = null;
+				nextChart = null;
+
+				#if cpp
+				cpp.vm.Gc.run(true);
+				#end
+			}
+
+			updateUI('Finalizing...');
+
+			var finalJson:Dynamic;
+			if (temp) finalJson = File.getContent(tempPath);
+			else finalJson = baseChart;
+			var finalObj = SongJson.parse(finalJson);
+
+			var finalChart:Dynamic;
+			if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
+				finalChart = finalObj.song;
+			else
+				finalChart = finalObj;
+
+			callLater(function() {
+				saveMergedChart(finalChart, hasWrapper, indentation);
+			}, 0);
+
+			#if cpp
+			cpp.vm.Gc.enable(true);
+			cpp.vm.Gc.run(true);
+			#end
+
+			if (FileSystem.exists(tempPath))
+				FileSystem.deleteFile(tempPath);
+
+			trace('Merge completed in ' + (haxe.Timer.stamp() - startTime) + ' seconds');
+			mergeComplete = true;
+		}
+		catch(e:Dynamic)
+		{
+			mergeError = Std.string(e);
+			callLater(function() {
+				showMergingProgress(false, 'Error: ' + mergeError, true);
+			}, 0);
+		}
+	}
+
 	private function onFileSelected()
 	{
 		if (fileDialog.path != null && fileDialog.path.length > 0)
@@ -177,7 +317,44 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		mergeCharts(chartPaths);
+		mergeButton.active = false;
+		mergeButton.label.alpha = 0.5;
+
+		mergeComplete = false;
+		mergeError = null;
+		mergeProgress = 0;
+
+		mergeThread = sys.thread.Thread.create(function() {
+			mergeChartsThread(chartPaths);
+			mergeComplete = true;
+		});
+
+		checkThreadComplete();
+	}
+
+	private function checkThreadComplete():Void
+	{
+		if (mergeComplete)
+		{
+			mergeButton.active = true;
+			mergeButton.label.alpha = 1;
+			if (mergeError != null)
+			{
+				callLater(function() {
+					showMergingProgress(false, "Merge failed: " + mergeError, true);
+				}, 0);
+			}
+			else
+			{
+				callLater(function() {
+					showMergingProgress(false, "Merge complete!", true);
+				}, 0);
+			}
+		}
+		else
+		{
+			callLater(checkThreadComplete, 0.1);
+		}
 	}
 
 	private function mergeCharts(chartPaths:Array<String>)
@@ -557,9 +734,15 @@ class MergeChartState extends MusicBeatState
 					return {notes: notesEndPos, events: eventsEndPos};
 				}
 
-				if (buffer.length > 1000000) {
-					buffer = buffer.substr(-500000);
+				if (buffer.length > 100000) {
+					buffer = buffer.substr(-50000);
 				}
+
+				#if cpp
+				if (totalRead % (bufferSize * 5) == 0) {
+					cpp.vm.Gc.run(false);
+				}
+				#end
 			}
 		} catch (e:Dynamic) {
 			if (!fileClosed) {
@@ -1058,5 +1241,14 @@ class ChartBox extends FlxGroup
 					setChartPath(fileDialog.path);
 				}
 			});
+	}
+
+	override function destroy()
+	{
+		if (mergeThread != null)
+		{
+			mergeThread = null;
+		}
+		super.destroy();
 	}
 }
