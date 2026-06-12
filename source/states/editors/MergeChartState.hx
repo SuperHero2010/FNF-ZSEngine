@@ -1246,9 +1246,9 @@ class ChartBox extends FlxGroup
 
 	override function destroy()
 	{
-		if (mergeThread != null)
+		if (MergeChartState.mergeThread != null)
 		{
-			mergeThread = null;
+			MergeChartState.mergeThread = null;
 		}
 		super.destroy();
 	}
