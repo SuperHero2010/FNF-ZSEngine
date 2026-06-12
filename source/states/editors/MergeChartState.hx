@@ -26,8 +26,6 @@ class MergeChartState extends MusicBeatState
 	private var selectedCharts:Array<String> = [];
 	private var mergeButton:PsychUIButton;
 	private var fileDialog:FileDialogHandler;
-	private var progressText:FlxText;
-	private var progressBg:FlxSprite;
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.1;
 	var mergeChartSave:FlxSave = new FlxSave();
@@ -123,16 +121,6 @@ class MergeChartState extends MusicBeatState
 		rewriteCheckbox.checked = (mergeChartSave.data.rewrite == true);
 		rewrite = rewriteCheckbox.checked;
 		add(rewriteCheckbox);
-
-		progressBg = new FlxSprite(FlxG.width / 2 - 200, FlxG.height / 2 - 50).makeGraphic(400, 100, FlxColor.GRAY);
-		progressBg.alpha = 0.8;
-		progressBg.visible = false;
-		add(progressBg);
-
-		progressText = new FlxText(FlxG.width / 2 - 180, FlxG.height / 2 - 30, 360, "", 20);
-		progressText.alignment = CENTER;
-		progressText.visible = false;
-		add(progressText);
 
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
@@ -318,97 +306,19 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		var totalNotes = 0;
-		var totalEvents = 0;
-		for (path in chartPaths)
-		{
-			var counts = countNotesAndEvents(path);
-			totalNotes += counts.notes;
-			totalEvents += counts.events;
-		}
+		mergeButton.active = false;
+		mergeButton.alpha = 0.5;
 
-		if (totalNotes > 100000 || totalEvents > 100000)
-		{
-			var warningMsg = 'Warning: Your charts have $totalNotes notes and $totalEvents events. They\'ll cause lag. Proceed?';
-			var funcYes = function() {
-				mergeButton.active = false;
-				mergeButton.alpha = 0.5;
+		mergeComplete = false;
+		mergeError = null;
+		mergeProgress = 0;
 
-				mergeComplete = false;
-				mergeError = null;
-				mergeProgress = 0;
+		mergeThread = sys.thread.Thread.create(function() {
+			mergeChartsThread(chartPaths);
+			mergeComplete = true;
+		});
 
-				mergeThread = sys.thread.Thread.create(function() {
-					mergeChartsThread(chartPaths);
-					mergeComplete = true;
-				});
-
-				checkThreadComplete();
-			};
-			var funcNo = function() {
-				return;
-			};
-			openSubState(new Prompt(warningMsg, funcYes, funcNo));
-		}
-		else
-		{
-			mergeButton.active = false;
-			mergeButton.alpha = 0.5;
-
-			mergeComplete = false;
-			mergeError = null;
-			mergeProgress = 0;
-
-			mergeThread = sys.thread.Thread.create(function() {
-				mergeChartsThread(chartPaths);
-				mergeComplete = true;
-			});
-
-			checkThreadComplete();
-		}
-	}
-
-	private function countNotesAndEvents(path:String):{notes:Int, events:Int}
-	{
-		var notes = 0;
-		var events = 0;
-
-		try
-		{
-			var content = File.getContent(path);
-			var obj = SongJson.parse(content);
-
-			var chart:Dynamic;
-			if (obj.song != null && Std.isOfType(obj.song, Dynamic))
-				chart = obj.song;
-			else
-				chart = obj;
-
-			if (chart.notes != null)
-			{
-				var notesArray:Array<Dynamic> = cast chart.notes;
-				for (section in notesArray)
-				{
-					if (section.sectionNotes != null)
-					{
-						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-						notes += sectionNotes.length;
-					}
-				}
-			}
-
-			if (chart.events != null)
-			{
-				var eventsArray:Array<Dynamic> = cast chart.events;
-				events += eventsArray.length;
-			}
-		}
-		catch (e:Dynamic)
-		{
-			trace('Error counting notes/events for $path: $e');
-		}
-
-		return {notes: notes, events: events};
+		checkThreadComplete();
 	}
 
 	private function checkThreadComplete():Void
@@ -436,6 +346,7 @@ class MergeChartState extends MusicBeatState
 		}
 	}
 
+	/* Old function
 	private function mergeCharts(chartPaths:Array<String>)
 	{
 		trace('mergeCharts() called with ' + chartPaths.length + ' charts');
@@ -544,6 +455,7 @@ class MergeChartState extends MusicBeatState
 		if (FileSystem.exists(tempPath))
 			FileSystem.deleteFile(tempPath);
 	}
+	*/
 
 	private function appendChartToTempFile(tempPath:String, nextChart:Dynamic, hasWrapper:Bool, chartIndex:Int, indentation:Bool = false):Void
 	{
@@ -859,46 +771,6 @@ class MergeChartState extends MusicBeatState
 		return {notes: notesEndPos, events: eventsEndPos};
 	}
 
-	private function findArrayEndPosition(content:String, arrayName:String):Int
-	{
-		var pattern = '"$arrayName"\\s*:\\s*\\[';
-		var startIndex = content.indexOf(pattern);
-		if (startIndex == -1) return -1;
-
-		var bracketCount = 0;
-		var inString = false;
-		var escapeNext = false;
-
-		for (i in startIndex...content.length) {
-			var char = content.charAt(i);
-
-			if (escapeNext) {
-				escapeNext = false;
-				continue;
-			}
-
-			if (char == '\\') {
-				escapeNext = true;
-				continue;
-			}
-
-			if (char == '"') {
-				inString = !inString;
-				continue;
-			}
-
-			if (!inString) {
-				if (char == '[') bracketCount++;
-				else if (char == ']') {
-					bracketCount--;
-					if (bracketCount == 0) return i;
-				}
-			}
-		}
-
-		return -1;
-	}
-
 	private function extractNewNotesFromChart(chart:Dynamic):Array<Dynamic>
 	{
 		var newNotes:Array<Dynamic> = [];
@@ -932,6 +804,8 @@ class MergeChartState extends MusicBeatState
 		return newEvents;
 	}
 
+	var parsedNotes:Int = 0;
+	var parsedEvents:Int = 0;
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
 	{
 		trace('mergeInto() called');
@@ -996,9 +870,7 @@ class MergeChartState extends MusicBeatState
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
 	{
-		progressBg.visible = show;
-		progressText.visible = show;
-		progressText.text = message;
+		openSubState(new BasePrompt(420, 160, '$message'));
 
 		if (Main.isConsoleAvailable)
 		{
@@ -1016,8 +888,6 @@ class MergeChartState extends MusicBeatState
 		}
 	}
 
-	var parsedNotes:Int = 0;
-	var parsedEvents:Int = 0;
 	function showMergeProgress(force:Bool = false, ?newLine:Bool = false)
 	{
 		if (Main.isConsoleAvailable)
