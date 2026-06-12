@@ -14,6 +14,7 @@ import backend.Song;
 import backend.SongJson;
 import backend.ui.*;
 import states.editors.content.*;
+import states.editors.content.Prompt;
 
 import haxe.Json;
 import sys.FileSystem;
