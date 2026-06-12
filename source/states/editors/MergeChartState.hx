@@ -497,6 +497,7 @@ class MergeChartState extends MusicBeatState
 				return;
 			};
 			openSubState(new Prompt("Error! Could not find array end positions, falling back to full rewrite. Continue?", funcYes, funcNo));
+			return;
 		}
 
 		showMergingProgress(true, 'Copying file content... 0%');
