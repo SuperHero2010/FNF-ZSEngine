@@ -18,6 +18,7 @@ import states.editors.content.*;
 import haxe.Json;
 import sys.FileSystem;
 import sys.io.File;
+import sys.thread.Thread;
 
 class MergeChartState extends MusicBeatState
 {
@@ -37,7 +38,7 @@ class MergeChartState extends MusicBeatState
 	var rewrite:Bool = false;
 	var rewriteCheckbox:PsychUICheckBox;
 
-	private var mergeThread:sys.thread.Thread;
+	public var mergeThread:sys.thread.Thread;
 	private var mergeComplete:Bool = false;
 	private var mergeError:String = null;
 	private var mergeProgress:Float = 0;
@@ -318,7 +319,7 @@ class MergeChartState extends MusicBeatState
 		}
 
 		mergeButton.active = false;
-		mergeButton.label.alpha = 0.5;
+		mergeButton.alpha = 0.5;
 
 		mergeComplete = false;
 		mergeError = null;
@@ -337,7 +338,7 @@ class MergeChartState extends MusicBeatState
 		if (mergeComplete)
 		{
 			mergeButton.active = true;
-			mergeButton.label.alpha = 1;
+			mergeButton.alpha = 1;
 			if (mergeError != null)
 			{
 				callLater(function() {

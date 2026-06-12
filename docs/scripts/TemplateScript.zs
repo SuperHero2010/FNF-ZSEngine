@@ -166,12 +166,12 @@ onRecalculateRating:
 onMoveCamera<focus>:
 	-/Called when the camera focuses to a character
 
-	if <focus> == ‘boyfri’ then
-		-/ Called when the camera focuses on boyfri
+	if <focus> == ‘boyfriend’ then
+		-/ Called when the camera focuses on boyfriend
 	else if <focus> == ‘dad’ then
 		-/ Called when the camera focuses on dad
 	else if <focus> == ‘gf’ then
-		-/ Called when the camera focuses on girlfri	
+		-/ Called when the camera focuses on girlfriend	
 
 -/ Event notes hooks
 onEvent<name>, <value1>, <value2>, <strumTime>:
