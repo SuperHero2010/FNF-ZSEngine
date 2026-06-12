@@ -113,14 +113,14 @@ class MergeChartState extends MusicBeatState
 			mergeChartSave.flush();
 			rewrite = rewriteCheckbox.checked;
 			var funcYes:Void->Void = function() {
-				rewrite = true;
-				rewriteCheckbox.checked = true;
+				// Do nothing because clicking it already sets the checkbox to true
 			};
 			var funcNo:Void->Void = function() {
 				rewrite = false;
 				rewriteCheckbox.checked = false;
 			};
-			openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
+			if (rewrite) openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
+			else funcYes();
 		});
 		rewriteCheckbox.checked = (mergeChartSave.data.rewrite == true);
 		rewrite = rewriteCheckbox.checked;
@@ -315,8 +315,9 @@ class MergeChartState extends MusicBeatState
 
 		trace('Finding append positions...');
 
-		var notesEndPos = findArrayEndPositionInFile(tempPath, "notes");
-		var eventsEndPos = findArrayEndPositionInFile(tempPath, "events");
+		var positions = findBothArrayEndPositions(tempPath);
+		var notesEndPos = positions.notes;
+		var eventsEndPos = positions.events;
 
 		if (notesEndPos == -1 || eventsEndPos == -1) {
 			var funcYes = function() {
@@ -400,8 +401,12 @@ class MergeChartState extends MusicBeatState
 		trace('Copying remaining content...');
 
 		inputFile.seek(eventsEndPos + 1, sys.io.FileSeek.SeekBegin);
-		var remainingBytes = inputFile.readAll();
-		outputFile.write(remainingBytes);
+		var bufferSize = 65536;
+		while (true) {
+			var chunk = inputFile.read(bufferSize);
+			if (chunk.length == 0) break;
+			outputFile.write(chunk);
+		}
 
 		inputFile.close();
 		outputFile.close();
@@ -441,15 +446,25 @@ class MergeChartState extends MusicBeatState
 		return chunkStr.indexOf('\n\t') != -1 || chunkStr.indexOf('\n  ') != -1;
 	}
 
-	private function findArrayEndPositionInFile(filePath:String, arrayName:String):Int
+	private function findBothArrayEndPositions(filePath:String):{notes:Int, events:Int}
 	{
 		var file = sys.io.File.read(filePath, false);
 		var bufferSize = 65536;
 		var buffer = "";
 		var totalRead = 0;
-		var pattern = '"$arrayName"\\s*:\\s*\\[';
-		var patternFound = false;
-		var bracketCount = 0;
+
+		var notesPattern = '"notes"\\s*:\\s*\\[';
+		var eventsPattern = '"events"\\s*:\\s*\\[';
+
+		var notesPatternFound = false;
+		var eventsPatternFound = false;
+
+		var notesBracketCount = 0;
+		var eventsBracketCount = 0;
+
+		var notesEndPos = -1;
+		var eventsEndPos = -1;
+
 		var inString = false;
 		var escapeNext = false;
 
@@ -461,50 +476,78 @@ class MergeChartState extends MusicBeatState
 				buffer += chunk;
 				totalRead += chunk.length;
 
-				if (!patternFound) {
-					var patternIndex = buffer.indexOf(pattern);
-					if (patternIndex != -1) {
-						patternFound = true;
-						buffer = buffer.substr(patternIndex);
-						bracketCount = 1;
+				var i = 0;
+				while (i < buffer.length) {
+					var char = buffer.charAt(i);
+
+					if (escapeNext) {
+						escapeNext = false;
+						i++;
+						continue;
 					}
-				}
 
-				if (patternFound) {
-					for (i in 0...buffer.length) {
-						var char = buffer.charAt(i);
+					if (char == '\\') {
+						escapeNext = true;
+						i++;
+						continue;
+					}
 
-						if (escapeNext) {
-							escapeNext = false;
-							continue;
+					if (char == '"') {
+						inString = !inString;
+						i++;
+						continue;
+					}
+
+					if (!inString) {
+						if (!notesPatternFound) {
+							if (buffer.substr(i).indexOf(notesPattern) == 0) {
+								notesPatternFound = true;
+								notesBracketCount = 1;
+								i += notesPattern.length;
+								continue;
+							}
 						}
 
-						if (char == '\\') {
-							escapeNext = true;
-							continue;
+						if (!eventsPatternFound) {
+							if (buffer.substr(i).indexOf(eventsPattern) == 0) {
+								eventsPatternFound = true;
+								eventsBracketCount = 1;
+								i += eventsPattern.length;
+								continue;
+							}
 						}
 
-						if (char == '"') {
-							inString = !inString;
-							continue;
-						}
-
-						if (!inString) {
-							if (char == '[') bracketCount++;
+						if (notesPatternFound && notesEndPos == -1) {
+							if (char == '[') notesBracketCount++;
 							else if (char == ']') {
-								bracketCount--;
-								if (bracketCount == 0) {
-									file.close();
-									return totalRead - buffer.length + i;
+								notesBracketCount--;
+								if (notesBracketCount == 0) {
+									notesEndPos = totalRead - buffer.length + i;
+								}
+							}
+						}
+
+						if (eventsPatternFound && eventsEndPos == -1) {
+							if (char == '[') eventsBracketCount++;
+							else if (char == ']') {
+								eventsBracketCount--;
+								if (eventsBracketCount == 0) {
+									eventsEndPos = totalRead - buffer.length + i;
 								}
 							}
 						}
 					}
 
-					// Keep last part of buffer for pattern matching across chunks
-					if (buffer.length > 1000) {
-						buffer = buffer.substr(buffer.length - 1000);
+					i++;
+
+					if (notesEndPos != -1 && eventsEndPos != -1) {
+						file.close();
+						return {notes: notesEndPos, events: eventsEndPos};
 					}
+				}
+
+				if (buffer.length > 1000) {
+					buffer = buffer.substr(buffer.length - 1000);
 				}
 			}
 		} catch (e:Dynamic) {
@@ -512,7 +555,7 @@ class MergeChartState extends MusicBeatState
 		}
 
 		file.close();
-		return -1;
+		return {notes: notesEndPos, events: eventsEndPos};
 	}
 
 	private function findArrayEndPosition(content:String, arrayName:String):Int
