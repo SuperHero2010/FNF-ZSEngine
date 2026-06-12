@@ -167,7 +167,7 @@ class MergeChartState extends MusicBeatState
 			cpp.vm.Gc.enable(false);
 			#end
 
-			updateUI('Loading first chart...');
+			updateUI('Loading first chart...\n');
 
 			SongJson.log = true;
 			var baseData = loadChartFromFileWithProgress(chartPaths[0]);
@@ -184,7 +184,7 @@ class MergeChartState extends MusicBeatState
 
 			var tempPath = "temp_merged.json";
 			if (temp) {
-				updateUI('Writing temp file...');
+				updateUI('Writing temp file...\n');
 				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base");
 			}
 
@@ -192,7 +192,7 @@ class MergeChartState extends MusicBeatState
 
 			for (i in 1...totalCharts)
 			{
-				var progressMsg = 'Merging chart ${i + 1}/${totalCharts}...';
+				var progressMsg = 'Merging chart ${i + 1}/${totalCharts}...\n';
 				updateUI(progressMsg);
 
 				var baseChart2:Dynamic = null;
@@ -243,7 +243,7 @@ class MergeChartState extends MusicBeatState
 				#end
 			}
 
-			updateUI('Finalizing...');
+			updateUI('Finalizing...\n');
 
 			var finalJson:Dynamic;
 			if (temp) finalJson = File.getContent(tempPath);
@@ -275,7 +275,7 @@ class MergeChartState extends MusicBeatState
 		{
 			mergeError = Std.string(e);
 			callLater(function() {
-				showMergingProgress(false, 'Error: ' + mergeError, true);
+				showMergingProgress(false, 'Error: ' + mergeError + '\n', true);
 			}, 0);
 		}
 	}
@@ -318,19 +318,97 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		mergeButton.active = false;
-		mergeButton.alpha = 0.5;
+		var totalNotes = 0;
+		var totalEvents = 0;
+		for (path in chartPaths)
+		{
+			var counts = countNotesAndEvents(path);
+			totalNotes += counts.notes;
+			totalEvents += counts.events;
+		}
 
-		mergeComplete = false;
-		mergeError = null;
-		mergeProgress = 0;
+		if (totalNotes > 100000 || totalEvents > 100000)
+		{
+			var warningMsg = 'Warning: Your charts have $totalNotes notes and $totalEvents events. They\'ll cause lag. Proceed?';
+			var funcYes = function() {
+				mergeButton.active = false;
+				mergeButton.alpha = 0.5;
 
-		mergeThread = sys.thread.Thread.create(function() {
-			mergeChartsThread(chartPaths);
-			mergeComplete = true;
-		});
+				mergeComplete = false;
+				mergeError = null;
+				mergeProgress = 0;
 
-		checkThreadComplete();
+				mergeThread = sys.thread.Thread.create(function() {
+					mergeChartsThread(chartPaths);
+					mergeComplete = true;
+				});
+
+				checkThreadComplete();
+			};
+			var funcNo = function() {
+				return;
+			};
+			openSubState(new Prompt(warningMsg, funcYes, funcNo));
+		}
+		else
+		{
+			mergeButton.active = false;
+			mergeButton.alpha = 0.5;
+
+			mergeComplete = false;
+			mergeError = null;
+			mergeProgress = 0;
+
+			mergeThread = sys.thread.Thread.create(function() {
+				mergeChartsThread(chartPaths);
+				mergeComplete = true;
+			});
+
+			checkThreadComplete();
+		}
+	}
+
+	private function countNotesAndEvents(path:String):{notes:Int, events:Int}
+	{
+		var notes = 0;
+		var events = 0;
+
+		try
+		{
+			var content = File.getContent(path);
+			var obj = SongJson.parse(content);
+
+			var chart:Dynamic;
+			if (obj.song != null && Std.isOfType(obj.song, Dynamic))
+				chart = obj.song;
+			else
+				chart = obj;
+
+			if (chart.notes != null)
+			{
+				var notesArray:Array<Dynamic> = cast chart.notes;
+				for (section in notesArray)
+				{
+					if (section.sectionNotes != null)
+					{
+						var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+						notes += sectionNotes.length;
+					}
+				}
+			}
+
+			if (chart.events != null)
+			{
+				var eventsArray:Array<Dynamic> = cast chart.events;
+				events += eventsArray.length;
+			}
+		}
+		catch (e:Dynamic)
+		{
+			trace('Error counting notes/events for $path: $e');
+		}
+
+		return {notes: notes, events: events};
 	}
 
 	private function checkThreadComplete():Void
@@ -482,8 +560,6 @@ class MergeChartState extends MusicBeatState
 		var fileIndentation = detectIndentation(tempPath);
 		var useIndentation = fileIndentation || indentation;
 
-		trace('Finding append positions...');
-
 		var positions = findBothArrayEndPositions(tempPath);
 		var notesEndPos = positions.notes;
 		var eventsEndPos = positions.events;
@@ -509,14 +585,14 @@ class MergeChartState extends MusicBeatState
 			openSubState(new Prompt("Error! Could not find array end positions, falling back to full rewrite. Continue?", funcYes, funcNo));
 		}
 
-		trace('Copying file content...');
+		showMergingProgress(true, 'Copying file content... 0%');
 
 		var inputFile = sys.io.File.read(tempPath, false);
 		var outputFile = sys.io.File.write(tempPath + ".new", false);
 
-		copyChunk(inputFile, outputFile, notesEndPos);
+		copyChunk(inputFile, outputFile, notesEndPos, 'Copying file content...');
 
-		trace('Writing ${newNotes.length} new notes...');
+		showMergingProgress(true, 'Writing ${newNotes.length} new notes...\n');
 
 		if (newNotes.length > 0) {
 			if (useIndentation) outputFile.writeString(",\n\t\t");
@@ -544,12 +620,12 @@ class MergeChartState extends MusicBeatState
 		if (useIndentation) outputFile.writeString("\n\t");
 		outputFile.writeString("]");
 
-		trace('Copying content between arrays...');
+		showMergingProgress(true, 'Copying content between arrays... 0%');
 
 		inputFile.seek(notesEndPos + 1, sys.io.FileSeek.SeekBegin);
-		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1);
+		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1, 'Copying content between arrays...');
 
-		trace('Writing ${newEvents.length} new events...');
+		showMergingProgress(true, 'Writing ${newEvents.length} new events...\n');
 
 		if (newEvents.length > 0) {
 			if (useIndentation) outputFile.writeString(",\n\t\t");
@@ -577,28 +653,38 @@ class MergeChartState extends MusicBeatState
 		if (useIndentation) outputFile.writeString("\n\t");
 		outputFile.writeString("]");
 
-		trace('Copying remaining content...');
+		showMergingProgress(true, 'Copying remaining content... 0%');
 
 		inputFile.seek(eventsEndPos + 1, sys.io.FileSeek.SeekBegin);
+		var fileSize = FileSystem.stat(tempPath).size;
+		var bytesToCopy = fileSize - eventsEndPos - 1;
 		var bufferSize = 65536;
+		var bytesCopied = 0;
 		while (true) {
 			var chunk = inputFile.read(bufferSize);
 			if (chunk.length == 0) break;
 			outputFile.write(chunk);
+			bytesCopied += chunk.length;
+
+			if (bytesCopied % (bufferSize * 10) == 0) {
+				var percent = Math.floor((bytesCopied / bytesToCopy) * 100);
+				showMergingProgress(true, 'Copying remaining content... $percent%');
+			}
 		}
+		showMergingProgress(true, 'Copying remaining content... 100%\n');
 
 		inputFile.close();
 		outputFile.close();
 
-		trace('Replacing original file...');
+		showMergingProgress(true, 'Replacing original file...\n');
 
 		FileSystem.deleteFile(tempPath);
 		FileSystem.rename(tempPath + ".new", tempPath);
 
-		trace('Appended ${newNotes.length} notes and ${newEvents.length} events');
+		showMergingProgress(true, 'Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 	}
 
-	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int):Void
+	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int, message:String):Void
 	{
 		var bufferSize = 65536;
 		var bytesCopied = 0;
@@ -612,7 +698,13 @@ class MergeChartState extends MusicBeatState
 			var chunk = inputFile.read(bytesToRead);
 			outputFile.write(chunk);
 			bytesCopied += bytesToRead;
+
+			if (bytesCopied % (bufferSize * 10) == 0) {
+				var percent = Math.floor((bytesCopied / bytesToCopy) * 100);
+				showMergingProgress(true, '$message $percent%');
+			}
 		}
+		showMergingProgress(true, '$message 100%\n');
 	}
 
 	private function detectIndentation(filePath:String):Bool
@@ -634,6 +726,9 @@ class MergeChartState extends MusicBeatState
 		var notesEndPos = -1;
 		var eventsEndPos = -1;
 		var fileClosed = false;
+		var fileSize = FileSystem.stat(filePath).size;
+
+		showMergingProgress(true, 'Finding append positions... 0%');
 
 		try {
 			while (true) {
@@ -730,6 +825,7 @@ class MergeChartState extends MusicBeatState
 				}
 
 				if (notesEndPos != -1 && eventsEndPos != -1) {
+					showMergingProgress(true, 'Finding append positions... 100%\n');
 					file.close();
 					fileClosed = true;
 					return {notes: notesEndPos, events: eventsEndPos};
@@ -744,6 +840,11 @@ class MergeChartState extends MusicBeatState
 					cpp.vm.Gc.run(false);
 				}
 				#end
+
+				if (totalRead % (bufferSize * 10) == 0) {
+					var percent = Math.floor((totalRead / fileSize) * 100);
+					showMergingProgress(true, 'Finding append positions... $percent%');
+				}
 			}
 		} catch (e:Dynamic) {
 			if (!fileClosed) {
