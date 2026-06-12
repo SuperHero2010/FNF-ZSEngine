@@ -633,143 +633,74 @@ class MergeChartState extends MusicBeatState
 
 	private function findBothArrayEndPositions(filePath:String):{notes:Int, events:Int}
 	{
-		var file = sys.io.File.read(filePath, false);
-		var bufferSize = 65536;
-		var buffer = "";
-		var totalRead = 0;
-		var notesEndPos = -1;
-		var eventsEndPos = -1;
-		var fileClosed = false;
-		var fileSize = FileSystem.stat(filePath).size;
-
 		showMergingProgress(true, 'Finding append positions... 0%');
 
-		try {
-			while (true) {
-				var chunk = file.read(bufferSize);
-				if (chunk.length == 0) break;
+		var content = File.getContent(filePath);
+		var obj = SongJson.parse(content);
 
-				buffer += chunk;
-				totalRead += chunk.length;
+		var chart:Dynamic;
+		if (obj.song != null && Std.isOfType(obj.song, Dynamic))
+			chart = obj.song;
+		else
+			chart = obj;
 
-				if (notesEndPos == -1) {
-					var notesIdx = buffer.indexOf('"notes"');
-					if (notesIdx != -1) {
-						var depth = 0;
-						var inString = false;
-						var escapeNext = false;
-						var foundStart = false;
+		var notesEndPos = -1;
+		var eventsEndPos = -1;
 
-						for (i in notesIdx...buffer.length) {
-							var c = buffer.charAt(i);
+		var notesIdx = content.indexOf('"notes"');
+		var eventsIdx = content.indexOf('"events"');
 
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
+		if (notesIdx != -1) {
+			var searchEnd = (eventsIdx != -1) ? eventsIdx : content.length;
+			var searchArea = content.substring(notesIdx, searchEnd);
 
-							if (c == '\\') {
-								escapeNext = true;
-								continue;
-							}
+			var openBrackets = searchArea.split('[').length - 1;
+			var closeBrackets = 0;
+			var pos = notesIdx;
+			var targetClose = openBrackets;
 
-							if (c == '"') {
-								inString = !inString;
-								continue;
-							}
+			while (closeBrackets < targetClose && pos < searchEnd) {
+				var nextClose = content.indexOf(']', pos);
+				if (nextClose == -1 || nextClose >= searchEnd) break;
+				closeBrackets++;
+				pos = nextClose + 1;
 
-							if (!inString) {
-								if (c == '[') {
-									depth++;
-									foundStart = true;
-								}
-								else if (c == ']' && foundStart) {
-									depth--;
-									if (depth == 0) {
-										notesEndPos = totalRead - buffer.length + i;
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				if (eventsEndPos == -1) {
-					var eventsIdx = buffer.indexOf('"events"');
-					if (eventsIdx != -1) {
-						var depth = 0;
-						var inString = false;
-						var escapeNext = false;
-						var foundStart = false;
-
-						for (i in eventsIdx...buffer.length) {
-							var c = buffer.charAt(i);
-
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
-
-							if (c == '\\') {
-								escapeNext = true;
-								continue;
-							}
-
-							if (c == '"') {
-								inString = !inString;
-								continue;
-							}
-
-							if (!inString) {
-								if (c == '[') {
-									depth++;
-									foundStart = true;
-								}
-								else if (c == ']' && foundStart) {
-									depth--;
-									if (depth == 0) {
-										eventsEndPos = totalRead - buffer.length + i;
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-
-				if (notesEndPos != -1 && eventsEndPos != -1) {
-					showMergingProgress(true, 'Finding append positions... 100%\n');
-					file.close();
-					fileClosed = true;
-					return {notes: notesEndPos, events: eventsEndPos};
-				}
-
-				if (buffer.length > 100000) {
-					buffer = buffer.substr(-50000);
-				}
-
-				#if cpp
-				if (totalRead % (bufferSize * 5) == 0) {
-					cpp.vm.Gc.run(false);
-				}
-				#end
-
-				if (totalRead % (bufferSize * 10) == 0) {
-					var percent = Math.floor((totalRead / fileSize) * 100);
+				if (closeBrackets % 10 == 0) {
+					var percent = Math.floor((closeBrackets / targetClose) * 50);
 					showMergingProgress(true, 'Finding append positions... $percent%');
 				}
 			}
-		} catch (e:Dynamic) {
-			if (!fileClosed) {
-				file.close();
-				fileClosed = true;
+
+			if (closeBrackets == targetClose) {
+				notesEndPos = pos - 1;
 			}
 		}
 
-		if (!fileClosed) {
-			file.close();
+		if (eventsIdx != -1) {
+			var searchArea = content.substring(eventsIdx);
+			var openBrackets = searchArea.split('[').length - 1;
+			var closeBrackets = 0;
+			var pos = eventsIdx;
+			var targetClose = openBrackets;
+
+			while (closeBrackets < targetClose && pos < content.length) {
+				var nextClose = content.indexOf(']', pos);
+				if (nextClose == -1) break;
+				closeBrackets++;
+				pos = nextClose + 1;
+
+				if (closeBrackets % 10 == 0) {
+					var percent = Math.floor((closeBrackets / targetClose) * 50) + 50;
+					showMergingProgress(true, 'Finding append positions... $percent%');
+				}
+			}
+
+			if (closeBrackets == targetClose) {
+				eventsEndPos = pos - 1;
+			}
 		}
+
+		showMergingProgress(true, 'Finding append positions... 100%\n');
 		return {notes: notesEndPos, events: eventsEndPos};
 	}
 
