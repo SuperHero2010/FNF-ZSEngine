@@ -109,18 +109,26 @@ class MergeChartState extends MusicBeatState
 		add(tempCheckbox);
 
 		rewriteCheckbox = new PsychUICheckBox(20, backButton.y - 90, "Rewrite mode", 200, function() {
-			mergeChartSave.data.rewrite = rewriteCheckbox.checked;
-			mergeChartSave.flush();
-			rewrite = rewriteCheckbox.checked;
-			var funcYes:Void->Void = function() {
-				// Do nothing because clicking it already sets the checkbox to true
-			};
-			var funcNo:Void->Void = function() {
+			var newState = rewriteCheckbox.checked;
+			if (newState) {
+				var funcYes:Void->Void = function() {
+					rewrite = true;
+					rewriteCheckbox.checked = true;
+					mergeChartSave.data.rewrite = true;
+					mergeChartSave.flush();
+				};
+				var funcNo:Void->Void = function() {
+					rewrite = false;
+					rewriteCheckbox.checked = false;
+					mergeChartSave.data.rewrite = false;
+					mergeChartSave.flush();
+				};
+				openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
+			} else {
 				rewrite = false;
-				rewriteCheckbox.checked = false;
-			};
-			if (rewrite) openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
-			else funcYes();
+				mergeChartSave.data.rewrite = false;
+				mergeChartSave.flush();
+			}
 		});
 		rewriteCheckbox.checked = (mergeChartSave.data.rewrite == true);
 		rewrite = rewriteCheckbox.checked;
@@ -360,8 +368,12 @@ class MergeChartState extends MusicBeatState
 					else outputFile.writeString(",");
 				}
 
-				if (i % 10000 == 0) {
+				if (i % 1000 == 0) {
 					showMergingProgress(true, 'Writing notes: $i/${newNotes.length}');
+					FlxG.callLater(function() {}, 0.001);
+					#if cpp
+					cpp.vm.Gc.run(false);
+					#end
 				}
 			}
 			if (useIndentation) outputFile.writeString("\n\t");
@@ -390,6 +402,10 @@ class MergeChartState extends MusicBeatState
 
 				if (i % 1000 == 0) {
 					showMergingProgress(true, 'Writing events: $i/${newEvents.length}');
+					FlxG.callLater(function() {}, 0.001);
+					#if cpp
+					cpp.vm.Gc.run(false);
+					#end
 				}
 			}
 			if (useIndentation) outputFile.writeString("\n\t");
@@ -452,21 +468,8 @@ class MergeChartState extends MusicBeatState
 		var bufferSize = 65536;
 		var buffer = "";
 		var totalRead = 0;
-
-		var notesPattern = '"notes"\\s*:\\s*\\[';
-		var eventsPattern = '"events"\\s*:\\s*\\[';
-
-		var notesPatternFound = false;
-		var eventsPatternFound = false;
-
-		var notesBracketCount = 0;
-		var eventsBracketCount = 0;
-
 		var notesEndPos = -1;
 		var eventsEndPos = -1;
-
-		var inString = false;
-		var escapeNext = false;
 
 		try {
 			while (true) {
@@ -476,78 +479,99 @@ class MergeChartState extends MusicBeatState
 				buffer += chunk;
 				totalRead += chunk.length;
 
-				var i = 0;
-				while (i < buffer.length) {
-					var char = buffer.charAt(i);
+				if (notesEndPos == -1) {
+					var notesIdx = buffer.indexOf('"notes"');
+					if (notesIdx != -1) {
+						var depth = 0;
+						var inString = false;
+						var escapeNext = false;
+						var foundStart = false;
 
-					if (escapeNext) {
-						escapeNext = false;
-						i++;
-						continue;
-					}
+						for (i in notesIdx...buffer.length) {
+							var c = buffer.charAt(i);
 
-					if (char == '\\') {
-						escapeNext = true;
-						i++;
-						continue;
-					}
-
-					if (char == '"') {
-						inString = !inString;
-						i++;
-						continue;
-					}
-
-					if (!inString) {
-						if (!notesPatternFound) {
-							if (buffer.substr(i).indexOf(notesPattern) == 0) {
-								notesPatternFound = true;
-								notesBracketCount = 1;
-								i += notesPattern.length;
+							if (escapeNext) {
+								escapeNext = false;
 								continue;
 							}
-						}
 
-						if (!eventsPatternFound) {
-							if (buffer.substr(i).indexOf(eventsPattern) == 0) {
-								eventsPatternFound = true;
-								eventsBracketCount = 1;
-								i += eventsPattern.length;
+							if (c == '\\') {
+								escapeNext = true;
 								continue;
 							}
-						}
 
-						if (notesPatternFound && notesEndPos == -1) {
-							if (char == '[') notesBracketCount++;
-							else if (char == ']') {
-								notesBracketCount--;
-								if (notesBracketCount == 0) {
-									notesEndPos = totalRead - buffer.length + i;
+							if (c == '"') {
+								inString = !inString;
+								continue;
+							}
+
+							if (!inString) {
+								if (c == '[') {
+									depth++;
+									foundStart = true;
+								}
+								else if (c == ']' && foundStart) {
+									depth--;
+									if (depth == 0) {
+										notesEndPos = totalRead - buffer.length + i;
+										break;
+									}
 								}
 							}
 						}
-
-						if (eventsPatternFound && eventsEndPos == -1) {
-							if (char == '[') eventsBracketCount++;
-							else if (char == ']') {
-								eventsBracketCount--;
-								if (eventsBracketCount == 0) {
-									eventsEndPos = totalRead - buffer.length + i;
-								}
-							}
-						}
-					}
-
-					i++;
-
-					if (notesEndPos != -1 && eventsEndPos != -1) {
-						file.close();
-						return {notes: notesEndPos, events: eventsEndPos};
 					}
 				}
 
-				if (buffer.length > 1000) {
-					buffer = buffer.substr(buffer.length - 1000);
+				if (eventsEndPos == -1) {
+					var eventsIdx = buffer.indexOf('"events"');
+					if (eventsIdx != -1) {
+						var depth = 0;
+						var inString = false;
+						var escapeNext = false;
+						var foundStart = false;
+
+						for (i in eventsIdx...buffer.length) {
+							var c = buffer.charAt(i);
+
+							if (escapeNext) {
+								escapeNext = false;
+								continue;
+							}
+
+							if (c == '\\') {
+								escapeNext = true;
+								continue;
+							}
+
+							if (c == '"') {
+								inString = !inString;
+								continue;
+							}
+
+							if (!inString) {
+								if (c == '[') {
+									depth++;
+									foundStart = true;
+								}
+								else if (c == ']' && foundStart) {
+									depth--;
+									if (depth == 0) {
+										eventsEndPos = totalRead - buffer.length + i;
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if (notesEndPos != -1 && eventsEndPos != -1) {
+					file.close();
+					return {notes: notesEndPos, events: eventsEndPos};
+				}
+
+				if (buffer.length > 1000000) {
+					buffer = buffer.substr(-500000);
 				}
 			}
 		} catch (e:Dynamic) {
@@ -635,7 +659,6 @@ class MergeChartState extends MusicBeatState
 	{
 		trace('mergeInto() called');
 
-		// Ensure base has notes and events arrays
 		if (baseSong.notes == null)
 		{
 			trace('baseSong.notes was null, creating empty array');
@@ -647,7 +670,6 @@ class MergeChartState extends MusicBeatState
 			baseSong.events = [];
 		}
 
-		// Merge notes
 		if (nextSong.notes != null)
 		{
 			var nextNotes:Array<Dynamic> = cast nextSong.notes;
@@ -665,7 +687,6 @@ class MergeChartState extends MusicBeatState
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
 						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
 
-						// Update progress after each section
 						parsedNotes += nextSectionNotes.length;
 						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
 						else showMergeProgress();
@@ -684,7 +705,6 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		// Merge events
 		if (nextSong.events != null)
 		{
 			var nextEvents:Array<Dynamic> = cast nextSong.events;
