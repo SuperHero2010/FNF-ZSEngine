@@ -40,6 +40,7 @@ class MergeChartState extends MusicBeatState
 	private var mergeComplete:Bool = false;
 	private var mergeError:String = null;
 	private var mergeProgress:Float = 0;
+	private var progressSubState:BasePrompt = null;
 
 	override function create()
 	{
@@ -870,21 +871,40 @@ class MergeChartState extends MusicBeatState
 
 	private function showMergingProgress(show:Bool, message:String, force:Bool = false)
 	{
-		openSubState(new BasePrompt(420, 160, '$message'));
-
-		if (Main.isConsoleAvailable)
+		if (!show)
 		{
-			var currentTime = haxe.Timer.stamp() * 1000;
-			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
+			if (progressSubState != null)
 			{
-				Sys.stdout().writeString('\x1b[0G' + message);
-				Sys.stdout().flush();
-				syncTime = currentTime;
+				closeSubState();
+				progressSubState = null;
 			}
 		}
-		else if (force)
+		else
 		{
-			Sys.println(message);
+			if (progressSubState == null)
+			{
+				progressSubState = new BasePrompt(420, 160, '$message');
+				openSubState(progressSubState);
+			}
+			else
+			{
+				progressSubState.titleText.text = '$message';
+			}
+
+			if (Main.isConsoleAvailable)
+			{
+				var currentTime = haxe.Timer.stamp() * 1000;
+				if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
+				{
+					Sys.stdout().writeString('\x1b[0G' + message);
+					Sys.stdout().flush();
+					syncTime = currentTime;
+				}
+			}
+			else if (force)
+			{
+				Sys.println(message);
+			}
 		}
 	}
 
