@@ -370,9 +370,10 @@ class MergeChartState extends MusicBeatState
 
 				if (i % 1000 == 0) {
 					showMergingProgress(true, 'Writing notes: $i/${newNotes.length}');
-					FlxG.callLater(function() {}, 0.001);
 					#if cpp
 					cpp.vm.Gc.run(false);
+					// Small delay to yield to OS
+					Sys.sleep(0.001);
 					#end
 				}
 			}
@@ -402,9 +403,10 @@ class MergeChartState extends MusicBeatState
 
 				if (i % 1000 == 0) {
 					showMergingProgress(true, 'Writing events: $i/${newEvents.length}');
-					FlxG.callLater(function() {}, 0.001);
 					#if cpp
 					cpp.vm.Gc.run(false);
+					// Small delay to yield to OS
+					Sys.sleep(0.001);
 					#end
 				}
 			}
