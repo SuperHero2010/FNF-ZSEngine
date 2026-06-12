@@ -109,26 +109,9 @@ class MergeChartState extends MusicBeatState
 		add(tempCheckbox);
 
 		rewriteCheckbox = new PsychUICheckBox(20, backButton.y - 90, "Rewrite mode", 200, function() {
-			var newState = rewriteCheckbox.checked;
-			if (newState) {
-				var funcYes:Void->Void = function() {
-					rewrite = true;
-					rewriteCheckbox.checked = true;
-					mergeChartSave.data.rewrite = true;
-					mergeChartSave.flush();
-				};
-				var funcNo:Void->Void = function() {
-					rewrite = false;
-					rewriteCheckbox.checked = false;
-					mergeChartSave.data.rewrite = false;
-					mergeChartSave.flush();
-				};
-				openSubState(new Prompt('Enable rewrite mode?\nThis will rewrite the base chart instead of appending.', funcYes, funcNo));
-			} else {
-				rewrite = false;
-				mergeChartSave.data.rewrite = false;
-				mergeChartSave.flush();
-			}
+			mergeChartSave.data.rewrite = rewriteCheckbox.checked;
+			mergeChartSave.flush();
+			rewrite = rewriteCheckbox.checked;
 		});
 		rewriteCheckbox.checked = (mergeChartSave.data.rewrite == true);
 		rewrite = rewriteCheckbox.checked;
@@ -472,6 +455,7 @@ class MergeChartState extends MusicBeatState
 		var totalRead = 0;
 		var notesEndPos = -1;
 		var eventsEndPos = -1;
+		var fileClosed = false;
 
 		try {
 			while (true) {
@@ -569,6 +553,7 @@ class MergeChartState extends MusicBeatState
 
 				if (notesEndPos != -1 && eventsEndPos != -1) {
 					file.close();
+					fileClosed = true;
 					return {notes: notesEndPos, events: eventsEndPos};
 				}
 
@@ -577,10 +562,15 @@ class MergeChartState extends MusicBeatState
 				}
 			}
 		} catch (e:Dynamic) {
-			file.close();
+			if (!fileClosed) {
+				file.close();
+				fileClosed = true;
+			}
 		}
 
-		file.close();
+		if (!fileClosed) {
+			file.close();
+		}
 		return {notes: notesEndPos, events: eventsEndPos};
 	}
 
