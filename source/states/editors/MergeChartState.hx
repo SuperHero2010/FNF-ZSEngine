@@ -340,9 +340,7 @@ class MergeChartState extends MusicBeatState
 		mergeError = null;
 		mergeProgress = 0;
 
-		if (mergeThread != null && mergeThread.handle != null) {
-			mergeThread.handle = null;
-		}
+		mergeThread = null;
 
 		mergeThread = sys.thread.Thread.create(function() {
 			mergeChartsThread(chartPaths);
@@ -812,7 +810,11 @@ class MergeChartState extends MusicBeatState
 		{
 			if (progressSubState != null)
 			{
-				closeSubState();
+				try {
+					closeSubState();
+				} catch(e:Dynamic) {
+					trace('Error closing substate: $e');
+				}
 				progressSubState = null;
 			}
 		}
@@ -820,12 +822,23 @@ class MergeChartState extends MusicBeatState
 		{
 			if (progressSubState == null)
 			{
-				progressSubState = new BasePrompt(420, 160, '$message');
-				openSubState(progressSubState);
+				try {
+					progressSubState = new BasePrompt(420, 160, '$message');
+					openSubState(progressSubState);
+				} catch(e:Dynamic) {
+					trace('Error opening substate: $e');
+					progressSubState = null;
+				}
 			}
 			else
 			{
-				progressSubState.titleText.text = '$message';
+				try {
+					if (progressSubState.titleText != null) {
+						progressSubState.titleText.text = '$message';
+					}
+				} catch(e:Dynamic) {
+					trace('Error updating substate text: $e');
+				}
 			}
 
 			if (Main.isConsoleAvailable)
