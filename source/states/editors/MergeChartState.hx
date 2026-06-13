@@ -340,6 +340,10 @@ class MergeChartState extends MusicBeatState
 		mergeError = null;
 		mergeProgress = 0;
 
+		if (mergeThread != null && mergeThread.handle != null) {
+			mergeThread.handle = null;
+		}
+
 		mergeThread = sys.thread.Thread.create(function() {
 			mergeChartsThread(chartPaths);
 			mergeComplete = true;
@@ -536,6 +540,10 @@ class MergeChartState extends MusicBeatState
 
 			var content = File.getContent(tempPath);
 
+			#if cpp
+			Sys.sleep(0.001);
+			#end
+
 			showMergingProgress(true, 'Building new notes string...\n');
 
 			var newNotesStr = "";
@@ -552,6 +560,9 @@ class MergeChartState extends MusicBeatState
 
 					if (i % 1000 == 0) {
 						showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
+						#if cpp
+						Sys.sleep(0.001);
+						#end
 					}
 				}
 				if (useIndentation) newNotesStr += "\n\t";
@@ -573,6 +584,9 @@ class MergeChartState extends MusicBeatState
 
 					if (i % 1000 == 0) {
 						showMergingProgress(true, 'Building events: $i/${newEvents.length}');
+						#if cpp
+						Sys.sleep(0.001);
+						#end
 					}
 				}
 				if (useIndentation) newEventsStr += "\n\t";
@@ -1025,9 +1039,11 @@ class MergeChartState extends MusicBeatState
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
-		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		if (temp) {
+			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		}
 
-		fileDialog.saveFile(tempPath, defaultName,
+		fileDialog.saveFile(temp ? tempPath : null, defaultName,
 			function(path:String)
 			{
 				showMergingProgress(false, "Merge complete!\n", true);
@@ -1035,12 +1051,12 @@ class MergeChartState extends MusicBeatState
 			},
 			function()
 			{
-				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (temp && FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Save cancelled\n", true);
 			},
 			function(e:String)
 			{
-				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (temp && FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Error saving chart: " + e + "\n", true);
 			}
 		);
