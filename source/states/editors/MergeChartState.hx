@@ -363,12 +363,14 @@ class MergeChartState extends MusicBeatState
 				callLater(function() {
 					showMergingProgress(false, "Merge failed: " + mergeError, true);
 				}, 0);
+				mergeThread = null;
 			}
 			else
 			{
 				callLater(function() {
 					showMergingProgress(false, "Merge complete!", true);
 				}, 0);
+				mergeThread = null;
 			}
 		}
 		else
