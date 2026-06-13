@@ -211,15 +211,11 @@ class MergeChartState extends MusicBeatState
 
 						for (j in 0...newNotes.length) {
 							baseNotes.push(newNotes[j]);
-							if (j % 1000 == 0) {
-								updateUI('Merging notes: $j/${newNotes.length}');
-							}
+							updateUI('Merging notes: $j/${newNotes.length}');
 						}
 						for (j in 0...newEvents.length) {
 							baseEvents.push(newEvents[j]);
-							if (j % 1000 == 0) {
-								updateUI('Merging events: $j/${newEvents.length}');
-							}
+							updateUI('Merging events: $j/${newEvents.length}');
 						}
 					}
 					else {
@@ -241,15 +237,11 @@ class MergeChartState extends MusicBeatState
 
 					for (j in 0...newNotes.length) {
 						baseNotes.push(newNotes[j]);
-						if (j % 1000 == 0) {
-							updateUI('Merging notes: $j/${newNotes.length}');
-						}
+						updateUI('Merging notes: $j/${newNotes.length}');
 					}
 					for (j in 0...newEvents.length) {
 						baseEvents.push(newEvents[j]);
-						if (j % 1000 == 0) {
-							updateUI('Merging events: $j/${newEvents.length}');
-						}
+						updateUI('Merging events: $j/${newEvents.length}');
 					}
 				}
 
@@ -351,8 +343,6 @@ class MergeChartState extends MusicBeatState
 		mergeComplete = false;
 		mergeError = null;
 		mergeProgress = 0;
-
-		mergeThread = null;
 
 		mergeThread = sys.thread.Thread.create(function() {
 			mergeChartsThread(chartPaths);
@@ -568,12 +558,10 @@ class MergeChartState extends MusicBeatState
 						else newNotesStr += ",";
 					}
 
-					if (i % 1000 == 0) {
-						showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
-						#if cpp
-						Sys.sleep(0.001);
-						#end
-					}
+					showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
+					#if cpp
+					Sys.sleep(0.001);
+					#end
 				}
 				if (useIndentation) newNotesStr += "\n\t";
 			}
@@ -592,12 +580,10 @@ class MergeChartState extends MusicBeatState
 						else newEventsStr += ",";
 					}
 
-					if (i % 1000 == 0) {
-						showMergingProgress(true, 'Building events: $i/${newEvents.length}');
-						#if cpp
-						Sys.sleep(0.001);
-						#end
-					}
+					showMergingProgress(true, 'Building events: $i/${newEvents.length}');
+					#if cpp
+					Sys.sleep(0.001);
+					#end
 				}
 				if (useIndentation) newEventsStr += "\n\t";
 			}
