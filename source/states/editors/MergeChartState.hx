@@ -173,6 +173,10 @@ class MergeChartState extends MusicBeatState
 			SongJson.log = false;
 
 			var tempPath = "temp_merged.json";
+			if (temp) {
+				updateUI('Writing temp file...\n');
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base");
+			}
 
 			var totalCharts:Int = chartPaths.length;
 
@@ -249,19 +253,21 @@ class MergeChartState extends MusicBeatState
 
 			if (temp && rewrite) {
 				updateUI('Saving temp file...\n');
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "final");
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "temp");
 			}
 
-			var finalJson:Dynamic;
-			if (temp) finalJson = File.getContent(tempPath);
-			else finalJson = baseChart;
-			var finalObj = SongJson.parse(finalJson);
-
 			var finalChart:Dynamic;
-			if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
-				finalChart = finalObj.song;
-			else
-				finalChart = finalObj;
+			if (temp) {
+				var finalJson = File.getContent(tempPath);
+				var finalObj = SongJson.parse(finalJson);
+				if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
+					finalChart = finalObj.song;
+				else
+					finalChart = finalObj;
+			}
+			else {
+				finalChart = baseChart;
+			}
 
 			callLater(function() {
 				saveMergedChart(finalChart, hasWrapper, indentation);
@@ -273,6 +279,8 @@ class MergeChartState extends MusicBeatState
 			#end
 
 			if (temp && rewrite && FileSystem.exists(tempPath))
+				FileSystem.deleteFile(tempPath);
+			else if (temp && !rewrite && FileSystem.exists(tempPath))
 				FileSystem.deleteFile(tempPath);
 
 			trace('Merge completed in ' + (haxe.Timer.stamp() - startTime) + ' seconds');
@@ -483,6 +491,8 @@ class MergeChartState extends MusicBeatState
 		var newNotes = extractNewNotesFromChart(nextChart);
 		var newEvents = extractNewEventsFromChart(nextChart);
 
+		trace('Extracted ${newNotes.length} notes and ${newEvents.length} events');
+
 		if (newNotes.length == 0 && newEvents.length == 0) {
 			trace('No new notes or events to append');
 			return;
@@ -494,6 +504,8 @@ class MergeChartState extends MusicBeatState
 		var positions = findBothArrayEndPositions(tempPath);
 		var notesEndPos = positions.notes;
 		var eventsEndPos = positions.events;
+
+		trace('Array end positions: notes=$notesEndPos, events=$eventsEndPos');
 
 		if (notesEndPos == -1 || eventsEndPos == -1) {
 			var funcYes = function() {
@@ -1009,16 +1021,7 @@ class MergeChartState extends MusicBeatState
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
-		if (temp && !rewrite) {
-			var mergedTempPath = "temp_merged.json";
-			if (FileSystem.exists(mergedTempPath)) {
-				sys.io.File.copy(mergedTempPath, tempPath);
-			} else {
-				saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
-			}
-		} else {
-			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
-		}
+		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
 
 		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
