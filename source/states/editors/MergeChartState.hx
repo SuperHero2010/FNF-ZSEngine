@@ -507,7 +507,10 @@ class MergeChartState extends MusicBeatState
 
 		trace('Array end positions: notes=$notesEndPos, events=$eventsEndPos');
 
+		var shouldAppend = true;
+
 		if (notesEndPos == -1 || eventsEndPos == -1) {
+			shouldAppend = false;
 			var funcYes = function() {
 				trace('Could not find array end positions, falling back to full rewrite');
 				var tempContent = File.getContent(tempPath);
@@ -526,70 +529,71 @@ class MergeChartState extends MusicBeatState
 				return;
 			};
 			openSubState(new Prompt("Error! Could not find array end positions, falling back to full rewrite. Continue?", funcYes, funcNo));
-			return;
 		}
 
-		showMergingProgress(true, '\nReading file for in-place modification...\n');
+		if (shouldAppend) {
+			showMergingProgress(true, '\nReading file for in-place modification...\n');
 
-		var content = File.getContent(tempPath);
+			var content = File.getContent(tempPath);
 
-		showMergingProgress(true, 'Building new notes string...\n');
+			showMergingProgress(true, 'Building new notes string...\n');
 
-		var newNotesStr = "";
-		if (newNotes.length > 0) {
-			if (useIndentation) newNotesStr += ",\n\t\t";
-			else newNotesStr += ",";
-			for (i in 0...newNotes.length) {
-				if (useIndentation) newNotesStr += "\t\t\t";
-				newNotesStr += Json.stringify(newNotes[i]);
-				if (i < newNotes.length - 1) {
-					if (useIndentation) newNotesStr += ",\n\t\t\t";
-					else newNotesStr += ",";
+			var newNotesStr = "";
+			if (newNotes.length > 0) {
+				if (useIndentation) newNotesStr += ",\n\t\t";
+				else newNotesStr += ",";
+				for (i in 0...newNotes.length) {
+					if (useIndentation) newNotesStr += "\t\t\t";
+					newNotesStr += Json.stringify(newNotes[i]);
+					if (i < newNotes.length - 1) {
+						if (useIndentation) newNotesStr += ",\n\t\t\t";
+						else newNotesStr += ",";
+					}
+
+					if (i % 1000 == 0) {
+						showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
+					}
 				}
-
-				if (i % 1000 == 0) {
-					showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
-				}
+				if (useIndentation) newNotesStr += "\n\t";
 			}
-			if (useIndentation) newNotesStr += "\n\t";
-		}
 
-		showMergingProgress(true, 'Building new events string...\n');
+			showMergingProgress(true, 'Building new events string...\n');
 
-		var newEventsStr = "";
-		if (newEvents.length > 0) {
-			if (useIndentation) newEventsStr += ",\n\t\t";
-			else newEventsStr += ",";
-			for (i in 0...newEvents.length) {
-				if (useIndentation) newEventsStr += "\t\t\t";
-				newEventsStr += Json.stringify(newEvents[i]);
-				if (i < newEvents.length - 1) {
-					if (useIndentation) newEventsStr += ",\n\t\t\t";
-					else newEventsStr += ",";
+			var newEventsStr = "";
+			if (newEvents.length > 0) {
+				if (useIndentation) newEventsStr += ",\n\t\t";
+				else newEventsStr += ",";
+				for (i in 0...newEvents.length) {
+					if (useIndentation) newEventsStr += "\t\t\t";
+					newEventsStr += Json.stringify(newEvents[i]);
+					if (i < newEvents.length - 1) {
+						if (useIndentation) newEventsStr += ",\n\t\t\t";
+						else newEventsStr += ",";
+					}
+
+					if (i % 1000 == 0) {
+						showMergingProgress(true, 'Building events: $i/${newEvents.length}');
+					}
 				}
-
-				if (i % 1000 == 0) {
-					showMergingProgress(true, 'Building events: $i/${newEvents.length}');
-				}
+				if (useIndentation) newEventsStr += "\n\t";
 			}
-			if (useIndentation) newEventsStr += "\n\t";
+
+			showMergingProgress(true, 'Modifying file content...\n');
+
+			var beforeNotes = content.substring(0, notesEndPos + 1);
+			var betweenArrays = content.substring(notesEndPos + 1, eventsEndPos + 1);
+			var afterEvents = content.substring(eventsEndPos + 1);
+
+			var newContent = beforeNotes + newNotesStr + betweenArrays + newEventsStr + afterEvents;
+
+			showMergingProgress(true, 'Writing modified content back to file...\n');
+
+			var outputFile = sys.io.File.write(tempPath, false);
+			outputFile.writeString(newContent);
+			outputFile.close();
+
+			showMergingProgress(true, 'Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 		}
-
-		showMergingProgress(true, 'Modifying file content...\n');
-
-		var beforeNotes = content.substring(0, notesEndPos + 1);
-		var betweenArrays = content.substring(notesEndPos + 1, eventsEndPos + 1);
-		var afterEvents = content.substring(eventsEndPos + 1);
-
-		var newContent = beforeNotes + newNotesStr + betweenArrays + newEventsStr + afterEvents;
-
-		showMergingProgress(true, 'Writing modified content back to file...\n');
-
-		var outputFile = sys.io.File.write(tempPath, false);
-		outputFile.writeString(newContent);
-		outputFile.close();
-
-		showMergingProgress(true, 'Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 	}
 
 	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int, message:String):Void
