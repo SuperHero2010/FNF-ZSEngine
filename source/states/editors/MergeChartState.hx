@@ -173,10 +173,6 @@ class MergeChartState extends MusicBeatState
 			SongJson.log = false;
 
 			var tempPath = "temp_merged.json";
-			if (temp) {
-				updateUI('Writing temp file...\n');
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base");
-			}
 
 			var totalCharts:Int = chartPaths.length;
 
@@ -184,19 +180,6 @@ class MergeChartState extends MusicBeatState
 			{
 				var progressMsg = 'Merging chart ${i + 1}/${totalCharts}...\n';
 				updateUI(progressMsg);
-
-				var baseChart2:Dynamic = null;
-				if (temp) {
-					SongJson.log = true;
-					var baseJson = File.getContent(tempPath);
-					var baseObj2 = SongJson.parse(baseJson);
-
-					if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
-						baseChart2 = baseObj2.song;
-					else
-						baseChart2 = baseObj2;
-					SongJson.log = false;
-				}
 
 				SongJson.log = true;
 				var nextData = loadChartFromFileWithProgress(chartPaths[i]);
@@ -211,10 +194,23 @@ class MergeChartState extends MusicBeatState
 
 				if (temp) {
 					if (rewrite) {
-						mergeInto(baseChart2, nextChart);
-						updateUI('Saving merged result...\n');
-						saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
-						baseChart2 = null;
+						updateUI('Fast array concatenation...\n');
+
+						if (baseChart.notes == null) baseChart.notes = [];
+						if (baseChart.events == null) baseChart.events = [];
+
+						var newNotes = extractNewNotesFromChart(nextChart);
+						var newEvents = extractNewEventsFromChart(nextChart);
+
+						var baseNotes:Array<Dynamic> = cast baseChart.notes;
+						var baseEvents:Array<Dynamic> = cast baseChart.events;
+
+						for (note in newNotes) {
+							baseNotes.push(note);
+						}
+						for (event in newEvents) {
+							baseEvents.push(event);
+						}
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
@@ -222,7 +218,23 @@ class MergeChartState extends MusicBeatState
 					}
 				}
 				else {
-					mergeInto(baseChart, nextChart);
+					updateUI('Fast array concatenation...\n');
+
+					if (baseChart.notes == null) baseChart.notes = [];
+					if (baseChart.events == null) baseChart.events = [];
+
+					var newNotes = extractNewNotesFromChart(nextChart);
+					var newEvents = extractNewEventsFromChart(nextChart);
+
+					var baseNotes:Array<Dynamic> = cast baseChart.notes;
+					var baseEvents:Array<Dynamic> = cast baseChart.events;
+
+					for (note in newNotes) {
+						baseNotes.push(note);
+					}
+					for (event in newEvents) {
+						baseEvents.push(event);
+					}
 				}
 
 				nextObj = null;
@@ -234,6 +246,11 @@ class MergeChartState extends MusicBeatState
 			}
 
 			updateUI('Finalizing...\n');
+
+			if (temp && rewrite) {
+				updateUI('Saving temp file...\n');
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "final");
+			}
 
 			var finalJson:Dynamic;
 			if (temp) finalJson = File.getContent(tempPath);
@@ -255,7 +272,7 @@ class MergeChartState extends MusicBeatState
 			cpp.vm.Gc.run(true);
 			#end
 
-			if (FileSystem.exists(tempPath))
+			if (temp && rewrite && FileSystem.exists(tempPath))
 				FileSystem.deleteFile(tempPath);
 
 			trace('Merge completed in ' + (haxe.Timer.stamp() - startTime) + ' seconds');
@@ -500,101 +517,65 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		showMergingProgress(true, 'Copying file content... 0%');
+		showMergingProgress(true, '\nReading file for in-place modification...\n');
 
-		var inputFile = sys.io.File.read(tempPath, false);
-		var outputFile = sys.io.File.write(tempPath + ".new", false);
+		var content = File.getContent(tempPath);
 
-		copyChunk(inputFile, outputFile, notesEndPos, 'Copying file content...');
+		showMergingProgress(true, 'Building new notes string...\n');
 
-		showMergingProgress(true, 'Writing ${newNotes.length} new notes...\n');
-
+		var newNotesStr = "";
 		if (newNotes.length > 0) {
-			if (useIndentation) outputFile.writeString(",\n\t\t");
-			else outputFile.writeString(",");
+			if (useIndentation) newNotesStr += ",\n\t\t";
+			else newNotesStr += ",";
 			for (i in 0...newNotes.length) {
-				if (useIndentation) outputFile.writeString("\t\t\t");
-				outputFile.writeString(Json.stringify(newNotes[i]));
+				if (useIndentation) newNotesStr += "\t\t\t";
+				newNotesStr += Json.stringify(newNotes[i]);
 				if (i < newNotes.length - 1) {
-					if (useIndentation) outputFile.writeString(",\n\t\t\t");
-					else outputFile.writeString(",");
+					if (useIndentation) newNotesStr += ",\n\t\t\t";
+					else newNotesStr += ",";
 				}
 
 				if (i % 1000 == 0) {
-					showMergingProgress(true, 'Writing notes: $i/${newNotes.length}');
-					#if cpp
-					cpp.vm.Gc.run(false);
-					// Small delay to yield to OS
-					Sys.sleep(0.001);
-					#end
+					showMergingProgress(true, 'Building notes: $i/${newNotes.length}');
 				}
 			}
-			if (useIndentation) outputFile.writeString("\n\t");
+			if (useIndentation) newNotesStr += "\n\t";
 		}
 
-		if (useIndentation) outputFile.writeString("\n\t");
-		outputFile.writeString("]");
+		showMergingProgress(true, 'Building new events string...\n');
 
-		showMergingProgress(true, 'Copying content between arrays... 0%');
-
-		inputFile.seek(notesEndPos + 1, sys.io.FileSeek.SeekBegin);
-		copyChunk(inputFile, outputFile, eventsEndPos - notesEndPos - 1, 'Copying content between arrays...');
-
-		showMergingProgress(true, 'Writing ${newEvents.length} new events...\n');
-
+		var newEventsStr = "";
 		if (newEvents.length > 0) {
-			if (useIndentation) outputFile.writeString(",\n\t\t");
-			else outputFile.writeString(",");
+			if (useIndentation) newEventsStr += ",\n\t\t";
+			else newEventsStr += ",";
 			for (i in 0...newEvents.length) {
-				if (useIndentation) outputFile.writeString("\t\t\t");
-				outputFile.writeString(Json.stringify(newEvents[i]));
+				if (useIndentation) newEventsStr += "\t\t\t";
+				newEventsStr += Json.stringify(newEvents[i]);
 				if (i < newEvents.length - 1) {
-					if (useIndentation) outputFile.writeString(",\n\t\t\t");
-					else outputFile.writeString(",");
+					if (useIndentation) newEventsStr += ",\n\t\t\t";
+					else newEventsStr += ",";
 				}
 
 				if (i % 1000 == 0) {
-					showMergingProgress(true, 'Writing events: $i/${newEvents.length}');
-					#if cpp
-					cpp.vm.Gc.run(false);
-					// Small delay to yield to OS
-					Sys.sleep(0.001);
-					#end
+					showMergingProgress(true, 'Building events: $i/${newEvents.length}');
 				}
 			}
-			if (useIndentation) outputFile.writeString("\n\t");
+			if (useIndentation) newEventsStr += "\n\t";
 		}
 
-		if (useIndentation) outputFile.writeString("\n\t");
-		outputFile.writeString("]");
+		showMergingProgress(true, 'Modifying file content...\n');
 
-		showMergingProgress(true, 'Copying remaining content... 0%');
+		var beforeNotes = content.substring(0, notesEndPos + 1);
+		var betweenArrays = content.substring(notesEndPos + 1, eventsEndPos + 1);
+		var afterEvents = content.substring(eventsEndPos + 1);
 
-		inputFile.seek(eventsEndPos + 1, sys.io.FileSeek.SeekBegin);
-		var fileSize = FileSystem.stat(tempPath).size;
-		var bytesToCopy = fileSize - eventsEndPos - 1;
-		var bufferSize = 65536;
-		var bytesCopied = 0;
-		while (true) {
-			var chunk = inputFile.read(bufferSize);
-			if (chunk.length == 0) break;
-			outputFile.write(chunk);
-			bytesCopied += chunk.length;
+		var newContent = beforeNotes + newNotesStr + betweenArrays + newEventsStr + afterEvents;
 
-			if (bytesCopied % (bufferSize * 10) == 0) {
-				var percent = Math.floor((bytesCopied / bytesToCopy) * 100);
-				showMergingProgress(true, 'Copying remaining content... $percent%');
-			}
-		}
-		showMergingProgress(true, 'Copying remaining content... 100%\n');
+		showMergingProgress(true, 'Writing modified content back to file...\n');
 
-		inputFile.close();
+		var outputFile = sys.io.File.write(tempPath, false);
+		outputFile.writeString(newContent);
 		outputFile.close();
-
-		showMergingProgress(true, 'Replacing original file...\n');
-
-		FileSystem.deleteFile(tempPath);
-		FileSystem.rename(tempPath + ".new", tempPath);
 
 		showMergingProgress(true, 'Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 	}
@@ -637,13 +618,6 @@ class MergeChartState extends MusicBeatState
 		showMergingProgress(true, 'Finding append positions... 0%');
 
 		var content = File.getContent(filePath);
-		var obj = SongJson.parse(content);
-
-		var chart:Dynamic;
-		if (obj.song != null && Std.isOfType(obj.song, Dynamic))
-			chart = obj.song;
-		else
-			chart = obj;
 
 		var notesEndPos = -1;
 		var eventsEndPos = -1;
