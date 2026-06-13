@@ -212,13 +212,13 @@ class MergeChartState extends MusicBeatState
 						for (j in 0...newNotes.length) {
 							baseNotes.push(newNotes[j]);
 							if (j % 1000 == 0) {
-								updateUI('Merging notes: $j/${newNotes.length}\n');
+								updateUI('Merging notes: $j/${newNotes.length}');
 							}
 						}
 						for (j in 0...newEvents.length) {
 							baseEvents.push(newEvents[j]);
 							if (j % 1000 == 0) {
-								updateUI('Merging events: $j/${newEvents.length}\n');
+								updateUI('Merging events: $j/${newEvents.length}');
 							}
 						}
 					}
