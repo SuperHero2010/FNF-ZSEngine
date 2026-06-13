@@ -209,11 +209,17 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-						for (note in newNotes) {
-							baseNotes.push(note);
+						for (j in 0...newNotes.length) {
+							baseNotes.push(newNotes[j]);
+							if (j % 1000 == 0) {
+								updateUI('Merging notes: $j/${newNotes.length}\n');
+							}
 						}
-						for (event in newEvents) {
-							baseEvents.push(event);
+						for (j in 0...newEvents.length) {
+							baseEvents.push(newEvents[j]);
+							if (j % 1000 == 0) {
+								updateUI('Merging events: $j/${newEvents.length}\n');
+							}
 						}
 					}
 					else {
@@ -233,11 +239,17 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-					for (note in newNotes) {
-						baseNotes.push(note);
+					for (j in 0...newNotes.length) {
+						baseNotes.push(newNotes[j]);
+						if (j % 1000 == 0) {
+							updateUI('Merging notes: $j/${newNotes.length}\n');
+						}
 					}
-					for (event in newEvents) {
-						baseEvents.push(event);
+					for (j in 0...newEvents.length) {
+						baseEvents.push(newEvents[j]);
+						if (j % 1000 == 0) {
+							updateUI('Merging events: $j/${newEvents.length}\n');
+						}
 					}
 				}
 
