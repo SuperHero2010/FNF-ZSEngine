@@ -227,10 +227,19 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
-						baseChart2.notes = baseNotes.concat(newNotes);
-						baseChart2.events = baseEvents.concat(newEvents);
+						for (j in 0...newNotes.length) {
+							baseNotes.push(newNotes[j]);
+							updateUI('Merging notes: $j/${newNotes.length}');
+						}
+						for (j in 0...newEvents.length) {
+							baseEvents.push(newEvents[j]);
+							updateUI('Merging events: $j/${newEvents.length}');
+						}
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+
+						updateUI('Saving temp file...\n');
+						saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
@@ -249,8 +258,14 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-					baseChart.notes = baseNotes.concat(newNotes);
-					baseChart.events = baseEvents.concat(newEvents);
+					for (j in 0...newNotes.length) {
+						baseNotes.push(newNotes[j]);
+						updateUI('Merging notes: $j/${newNotes.length}');
+					}
+					for (j in 0...newEvents.length) {
+						baseEvents.push(newEvents[j]);
+						updateUI('Merging events: $j/${newEvents.length}');
+					}
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 				}
@@ -265,13 +280,12 @@ class MergeChartState extends MusicBeatState
 
 			updateUI('Finalizing...\n');
 
-			if (temp && rewrite) {
-				updateUI('Saving temp file...\n');
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "temp");
-			}
-
 			var finalChart:Dynamic;
 			if (temp) {
+				if (rewrite) {
+					updateUI('Saving temp file...\n');
+					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp");
+				}
 				var finalJson = File.getContent(tempPath);
 				var finalObj = SongJson.parse(finalJson);
 				if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
