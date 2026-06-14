@@ -179,13 +179,13 @@ class MergeChartState extends MusicBeatState
 			}
 
 			var totalCharts:Int = chartPaths.length;
+			var baseChart2:Dynamic = null;
 
 			for (i in 1...totalCharts)
 			{
 				var progressMsg = 'Merging chart ${i + 1}/${totalCharts}...\n';
 				updateUI(progressMsg);
 
-				var baseChart2:Dynamic = null;
 				if (temp) {
 					SongJson.log = true;
 					var baseJson = File.getContent(tempPath);
