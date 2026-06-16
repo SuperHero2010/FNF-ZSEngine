@@ -138,7 +138,18 @@ class ZSLibValidator {
                     continue;
                 }
 
-                if (libName == "print" || libName == "print(debug)") {
+                var trimmedLine = trimStr(line);
+                var isZSKeyword = false;
+
+                var zsKeywords = ["change", "read", "print", "register", "apply", "import", "local", "global"];
+                for (kw in zsKeywords) {
+                    if (trimmedLine.indexOf(kw + " ") == 0 || trimmedLine.indexOf(kw + "<") == 0 || trimmedLine.indexOf(kw + ":") == 0 || trimmedLine == kw) {
+                        isZSKeyword = true;
+                        break;
+                    }
+                }
+
+                if (isZSKeyword) {
                     continue;
                 }
 

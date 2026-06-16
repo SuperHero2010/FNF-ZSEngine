@@ -3,46 +3,27 @@ class DebugTranspiler {
         var testScript = 
 "! ZS-LUA
 
-import math
-import string as str
-import myCustomLib
-
-local <playerName> = “John”
-local <score> = 100
-local <health> = 75.5
-
 onCreate:
-    change <message> to “Welcome ” + <playerName>
-    print: “Player: ” + <playerName>
-    print: “Score: ” + <score> + “ points”
-    print: <playerName> + “ has ” + <health> + “ health”
+    -/ Case 2: (47 + 4) -> SUCCESS
+    change <result2> to (47 + 4)
 
-    math: max <score>, 50
-    str: upper <playerName>
-    myCustomLib: process <score>, <health>
+    -/ Case 3: [34 − (58 ÷ 2)] -> SUCCESS
+    change <result3> to [34 − (58 ÷ 2)]
 
-    */- This is a block comment
-    spanning multiple lines
-    and it should be preserved /-*
+    -/ Case 7: {473 + [(92 − 14) × (68 + 48)]} − 475 -> SUCCESS
+    change <result7> to {473 + [(92 − 14) × (68 + 48)]} − 475
 
-    print: “Debug: ” + (5 + 3) × 2
-    print: “Mixed: ” + (<score> + 10) + “ total”
+    -/ Valid literal (table) - should not be validated
+    change <table> to {“name”: “John”, “age”: 30}
 
-onUpdate<elapsed>:
-    if <health> > 0 then
-        change <health> to <health> − 0.1
-        print: “Health decreasing: ” + <health>
-    else if <health> ≤ 0 then
-        print: “Game Over”
-    else
-        print: “Unknown state”
+    -/ Valid literal (list) - should not be validated
+    change <list> to [1, 2, 3, 4, 5]
 
-    for <i> = 0, 3 do
-        print: “Loop iteration: ” + <i>
+    -/ Valid list access - should not be validated
+    change <item> to <myList>[<index>]
 
-    while <score> > 0 do
-        change <score> to <score> − 10
-        print: “Score: ” + <score>";
+    -/ Valid function call - should not be validated
+    change <value> to myFunc<arg1>, <arg2>";
 
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");

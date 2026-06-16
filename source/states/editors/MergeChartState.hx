@@ -230,10 +230,16 @@ class MergeChartState extends MusicBeatState
 						for (j in 0...newNotes.length) {
 							baseNotes.push(newNotes[j]);
 							updateUI('Merging notes: $j/${newNotes.length}');
+							#if cpp
+							if (j % 100 == 0) cpp.vm.Gc.run(true);
+							#end
 						}
 						for (j in 0...newEvents.length) {
 							baseEvents.push(newEvents[j]);
 							updateUI('Merging events: $j/${newEvents.length}');
+							#if cpp
+							if (j % 100 == 0) cpp.vm.Gc.run(true);
+							#end
 						}
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -261,10 +267,16 @@ class MergeChartState extends MusicBeatState
 					for (j in 0...newNotes.length) {
 						baseNotes.push(newNotes[j]);
 						updateUI('Merging notes: $j/${newNotes.length}');
+						#if cpp
+						if (j % 100 == 0) cpp.vm.Gc.run(true);
+						#end
 					}
 					for (j in 0...newEvents.length) {
 						baseEvents.push(newEvents[j]);
 						updateUI('Merging events: $j/${newEvents.length}');
+						#if cpp
+						if (j % 100 == 0) cpp.vm.Gc.run(true);
+						#end
 					}
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -298,6 +310,11 @@ class MergeChartState extends MusicBeatState
 			}
 
 			callLater(function() {
+				if (finalChart == null) {
+					trace('ERROR: finalChart is null, cannot save merged chart');
+					updateUI('ERROR: finalChart is null, cannot save merged chart\n');
+					return;
+				}
 				saveMergedChart(finalChart, hasWrapper, indentation);
 			}, 0);
 

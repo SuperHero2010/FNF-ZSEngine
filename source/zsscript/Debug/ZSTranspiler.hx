@@ -53,6 +53,12 @@ class ZSTranspiler {
 
             trace('LINE $currentLine: raw="$rawLine", indent=$originalIndent');
 
+            var valErrors = ZSParenthesisValidator.validateLine(rawLine, currentLine);
+            if (valErrors.length > 0) {
+                ZSTranspiler.errors = valErrors;
+                return null;
+            }
+
             var pendingNewline = false;
             if (trimmedLine == "") {
                 var nextLine = "";
@@ -275,58 +281,61 @@ class ZSTranspiler {
 
             var colonPos = trimmedLine.indexOf(":");
             if (colonPos > 0) {
-                var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
-                var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
-                trace('COLON HANDLER: line=$currentLine, before="$beforeColon", after="$afterColon"');
+                if (isInsideTableLiteral(trimmedLine, colonPos)) {}
+                else {
+                    var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
+                    var afterColon = trimStr(trimmedLine.substring(colonPos + 1));
+                    trace('COLON HANDLER: line=$currentLine, before="$beforeColon", after="$afterColon"');
 
-                if (afterColon == "") {
-                    if (beforeColon.indexOf("<") > -1) {
-                        var funcName = beforeColon.split("<")[0];
-                        var allParams = [];
-                        var pos = 0;
-                        var temp = beforeColon;
-                        while (true) {
-                            var start = temp.indexOf("<", pos);
-                            if (start == -1) break;
-                            var end = temp.indexOf(">", start);
-                            if (end == -1) break;
-                            allParams.push(temp.substring(start + 1, end));
-                            pos = end + 1;
+                    if (afterColon == "") {
+                        if (beforeColon.indexOf("<") > -1) {
+                            var funcName = beforeColon.split("<")[0];
+                            var allParams = [];
+                            var pos = 0;
+                            var temp = beforeColon;
+                            while (true) {
+                                var start = temp.indexOf("<", pos);
+                                if (start == -1) break;
+                                var end = temp.indexOf(">", start);
+                                if (end == -1) break;
+                                allParams.push(temp.substring(start + 1, end));
+                                pos = end + 1;
+                            }
+                            trimmedLine = "function " + funcName + "(" + allParams.join(", ") + ")";
+                        } else {
+                            trimmedLine = "function " + beforeColon + "()";
                         }
-                        trimmedLine = "function " + funcName + "(" + allParams.join(", ") + ")";
-                    } else {
-                        trimmedLine = "function " + beforeColon + "()";
                     }
-                }
-                else if (beforeColon == "print" || beforeColon == "print(debug)") {
-                }
-                else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
-                    var spaceIdx = afterColon.indexOf(" ");
-                    if (spaceIdx > 0) {
-                        var funcName = afterColon.substring(0, spaceIdx);
-                        var args = afterColon.substring(funcName.length + 1);
-                        trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
-                    } else {
+                    else if (beforeColon == "print" || beforeColon == "print(debug)") {
+                    }
+                    else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
+                        var spaceIdx = afterColon.indexOf(" ");
+                        if (spaceIdx > 0) {
+                            var funcName = afterColon.substring(0, spaceIdx);
+                            var args = afterColon.substring(funcName.length + 1);
+                            trimmedLine = beforeColon + "." + funcName + "(" + args + ")";
+                        } else {
+                            trimmedLine = beforeColon + "." + afterColon;
+                        }
+                    }
+                    else if (afterColon.indexOf(" ") > -1) {
+                        var spaceIdx = afterColon.indexOf(" ");
+                        var firstWord = afterColon.substring(0, spaceIdx);
+                        var rest = afterColon.substring(firstWord.length + 1);
+                        if (rest.indexOf(",") > -1) {
+                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                        } else {
+                            var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1);
+                            if (hasOperator) {
+                                trimmedLine = beforeColon + "." + afterColon;
+                            } else {
+                                trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
+                            }
+                        }
+                    }
+                    else {
                         trimmedLine = beforeColon + "." + afterColon;
                     }
-                }
-                else if (afterColon.indexOf(" ") > -1) {
-                    var spaceIdx = afterColon.indexOf(" ");
-                    var firstWord = afterColon.substring(0, spaceIdx);
-                    var rest = afterColon.substring(firstWord.length + 1);
-                    if (rest.indexOf(",") > -1) {
-                        trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                    } else {
-                        var hasOperator = (rest.indexOf("−") > -1 || rest.indexOf("×") > -1 || rest.indexOf("÷") > -1 || rest.indexOf("+") > -1);
-                        if (hasOperator) {
-                            trimmedLine = beforeColon + "." + afterColon;
-                        } else {
-                            trimmedLine = beforeColon + "." + firstWord + "(" + rest + ")";
-                        }
-                    }
-                }
-                else {
-                    trimmedLine = beforeColon + "." + afterColon;
                 }
             }
 
@@ -352,6 +361,7 @@ class ZSTranspiler {
 
             trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
+            trimmedLine = convertGroupingBrackets(trimmedLine);
 
             var luaLine = trimmedLine;
             for (pattern in ZSPatterns.patterns) {
@@ -616,7 +626,7 @@ class ZSTranspiler {
         var i = 0;
         while (i < content.length) {
             var c = content.charAt(i);
-            if (c == '"' || c == "'" || c == "“" || c == "”") {
+            if (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”") {
                 inQuote = !inQuote;
                 current += c;
             } else if (c == '(') {
@@ -656,14 +666,79 @@ class ZSTranspiler {
     }
 
     static function addOperatorSpacing(line:String):String {
-        // Add spaces around - (subtraction), but not around negative numbers
-        // Match pattern: digit/variable - digit/variable
         line = ~/([0-9a-zA-Z_\)\]\} ]) *- *([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 - $2");
-
-        // Add spaces around * and / (but not inside comments or strings)
         line = ~/([0-9a-zA-Z_\)\]\} ])\*([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 * $2");
         line = ~/([0-9a-zA-Z_\)\]\} ])\/([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 / $2");
 
         return line;
+    }
+
+    static function convertGroupingBrackets(line:String):String {
+        var result = "";
+        var i = 0;
+        var len = line.length;
+
+        while (i < len) {
+            var c = line.charAt(i);
+            if (c == '[' || c == '{') {
+                var openChar = c;
+                var closeChar = (openChar == '[') ? ']' : '}';
+                var depth = 1;
+                var j = i + 1;
+                while (j < len && depth > 0) {
+                    var ch = line.charAt(j);
+                    if (ch == openChar) depth++;
+                    if (ch == closeChar) depth--;
+                    j++;
+                }
+                var inner = line.substring(i + 1, j - 1);
+
+                var isLiteral = false;
+                var inString = false;
+                var k = 0;
+                while (k < inner.length) {
+                    var ch = inner.charAt(k);
+                    if (ch == '"' || ch == "'" || ch == "‘" || ch == "’" || ch == "“" || ch == "”") {
+                        inString = !inString;
+                    }
+                    if (!inString && (ch == ',' || ch == ':')) {
+                        isLiteral = true;
+                        break;
+                    }
+                    k++;
+                }
+
+                var isListAccess = (inner.indexOf("<") != -1 && inner.indexOf(">") != -1);
+
+                if (isLiteral || isListAccess) {
+                    result += openChar + convertGroupingBrackets(inner) + closeChar;
+                } else {
+                    result += "(" + convertGroupingBrackets(inner) + ")";
+                }
+                i = j;
+            } else {
+                result += c;
+                i++;
+            }
+        }
+        return result;
+    }
+
+    static function isInsideTableLiteral(line:String, colonPos:Int):Bool {
+        var braceDepth = 0;
+        for (i in 0...colonPos) {
+            var c = line.charAt(i);
+            if (c == '{') braceDepth++;
+            if (c == '}') braceDepth--;
+        }
+        var hasCommaOrQuote = false;
+        for (i in 0...colonPos) {
+            var c = line.charAt(i);
+            if (c == ',' || c == '"' || c == "'" || c == "“" || c == "”") {
+                hasCommaOrQuote = true;
+                break;
+            }
+        }
+        return braceDepth > 0 && hasCommaOrQuote;
     }
 }
