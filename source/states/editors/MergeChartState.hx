@@ -238,8 +238,10 @@ class MergeChartState extends MusicBeatState
 
 						showMergingProgress(true, 'Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-						updateUI('Saving temp file...\n');
-						saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+						if (i > 1) {
+							updateUI('Saving temp file...\n');
+							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+						}
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
@@ -268,6 +270,8 @@ class MergeChartState extends MusicBeatState
 					}
 
 					showMergingProgress(true, 'Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+
+					trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}, baseChart.events.length = ${baseChart.events.length}');
 				}
 
 				nextObj = null;
@@ -849,8 +853,19 @@ class MergeChartState extends MusicBeatState
 		}
 		else
 		{
-			if (progressSubState == null)
+			trace(message);
+
+			if (progressSubState == null || force)
 			{
+				if (progressSubState != null)
+				{
+					try {
+						closeSubState();
+					} catch(e:Dynamic) {
+						trace('Error closing substate: $e');
+					}
+					progressSubState = null;
+				}
 				try {
 					progressSubState = new BasePrompt(420, 160, '$message');
 					openSubState(progressSubState);
@@ -945,13 +960,19 @@ class MergeChartState extends MusicBeatState
 		var totalEvents:Int = chart.events != null ? chart.events.length : 0;
 		var totalItems:Int = totalNotes + totalEvents;
 		var processedItems:Int = 0;
+		var lastProgressUpdate = 0;
 
 		function updateProgress():Void
 		{
 			if (totalItems > 0)
 			{
-				var percent = Std.int((processedItems / totalItems) * 100);
-				showMergingProgress(true, 'Writing ' + message + ' ... $percent%', false);
+				processedItems++;
+				if (processedItems - lastProgressUpdate >= 1000 || processedItems == totalItems)
+				{
+					var percent = Std.int((processedItems / totalItems) * 100);
+					showMergingProgress(true, 'Writing ' + message + ' ... $percent%', false);
+					lastProgressUpdate = processedItems;
+				}
 			}
 		}
 
@@ -1015,9 +1036,15 @@ class MergeChartState extends MusicBeatState
 						if (section.sectionNotes != null)
 						{
 							var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-							processedItems += sectionNotes.length;
-							updateProgress();
+							for (note in sectionNotes)
+							{
+								updateProgress();
+							}
 						}
+					}
+					else if (name == "events")
+					{
+						updateProgress();
 					}
 				}
 				if (useIndentation && arr.length > 0) file.writeString(newline);
