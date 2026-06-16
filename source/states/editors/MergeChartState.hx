@@ -227,21 +227,23 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
-						for (j in 0...newNotes.length) {
-							baseNotes.push(newNotes[j]);
-							showMergingProgress(false, 'Merging notes: $j/${newNotes.length}');
-						}
-						for (j in 0...newEvents.length) {
-							baseEvents.push(newEvents[j]);
-							showMergingProgress(false, 'Merging events: $j/${newEvents.length}');
-						}
+						callLater(function() {
+							for (j in 0...newNotes.length) {
+								baseNotes.push(newNotes[j]);
+								updateUI('Merging notes: $j/${newNotes.length}');
+							}
+							for (j in 0...newEvents.length) {
+								baseEvents.push(newEvents[j]);
+								updateUI('Merging events: $j/${newEvents.length}');
+							}
 
-						showMergingProgress(true, 'Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+							updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-						if (i > 1) {
-							updateUI('Saving temp file...\n');
-							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
-						}
+							if (i > 1) {
+								updateUI('Saving temp file...\n');
+								saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+							}
+						}, 0);
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
@@ -260,18 +262,20 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-					for (j in 0...newNotes.length) {
-						baseNotes.push(newNotes[j]);
-						showMergingProgress(false, 'Merging notes: $j/${newNotes.length}');
-					}
-					for (j in 0...newEvents.length) {
-						baseEvents.push(newEvents[j]);
-						showMergingProgress(false, 'Merging events: $j/${newEvents.length}');
-					}
+					callLater(function() {
+						for (j in 0...newNotes.length) {
+							baseNotes.push(newNotes[j]);
+							updateUI('Merging notes: $j/${newNotes.length}');
+						}
+						for (j in 0...newEvents.length) {
+							baseEvents.push(newEvents[j]);
+							updateUI('Merging events: $j/${newEvents.length}');
+						}
 
-					showMergingProgress(true, 'Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-					trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}, baseChart.events.length = ${baseChart.events.length}');
+						trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}, baseChart.events.length = ${baseChart.events.length}');
+					}, 0);
 				}
 
 				nextObj = null;
@@ -853,8 +857,6 @@ class MergeChartState extends MusicBeatState
 		}
 		else
 		{
-			trace(message);
-
 			if (progressSubState == null || force)
 			{
 				if (progressSubState != null)
