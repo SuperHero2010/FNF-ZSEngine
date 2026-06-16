@@ -227,19 +227,30 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
+						var batchCount = 0;
 						for (j in 0...newNotes.length) {
 							baseNotes.push(newNotes[j]);
-							updateUI('Merging notes: $j/${newNotes.length}');
-							#if cpp
-							if (j % 100 == 0) cpp.vm.Gc.run(true);
-							#end
+							batchCount++;
+							if (batchCount >= 100) {
+								updateUI('Merging notes: $j/${newNotes.length}');
+								batchCount = 0;
+							}
 						}
+						if (batchCount > 0) {
+							updateUI('Merging notes: ${newNotes.length}/${newNotes.length}');
+						}
+
+						batchCount = 0;
 						for (j in 0...newEvents.length) {
 							baseEvents.push(newEvents[j]);
-							updateUI('Merging events: $j/${newEvents.length}');
-							#if cpp
-							if (j % 100 == 0) cpp.vm.Gc.run(true);
-							#end
+							batchCount++;
+							if (batchCount >= 100) {
+								updateUI('Merging events: $j/${newEvents.length}');
+								batchCount = 0;
+							}
+						}
+						if (batchCount > 0) {
+							updateUI('Merging events: ${newEvents.length}/${newEvents.length}');
 						}
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -264,19 +275,30 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
+					var batchCount = 0;
 					for (j in 0...newNotes.length) {
 						baseNotes.push(newNotes[j]);
-						updateUI('Merging notes: $j/${newNotes.length}');
-						#if cpp
-						if (j % 100 == 0) cpp.vm.Gc.run(true);
-						#end
+						batchCount++;
+						if (batchCount >= 100) {
+							updateUI('Merging notes: $j/${newNotes.length}');
+							batchCount = 0;
+						}
 					}
+					if (batchCount > 0) {
+						updateUI('Merging notes: ${newNotes.length}/${newNotes.length}');
+					}
+
+					batchCount = 0;
 					for (j in 0...newEvents.length) {
 						baseEvents.push(newEvents[j]);
-						updateUI('Merging events: $j/${newEvents.length}');
-						#if cpp
-						if (j % 100 == 0) cpp.vm.Gc.run(true);
-						#end
+						batchCount++;
+						if (batchCount >= 100) {
+							updateUI('Merging events: $j/${newEvents.length}');
+							batchCount = 0;
+						}
+					}
+					if (batchCount > 0) {
+						updateUI('Merging events: ${newEvents.length}/${newEvents.length}');
 					}
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
