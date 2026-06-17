@@ -957,7 +957,29 @@ class MergeChartState extends MusicBeatState
 	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
 	{
 		var file = sys.io.File.write(path, false);
-		file.setBufferSize(1024 * 1024);
+		var buffer = new StringBuf();
+		var flushCount = 0;
+		var flushThreshold = 1000;
+
+		function flush():Void
+		{
+			if (buffer.length > 0)
+			{
+				writeString(buffer.toString());
+				buffer = new StringBuf();
+			}
+		}
+
+		function writeString(str:String):Void
+		{
+			buffer.add(str);
+			flushCount++;
+			if (flushCount >= flushThreshold)
+			{
+				flush();
+				flushCount = 0;
+			}
+		}
 
 		var totalNotes:Int = 0;
 		if (chart.notes != null)
@@ -997,19 +1019,19 @@ class MergeChartState extends MusicBeatState
 			if (useIndentation)
 			{
 				for (i in 0...level)
-					file.writeString("\t");
+					writeString("\t");
 			}
 		}
 
 		if (hasWrapper)
 		{
-			file.writeString('{"song":');
-			if (useIndentation) file.writeString(newline);
+			writeString('{"song":');
+			if (useIndentation) writeString(newline);
 		}
 
 		writeIndent(useIndentation ? 1 : 0);
-		file.writeString("{");
-		if (useIndentation) file.writeString(newline);
+		writeString("{");
+		if (useIndentation) writeString(newline);
 
 		function writeField(name:String, value:Dynamic, level:Int, isFirst:Bool):Bool
 		{
@@ -1017,31 +1039,31 @@ class MergeChartState extends MusicBeatState
 
 			if (!isFirst)
 			{
-				file.writeString(",");
-				if (useIndentation) file.writeString(newline);
+				writeString(",");
+				if (useIndentation) writeString(newline);
 			}
 
 			writeIndent(level);
-			file.writeString('"' + name + '":');
+			writeString('"' + name + '":');
 			if (useIndentation && (Std.isOfType(value, Array) || Std.isOfType(value, Dynamic)))
-				file.writeString(" ");
+				writeString(" ");
 
 			if (Std.isOfType(value, String))
-				file.writeString('"' + value + '"');
+				writeString('"' + value + '"');
 			else if (Std.isOfType(value, Bool))
-				file.writeString(value ? "true" : "false");
+				writeString(value ? "true" : "false");
 			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
-				file.writeString(Std.string(value));
+				writeString(Std.string(value));
 			else if (Std.isOfType(value, Array))
 			{
-				file.writeString("[");
+				writeString("[");
 				var arr:Array<Dynamic> = cast value;
 				for (i in 0...arr.length)
 				{
-					if (i > 0) file.writeString(",");
-					if (useIndentation) file.writeString(newline);
+					if (i > 0) writeString(",");
+					if (useIndentation) writeString(newline);
 					writeIndent(level + 1);
-					file.writeString(Json.stringify(arr[i]));
+					writeString(Json.stringify(arr[i]));
 
 					if (name == "notes")
 					{
@@ -1060,12 +1082,12 @@ class MergeChartState extends MusicBeatState
 						updateProgress();
 					}
 				}
-				if (useIndentation && arr.length > 0) file.writeString(newline);
+				if (useIndentation && arr.length > 0) writeString(newline);
 				writeIndent(level);
-				file.writeString("]");
+				writeString("]");
 			}
 			else
-				file.writeString(Json.stringify(value));
+				writeString(Json.stringify(value));
 
 			return false;
 		}
@@ -1100,17 +1122,18 @@ class MergeChartState extends MusicBeatState
 		if (Reflect.hasField(chart, "disableNoteRGB"))
 			first = writeField("disableNoteRGB", chart.disableNoteRGB, level, first);
 
-		if (useIndentation) file.writeString(newline);
+		if (useIndentation) writeString(newline);
 		writeIndent(level - 1);
-		file.writeString("}");
+		writeString("}");
 
 		if (hasWrapper)
 		{
-			if (useIndentation) file.writeString(newline);
+			if (useIndentation) writeString(newline);
 			writeIndent(0);
-			file.writeString("}");
+			writeString("}");
 		}
 
+		flush();
 		file.close();
 
 		showMergingProgress(true, '\nFile written: $path\n', true);
