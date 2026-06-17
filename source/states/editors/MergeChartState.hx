@@ -241,7 +241,7 @@ class MergeChartState extends MusicBeatState
 
 							if (i > 1) {
 								updateUI('Saving temp file...\n');
-								saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+								saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', true);
 							}
 						}, 0);
 					}
@@ -274,7 +274,8 @@ class MergeChartState extends MusicBeatState
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-						trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}, baseChart.events.length = ${baseChart.events.length}');
+						trace('Normal mode: baseChart.notes.length = ' + (baseChart.notes != null ? baseChart.notes.length : 'null'));
+						trace('Normal mode: baseChart.events.length = ' + (baseChart.events != null ? baseChart.events.length : 'null'));
 					}, 0);
 				}
 
@@ -303,6 +304,14 @@ class MergeChartState extends MusicBeatState
 			}
 			else {
 				finalChart = baseChart;
+				trace('=== NORMAL MODE FINAL CHART ===');
+				trace('finalChart: ' + finalChart);
+				trace('finalChart.song: ' + (finalChart != null ? finalChart.song : 'null'));
+				trace('finalChart.notes: ' + (finalChart != null && finalChart.notes != null ? finalChart.notes.length : 'null'));
+				trace('finalChart.events: ' + (finalChart != null && finalChart.events != null ? finalChart.events.length : 'null'));
+				if (finalChart != null && finalChart.notes != null) {
+					trace('first note: ' + finalChart.notes[0]);
+				}
 			}
 
 			callLater(function() {
@@ -945,9 +954,10 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
 	{
 		var file = sys.io.File.write(path, false);
+		file.setBufferSize(1024 * 1024);
 
 		var totalNotes:Int = 0;
 		if (chart.notes != null)
@@ -966,6 +976,7 @@ class MergeChartState extends MusicBeatState
 
 		function updateProgress():Void
 		{
+			if (silent) return;
 			if (totalItems > 0)
 			{
 				processedItems++;
