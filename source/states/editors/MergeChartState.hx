@@ -141,6 +141,23 @@ class MergeChartState extends MusicBeatState
 		new FlxTimer().start(delay, function(_) { callback(); });
 	}
 
+	private function flattenNotes(chart:Dynamic):Array<Dynamic>
+	{
+		var flattened:Array<Dynamic> = [];
+		if (chart.notes != null) {
+			var sections:Array<Dynamic> = cast chart.notes;
+			for (section in sections) {
+				if (section.sectionNotes != null) {
+					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
+					for (note in sectionNotes) {
+						flattened.push(note);
+					}
+				}
+			}
+		}
+		return flattened;
+	}
+
 	private function mergeChartsThread(chartPaths:Array<String>):Void
 	{
 		var startTime = haxe.Timer.stamp();
@@ -161,7 +178,6 @@ class MergeChartState extends MusicBeatState
 
 			SongJson.log = true;
 			var baseData = loadChartFromFileWithProgress(chartPaths[0]);
-			trace('baseData length: ' + baseData.length);
 			var baseObj = SongJson.parse(baseData);
 
 			var hasWrapper = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic));
@@ -172,6 +188,15 @@ class MergeChartState extends MusicBeatState
 				baseChart = baseObj;
 			trace('Base chart after parse: notes=' + (baseChart.notes != null ? baseChart.notes.length : 'null') + ', events=' + (baseChart.events != null ? baseChart.events.length : 'null'));
 			SongJson.log = false;
+
+			// Flatten baseChart.notes if it has nested structure (sections with sectionNotes)
+			if (baseChart.notes != null) {
+				var baseNotes:Array<Dynamic> = cast baseChart.notes;
+				if (baseNotes.length > 0 && baseNotes[0] != null && Reflect.hasField(baseNotes[0], 'sectionNotes')) {
+					baseChart.notes = flattenNotes(baseChart);
+					trace('Flattened baseChart.notes from ${baseNotes.length} sections to ${baseChart.notes.length} notes');
+				}
+			}
 
 			var tempPath = "temp_merged.json";
 			if (temp) {
@@ -196,6 +221,7 @@ class MergeChartState extends MusicBeatState
 						baseChart2 = baseObj2.song;
 					else
 						baseChart2 = baseObj2;
+					trace('Temp chart after parse: notes=' + (baseChart2.notes != null ? baseChart2.notes.length : 'null') + ', events=' + (baseChart2.events != null ? baseChart2.events.length : 'null'));
 					SongJson.log = false;
 				}
 
@@ -208,6 +234,7 @@ class MergeChartState extends MusicBeatState
 					nextChart = nextObj.song;
 				else
 					nextChart = nextObj;
+				trace('Next chart (${i + 1}) after parse: notes=' + (nextChart.notes != null ? nextChart.notes.length : 'null') + ', events=' + (nextChart.events != null ? nextChart.events.length : 'null'));
 				SongJson.log = false;
 
 				if (temp) {
@@ -222,6 +249,15 @@ class MergeChartState extends MusicBeatState
 						if (baseChart2.notes == null) baseChart2.notes = [];
 						if (baseChart2.events == null) baseChart2.events = [];
 
+						// Flatten nextChart.notes if it has nested structure
+						if (nextChart.notes != null) {
+							var nextNotes:Array<Dynamic> = cast nextChart.notes;
+							if (nextNotes.length > 0 && nextNotes[0] != null && Reflect.hasField(nextNotes[0], 'sectionNotes')) {
+								nextChart.notes = flattenNotes(nextChart);
+								trace('Flattened nextChart.notes from ${nextNotes.length} sections to ${nextChart.notes.length} notes');
+							}
+						}
+
 						var newNotes = extractNewNotesFromChart(nextChart);
 						var newEvents = extractNewEventsFromChart(nextChart);
 						trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
@@ -232,33 +268,23 @@ class MergeChartState extends MusicBeatState
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
 						trace('Base notes before: ' + baseNotes.length);
-						var noteChunkSize:Int = 5000;
-						var noteStart:Int = 0;
-						var noteEnd:Int = 0;
-						while (noteStart < newNotes.length) {
-							noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
-							for (j in noteStart...noteEnd) {
-								baseNotes.push(newNotes[j]);
-							}
-							updateUI('Merging notes: $noteEnd/${newNotes.length}');
-							noteStart = noteEnd;
+						for (j in 0...newNotes.length) {
+							baseNotes.push(newNotes[j]);
+							#if cpp
+							Sys.sleep(0.001);
+							#end
 						}
-						updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
+						updateUI('Merged ${newNotes.length} notes\n');
 						trace('Base notes after: ' + baseNotes.length);
 
 						trace('Base events before: ' + baseEvents.length);
-						var eventChunkSize:Int = 5000;
-						var eventStart:Int = 0;
-						var eventEnd:Int = 0;
-						while (eventStart < newEvents.length) {
-							eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
-							for (j in eventStart...eventEnd) {
-								baseEvents.push(newEvents[j]);
-							}
-							updateUI('Merging events: $eventEnd/${newEvents.length}');
-							eventStart = eventEnd;
+						for (j in 0...newEvents.length) {
+							baseEvents.push(newEvents[j]);
+							#if cpp
+							Sys.sleep(0.001);
+							#end
 						}
-						updateUI('Merging events: $eventEnd/${newEvents.length}\n');
+						updateUI('Merged ${newEvents.length} events\n');
 						trace('Base events after: ' + baseEvents.length);
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -279,6 +305,15 @@ class MergeChartState extends MusicBeatState
 					if (baseChart.notes == null) baseChart.notes = [];
 					if (baseChart.events == null) baseChart.events = [];
 
+					// Flatten nextChart.notes if it has nested structure
+					if (nextChart.notes != null) {
+						var nextNotes:Array<Dynamic> = cast nextChart.notes;
+						if (nextNotes.length > 0 && nextNotes[0] != null && Reflect.hasField(nextNotes[0], 'sectionNotes')) {
+							nextChart.notes = flattenNotes(nextChart);
+							trace('Flattened nextChart.notes from ${nextNotes.length} sections to ${nextChart.notes.length} notes');
+						}
+					}
+
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
 					trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
@@ -289,33 +324,23 @@ class MergeChartState extends MusicBeatState
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
 					trace('Base notes before: ' + baseNotes.length);
-					var noteChunkSize:Int = 5000;
-					var noteStart:Int = 0;
-					var noteEnd:Int = 0;
-					while (noteStart < newNotes.length) {
-						noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
-						for (j in noteStart...noteEnd) {
-							baseNotes.push(newNotes[j]);
-						}
-						updateUI('Merging notes: $noteEnd/${newNotes.length}');
-						noteStart = noteEnd;
+					for (j in 0...newNotes.length) {
+						baseNotes.push(newNotes[j]);
+						#if cpp
+						Sys.sleep(0.001);
+						#end
 					}
-					updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
+					updateUI('Merged ${newNotes.length} notes\n');
 					trace('Base notes after: ' + baseNotes.length);
 
 					trace('Base events before: ' + baseEvents.length);
-					var eventChunkSize:Int = 5000;
-					var eventStart:Int = 0;
-					var eventEnd:Int = 0;
-					while (eventStart < newEvents.length) {
-						eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
-						for (j in eventStart...eventEnd) {
-							baseEvents.push(newEvents[j]);
-						}
-						updateUI('Merging events: $eventEnd/${newEvents.length}');
-						eventStart = eventEnd;
+					for (j in 0...newEvents.length) {
+						baseEvents.push(newEvents[j]);
+						#if cpp
+						Sys.sleep(0.001);
+						#end
 					}
-					updateUI('Merging events: $eventEnd/${newEvents.length}\n');
+					updateUI('Merged ${newEvents.length} events\n');
 					trace('Base events after: ' + baseEvents.length);
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
