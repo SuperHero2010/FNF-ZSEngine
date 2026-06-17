@@ -275,6 +275,9 @@ class MergeChartState extends MusicBeatState
 
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
+					trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
+					trace('extracted newNotes: ' + newNotes.length);
+					trace('extracted newEvents: ' + newEvents.length);
 
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
@@ -307,8 +310,7 @@ class MergeChartState extends MusicBeatState
 						eventStart = eventEnd;
 					}
 
-					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
-					trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}');
+					updateUI('\nMerged ${newNotes.length} notes and ${newEvents.length} events\n');
 				}
 
 				nextObj = null;
@@ -1165,18 +1167,12 @@ class MergeChartState extends MusicBeatState
 
 	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
 	{
-		trace('=== saveMergedChart called ===');
-		trace('chart.song: ' + chart.song);
-		trace('chart.notes length: ' + (chart.notes != null ? chart.notes.length : 'null'));
-		trace('chart.events length: ' + (chart.events != null ? chart.events.length : 'null'));
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
-		if (temp) {
-			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
-		}
+		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
 
-		fileDialog.saveFile(temp ? tempPath : null, defaultName,
+		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
 			{
 				showMergingProgress(false, "Merge complete!\n", true);
@@ -1184,12 +1180,12 @@ class MergeChartState extends MusicBeatState
 			},
 			function()
 			{
-				if (temp && FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Save cancelled\n", true);
 			},
 			function(e:String)
 			{
-				if (temp && FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Error saving chart: " + e + "\n", true);
 			}
 		);
