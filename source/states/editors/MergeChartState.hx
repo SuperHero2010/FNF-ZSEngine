@@ -161,6 +161,7 @@ class MergeChartState extends MusicBeatState
 
 			SongJson.log = true;
 			var baseData = loadChartFromFileWithProgress(chartPaths[0]);
+			trace('baseData length: ' + baseData.length);
 			var baseObj = SongJson.parse(baseData);
 
 			var hasWrapper = (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic));
@@ -169,7 +170,7 @@ class MergeChartState extends MusicBeatState
 				baseChart = baseObj.song;
 			else
 				baseChart = baseObj;
-
+			trace('Base chart after parse: notes=' + (baseChart.notes != null ? baseChart.notes.length : 'null') + ', events=' + (baseChart.events != null ? baseChart.events.length : 'null'));
 			SongJson.log = false;
 
 			var tempPath = "temp_merged.json";
@@ -232,14 +233,19 @@ class MergeChartState extends MusicBeatState
 
 						trace('Base notes before: ' + baseNotes.length);
 						var noteChunkSize:Int = 5000;
+						var noteCounter:Int = 0;
 						var noteStart:Int = 0;
 						var noteEnd:Int = 0;
 						while (noteStart < newNotes.length) {
 							noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 							for (j in noteStart...noteEnd) {
 								baseNotes.push(newNotes[j]);
+								noteCounter++;
+								if (noteCounter >= 1000) {
+									updateUI('Merging notes: $noteEnd/${newNotes.length}');
+									noteCounter = 0;
+								}
 							}
-							updateUI('Merging notes: $noteEnd/${newNotes.length}');
 							#if cpp
 							Sys.sleep(0.001);
 							#end
@@ -250,14 +256,19 @@ class MergeChartState extends MusicBeatState
 
 						trace('Base events before: ' + baseEvents.length);
 						var eventChunkSize:Int = 5000;
+						var eventCounter:Int = 0;
 						var eventStart:Int = 0;
 						var eventEnd:Int = 0;
 						while (eventStart < newEvents.length) {
 							eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 							for (j in eventStart...eventEnd) {
 								baseEvents.push(newEvents[j]);
+								eventCounter++;
+								if (eventCounter >= 1000) {
+									updateUI('Merging events: $eventEnd/${newEvents.length}');
+									eventCounter = 0;
+								}
 							}
-							updateUI('Merging events: $eventEnd/${newEvents.length}');
 							#if cpp
 							Sys.sleep(0.001);
 							#end
@@ -295,14 +306,19 @@ class MergeChartState extends MusicBeatState
 
 					trace('Base notes before: ' + baseNotes.length);
 					var noteChunkSize:Int = 5000;
+					var noteCounter:Int = 0;
 					var noteStart:Int = 0;
 					var noteEnd:Int = 0;
 					while (noteStart < newNotes.length) {
 						noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 						for (j in noteStart...noteEnd) {
 							baseNotes.push(newNotes[j]);
+							noteCounter++;
+							if (noteCounter >= 1000) {
+								updateUI('Merging notes: $noteEnd/${newNotes.length}');
+								noteCounter = 0;
+							}
 						}
-						updateUI('Merging notes: $noteEnd/${newNotes.length}');
 						#if cpp
 						Sys.sleep(0.001);
 						#end
@@ -313,14 +329,19 @@ class MergeChartState extends MusicBeatState
 
 					trace('Base events before: ' + baseEvents.length);
 					var eventChunkSize:Int = 5000;
+					var eventCounter:Int = 0;
 					var eventStart:Int = 0;
 					var eventEnd:Int = 0;
 					while (eventStart < newEvents.length) {
 						eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 						for (j in eventStart...eventEnd) {
 							baseEvents.push(newEvents[j]);
+							eventCounter++;
+							if (eventCounter >= 1000) {
+								updateUI('Merging events: $eventEnd/${newEvents.length}');
+								eventCounter = 0;
+							}
 						}
-						updateUI('Merging events: $eventEnd/${newEvents.length}');
 						#if cpp
 						Sys.sleep(0.001);
 						#end
