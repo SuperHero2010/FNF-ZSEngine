@@ -236,14 +236,11 @@ class MergeChartState extends MusicBeatState
 						var noteStart:Int = 0;
 						var noteEnd:Int = 0;
 						while (noteStart < newNotes.length) {
-							noteEnd = Math.min(noteStart + noteChunkSize, newNotes.length);
+							noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 							for (j in noteStart...noteEnd) {
 								baseNotes.push(newNotes[j]);
 							}
 							updateUI('Merging notes: $noteEnd/${newNotes.length}');
-							#if cpp
-							Sys.sleep(0.001);
-							#end
 							noteStart = noteEnd;
 						}
 						updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
@@ -254,14 +251,11 @@ class MergeChartState extends MusicBeatState
 						var eventStart:Int = 0;
 						var eventEnd:Int = 0;
 						while (eventStart < newEvents.length) {
-							eventEnd = Math.min(eventStart + eventChunkSize, newEvents.length);
+							eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 							for (j in eventStart...eventEnd) {
 								baseEvents.push(newEvents[j]);
 							}
 							updateUI('Merging events: $eventEnd/${newEvents.length}');
-							#if cpp
-							Sys.sleep(0.001);
-							#end
 							eventStart = eventEnd;
 						}
 						updateUI('Merging events: $eventEnd/${newEvents.length}\n');
@@ -299,14 +293,11 @@ class MergeChartState extends MusicBeatState
 					var noteStart:Int = 0;
 					var noteEnd:Int = 0;
 					while (noteStart < newNotes.length) {
-						noteEnd = Math.min(noteStart + noteChunkSize, newNotes.length);
+						noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 						for (j in noteStart...noteEnd) {
 							baseNotes.push(newNotes[j]);
 						}
 						updateUI('Merging notes: $noteEnd/${newNotes.length}');
-						#if cpp
-						Sys.sleep(0.001);
-						#end
 						noteStart = noteEnd;
 					}
 					updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
@@ -317,14 +308,11 @@ class MergeChartState extends MusicBeatState
 					var eventStart:Int = 0;
 					var eventEnd:Int = 0;
 					while (eventStart < newEvents.length) {
-						eventEnd = Math.min(eventStart + eventChunkSize, newEvents.length);
+						eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 						for (j in eventStart...eventEnd) {
 							baseEvents.push(newEvents[j]);
 						}
 						updateUI('Merging events: $eventEnd/${newEvents.length}');
-						#if cpp
-						Sys.sleep(0.001);
-						#end
 						eventStart = eventEnd;
 					}
 					updateUI('Merging events: $eventEnd/${newEvents.length}\n');
