@@ -233,8 +233,9 @@ class MergeChartState extends MusicBeatState
 						trace('Base notes before: ' + baseNotes.length);
 						var noteChunkSize:Int = 5000;
 						var noteStart:Int = 0;
+						var noteEnd:Int = 0;
 						while (noteStart < newNotes.length) {
-							var noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
+							noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 							for (j in noteStart...noteEnd) {
 								baseNotes.push(newNotes[j]);
 							}
@@ -250,8 +251,9 @@ class MergeChartState extends MusicBeatState
 						trace('Base events before: ' + baseEvents.length);
 						var eventChunkSize:Int = 5000;
 						var eventStart:Int = 0;
+						var eventEnd:Int = 0;
 						while (eventStart < newEvents.length) {
-							var eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
+							eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 							for (j in eventStart...eventEnd) {
 								baseEvents.push(newEvents[j]);
 							}
@@ -294,8 +296,9 @@ class MergeChartState extends MusicBeatState
 					trace('Base notes before: ' + baseNotes.length);
 					var noteChunkSize:Int = 5000;
 					var noteStart:Int = 0;
+					var noteEnd:Int = 0;
 					while (noteStart < newNotes.length) {
-						var noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
+						noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
 						for (j in noteStart...noteEnd) {
 							baseNotes.push(newNotes[j]);
 						}
@@ -311,8 +314,9 @@ class MergeChartState extends MusicBeatState
 					trace('Base events before: ' + baseEvents.length);
 					var eventChunkSize:Int = 5000;
 					var eventStart:Int = 0;
+					var eventEnd:Int = 0;
 					while (eventStart < newEvents.length) {
-						var eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
+						eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
 						for (j in eventStart...eventEnd) {
 							baseEvents.push(newEvents[j]);
 						}
