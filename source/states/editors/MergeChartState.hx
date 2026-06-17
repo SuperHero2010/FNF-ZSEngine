@@ -227,23 +227,40 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
-						callLater(function() {
-							for (j in 0...newNotes.length) {
+						var noteChunkSize:Int = 5000;
+						var noteStart:Int = 0;
+						while (noteStart < newNotes.length) {
+							var noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
+							for (j in noteStart...noteEnd) {
 								baseNotes.push(newNotes[j]);
-								updateUI('Merging notes: $j/${newNotes.length}');
 							}
-							for (j in 0...newEvents.length) {
+							updateUI('Merging notes: $noteEnd/${newNotes.length}');
+							#if cpp
+							Sys.sleep(0.001);
+							#end
+							noteStart = noteEnd;
+						}
+
+						var eventChunkSize:Int = 5000;
+						var eventStart:Int = 0;
+						while (eventStart < newEvents.length) {
+							var eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
+							for (j in eventStart...eventEnd) {
 								baseEvents.push(newEvents[j]);
-								updateUI('Merging events: $j/${newEvents.length}');
 							}
+							updateUI('Merging events: $eventEnd/${newEvents.length}');
+							#if cpp
+							Sys.sleep(0.001);
+							#end
+							eventStart = eventEnd;
+						}
 
-							updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-							if (i > 1) {
-								updateUI('Saving temp file...\n');
-								saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', true);
-							}
-						}, 0);
+						if (i > 1) {
+							updateUI('Saving temp file...\n');
+							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+						}
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
@@ -262,21 +279,36 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-					callLater(function() {
-						for (j in 0...newNotes.length) {
+					var noteChunkSize:Int = 5000;
+					var noteStart:Int = 0;
+					while (noteStart < newNotes.length) {
+						var noteEnd = Std.int(Math.min(noteStart + noteChunkSize, newNotes.length));
+						for (j in noteStart...noteEnd) {
 							baseNotes.push(newNotes[j]);
-							updateUI('Merging notes: $j/${newNotes.length}');
 						}
-						for (j in 0...newEvents.length) {
+						updateUI('Merging notes: $noteEnd/${newNotes.length}');
+						#if cpp
+						Sys.sleep(0.001);
+						#end
+						noteStart = noteEnd;
+					}
+
+					var eventChunkSize:Int = 5000;
+					var eventStart:Int = 0;
+					while (eventStart < newEvents.length) {
+						var eventEnd = Std.int(Math.min(eventStart + eventChunkSize, newEvents.length));
+						for (j in eventStart...eventEnd) {
 							baseEvents.push(newEvents[j]);
-							updateUI('Merging events: $j/${newEvents.length}');
 						}
+						updateUI('Merging events: $eventEnd/${newEvents.length}');
+						#if cpp
+						Sys.sleep(0.001);
+						#end
+						eventStart = eventEnd;
+					}
 
-						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
-
-						trace('Normal mode: baseChart.notes.length = ' + (baseChart.notes != null ? baseChart.notes.length : 'null'));
-						trace('Normal mode: baseChart.events.length = ' + (baseChart.events != null ? baseChart.events.length : 'null'));
-					}, 0);
+					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
+					trace('Normal mode: baseChart.notes.length = ${baseChart.notes.length}');
 				}
 
 				nextObj = null;
@@ -304,14 +336,6 @@ class MergeChartState extends MusicBeatState
 			}
 			else {
 				finalChart = baseChart;
-				trace('=== NORMAL MODE FINAL CHART ===');
-				trace('finalChart: ' + finalChart);
-				trace('finalChart.song: ' + (finalChart != null ? finalChart.song : 'null'));
-				trace('finalChart.notes: ' + (finalChart != null && finalChart.notes != null ? finalChart.notes.length : 'null'));
-				trace('finalChart.events: ' + (finalChart != null && finalChart.events != null ? finalChart.events.length : 'null'));
-				if (finalChart != null && finalChart.notes != null) {
-					trace('first note: ' + finalChart.notes[0]);
-				}
 			}
 
 			callLater(function() {
@@ -1141,6 +1165,10 @@ class MergeChartState extends MusicBeatState
 
 	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
 	{
+		trace('=== saveMergedChart called ===');
+		trace('chart.song: ' + chart.song);
+		trace('chart.notes length: ' + (chart.notes != null ? chart.notes.length : 'null'));
+		trace('chart.events length: ' + (chart.events != null ? chart.events.length : 'null'));
 		var defaultName:String = chart.song + "-merged.json";
 		var tempPath = "temp_final_merged.json";
 
