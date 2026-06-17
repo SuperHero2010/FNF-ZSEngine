@@ -961,23 +961,23 @@ class MergeChartState extends MusicBeatState
 		var flushCount = 0;
 		var flushThreshold = 1000;
 
+		function flushBuffer():Void
+		{
+			if (buffer.length > 0)
+			{
+				file.writeString(buffer.toString());
+				buffer = new StringBuf();
+			}
+		}
+
 		function writeString(str:String):Void
 		{
 			buffer.add(str);
 			flushCount++;
 			if (flushCount >= flushThreshold)
 			{
-				flush();
+				flushBuffer();
 				flushCount = 0;
-			}
-		}
-
-		function flush():Void
-		{
-			if (buffer.length > 0)
-			{
-				writeString(buffer.toString());
-				buffer = new StringBuf();
 			}
 		}
 
@@ -1133,7 +1133,7 @@ class MergeChartState extends MusicBeatState
 			writeString("}");
 		}
 
-		flush();
+		flushBuffer();
 		file.close();
 
 		showMergingProgress(true, '\nFile written: $path\n', true);
