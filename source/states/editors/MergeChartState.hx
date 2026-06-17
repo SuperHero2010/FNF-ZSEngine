@@ -223,10 +223,14 @@ class MergeChartState extends MusicBeatState
 
 						var newNotes = extractNewNotesFromChart(nextChart);
 						var newEvents = extractNewEventsFromChart(nextChart);
+						trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
+						trace('extracted newNotes: ' + newNotes.length);
+						trace('extracted newEvents: ' + newEvents.length);
 
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
+						trace('Base notes before: ' + baseNotes.length);
 						var noteChunkSize:Int = 5000;
 						var noteStart:Int = 0;
 						while (noteStart < newNotes.length) {
@@ -240,7 +244,10 @@ class MergeChartState extends MusicBeatState
 							#end
 							noteStart = noteEnd;
 						}
+						updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
+						trace('Base notes after: ' + baseNotes.length);
 
+						trace('Base events before: ' + baseEvents.length);
 						var eventChunkSize:Int = 5000;
 						var eventStart:Int = 0;
 						while (eventStart < newEvents.length) {
@@ -254,10 +261,12 @@ class MergeChartState extends MusicBeatState
 							#end
 							eventStart = eventEnd;
 						}
+						updateUI('Merging events: $eventEnd/${newEvents.length}\n');
+						trace('Base events after: ' + baseEvents.length);
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
-						if (i > 1) {
+						if (!(totalCharts == 2 && i == 1)) {
 							updateUI('Saving temp file...\n');
 							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
 						}
@@ -282,6 +291,7 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
+					trace('Base notes before: ' + baseNotes.length);
 					var noteChunkSize:Int = 5000;
 					var noteStart:Int = 0;
 					while (noteStart < newNotes.length) {
@@ -295,7 +305,10 @@ class MergeChartState extends MusicBeatState
 						#end
 						noteStart = noteEnd;
 					}
+					updateUI('Merging notes: $noteEnd/${newNotes.length}\n');
+					trace('Base notes after: ' + baseNotes.length);
 
+					trace('Base events before: ' + baseEvents.length);
 					var eventChunkSize:Int = 5000;
 					var eventStart:Int = 0;
 					while (eventStart < newEvents.length) {
@@ -309,8 +322,10 @@ class MergeChartState extends MusicBeatState
 						#end
 						eventStart = eventEnd;
 					}
+					updateUI('Merging events: $eventEnd/${newEvents.length}\n');
+					trace('Base events after: ' + baseEvents.length);
 
-					updateUI('\nMerged ${newNotes.length} notes and ${newEvents.length} events\n');
+					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 				}
 
 				nextObj = null;
