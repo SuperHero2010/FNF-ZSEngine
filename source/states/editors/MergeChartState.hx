@@ -398,12 +398,24 @@ class MergeChartState extends MusicBeatState
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
+						#if cpp
+						cpp.vm.Gc.enterGCFreeZone();
+						#end
 						baseNotes = baseNotes.concat(newNotes);
 						baseChart2.notes = baseNotes;
+						#if cpp
+						cpp.vm.Gc.exitGCFreeZone();
+						#end
 						updateUI('Merged ${newNotes.length} notes\n');
 
+						#if cpp
+						cpp.vm.Gc.enterGCFreeZone();
+						#end
 						baseEvents = baseEvents.concat(newEvents);
 						baseChart2.events = baseEvents;
+						#if cpp
+						cpp.vm.Gc.exitGCFreeZone();
+						#end
 						updateUI('Merged ${newEvents.length} events\n');
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -430,12 +442,24 @@ class MergeChartState extends MusicBeatState
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
+					#if cpp
+					cpp.vm.Gc.enterGCFreeZone();
+					#end
 					baseNotes = baseNotes.concat(newNotes);
 					baseChart.notes = baseNotes;
+					#if cpp
+					cpp.vm.Gc.exitGCFreeZone();
+					#end
 					updateUI('Merged ${newNotes.length} notes\n');
 
+					#if cpp
+					cpp.vm.Gc.enterGCFreeZone();
+					#end
 					baseEvents = baseEvents.concat(newEvents);
 					baseChart.events = baseEvents;
+					#if cpp
+					cpp.vm.Gc.exitGCFreeZone();
+					#end
 					updateUI('Merged ${newEvents.length} events\n');
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
