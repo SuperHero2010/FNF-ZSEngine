@@ -141,23 +141,6 @@ class MergeChartState extends MusicBeatState
 		new FlxTimer().start(delay, function(_) { callback(); });
 	}
 
-	private function flattenNotes(chart:Dynamic):Array<Dynamic>
-	{
-		var flattened:Array<Dynamic> = [];
-		if (chart.notes != null) {
-			var sections:Array<Dynamic> = cast chart.notes;
-			for (section in sections) {
-				if (section.sectionNotes != null) {
-					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-					for (note in sectionNotes) {
-						flattened.push(note);
-					}
-				}
-			}
-		}
-		return flattened;
-	}
-
 	private function mergeChartsThread(chartPaths:Array<String>):Void
 	{
 		var startTime = haxe.Timer.stamp();
@@ -189,14 +172,6 @@ class MergeChartState extends MusicBeatState
 			trace('Base chart after parse: notes=' + (baseChart.notes != null ? baseChart.notes.length : 'null') + ', events=' + (baseChart.events != null ? baseChart.events.length : 'null'));
 			SongJson.log = false;
 
-			// Flatten baseChart.notes if it has nested structure (sections with sectionNotes)
-			if (baseChart.notes != null) {
-				var baseNotes:Array<Dynamic> = cast baseChart.notes;
-				if (baseNotes.length > 0 && baseNotes[0] != null && Reflect.hasField(baseNotes[0], 'sectionNotes')) {
-					baseChart.notes = flattenNotes(baseChart);
-					trace('Flattened baseChart.notes from ${baseNotes.length} sections to ${baseChart.notes.length} notes');
-				}
-			}
 
 			var tempPath = "temp_merged.json";
 			if (temp) {
@@ -249,15 +224,6 @@ class MergeChartState extends MusicBeatState
 						if (baseChart2.notes == null) baseChart2.notes = [];
 						if (baseChart2.events == null) baseChart2.events = [];
 
-						// Flatten nextChart.notes if it has nested structure
-						if (nextChart.notes != null) {
-							var nextNotes:Array<Dynamic> = cast nextChart.notes;
-							if (nextNotes.length > 0 && nextNotes[0] != null && Reflect.hasField(nextNotes[0], 'sectionNotes')) {
-								nextChart.notes = flattenNotes(nextChart);
-								trace('Flattened nextChart.notes from ${nextNotes.length} sections to ${nextChart.notes.length} notes');
-							}
-						}
-
 						var newNotes = extractNewNotesFromChart(nextChart);
 						var newEvents = extractNewEventsFromChart(nextChart);
 						trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
@@ -304,15 +270,6 @@ class MergeChartState extends MusicBeatState
 
 					if (baseChart.notes == null) baseChart.notes = [];
 					if (baseChart.events == null) baseChart.events = [];
-
-					// Flatten nextChart.notes if it has nested structure
-					if (nextChart.notes != null) {
-						var nextNotes:Array<Dynamic> = cast nextChart.notes;
-						if (nextNotes.length > 0 && nextNotes[0] != null && Reflect.hasField(nextNotes[0], 'sectionNotes')) {
-							nextChart.notes = flattenNotes(nextChart);
-							trace('Flattened nextChart.notes from ${nextNotes.length} sections to ${nextChart.notes.length} notes');
-						}
-					}
 
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
