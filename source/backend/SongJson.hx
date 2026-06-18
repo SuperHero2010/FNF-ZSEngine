@@ -32,7 +32,16 @@ import haxe.ds.Vector;
 class SongJson
 {
 	static public inline function parse(str:String):Dynamic
-		return new SongJson(str).doParse();
+	{
+		#if cpp
+		cpp.vm.Gc.enterGCFreeZone();
+		#end
+		var result = new SongJson(str).doParse();
+		#if cpp
+		cpp.vm.Gc.exitGCFreeZone();
+		#end
+		return result;
+	}
 
 	var str:String;
 	var pos:Int;
