@@ -169,7 +169,6 @@ class MergeChartState extends MusicBeatState
 				baseChart = baseObj.song;
 			else
 				baseChart = baseObj;
-			trace('Base chart after parse: notes=' + (baseChart.notes != null ? baseChart.notes.length : 'null') + ', events=' + (baseChart.events != null ? baseChart.events.length : 'null'));
 			SongJson.log = false;
 
 
@@ -196,7 +195,6 @@ class MergeChartState extends MusicBeatState
 						baseChart2 = baseObj2.song;
 					else
 						baseChart2 = baseObj2;
-					trace('Temp chart after parse: notes=' + (baseChart2.notes != null ? baseChart2.notes.length : 'null') + ', events=' + (baseChart2.events != null ? baseChart2.events.length : 'null'));
 					SongJson.log = false;
 				}
 
@@ -209,7 +207,6 @@ class MergeChartState extends MusicBeatState
 					nextChart = nextObj.song;
 				else
 					nextChart = nextObj;
-				trace('Next chart (${i + 1}) after parse: notes=' + (nextChart.notes != null ? nextChart.notes.length : 'null') + ', events=' + (nextChart.events != null ? nextChart.events.length : 'null'));
 				SongJson.log = false;
 
 				if (temp) {
@@ -217,7 +214,6 @@ class MergeChartState extends MusicBeatState
 						updateUI('Fast array concatenation...\n');
 
 						if (baseChart2 == null) {
-							trace('baseChart2 is null, using baseChart instead');
 							baseChart2 = baseChart;
 						}
 
@@ -226,32 +222,17 @@ class MergeChartState extends MusicBeatState
 
 						var newNotes = extractNewNotesFromChart(nextChart);
 						var newEvents = extractNewEventsFromChart(nextChart);
-						trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
-						trace('extracted newNotes: ' + newNotes.length);
-						trace('extracted newEvents: ' + newEvents.length);
 
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 
-						trace('Base notes before: ' + baseNotes.length);
-						for (j in 0...newNotes.length) {
-							baseNotes.push(newNotes[j]);
-							#if cpp
-							Sys.sleep(0.001);
-							#end
-						}
+						baseNotes = baseNotes.concat(newNotes);
+						baseChart2.notes = baseNotes;
 						updateUI('Merged ${newNotes.length} notes\n');
-						trace('Base notes after: ' + baseNotes.length);
 
-						trace('Base events before: ' + baseEvents.length);
-						for (j in 0...newEvents.length) {
-							baseEvents.push(newEvents[j]);
-							#if cpp
-							Sys.sleep(0.001);
-							#end
-						}
+						baseEvents = baseEvents.concat(newEvents);
+						baseChart2.events = baseEvents;
 						updateUI('Merged ${newEvents.length} events\n');
-						trace('Base events after: ' + baseEvents.length);
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 
@@ -273,32 +254,17 @@ class MergeChartState extends MusicBeatState
 
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
-					trace('nextChart.notes length: ' + (nextChart.notes != null ? nextChart.notes.length : 'null'));
-					trace('extracted newNotes: ' + newNotes.length);
-					trace('extracted newEvents: ' + newEvents.length);
 
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 
-					trace('Base notes before: ' + baseNotes.length);
-					for (j in 0...newNotes.length) {
-						baseNotes.push(newNotes[j]);
-						#if cpp
-						Sys.sleep(0.001);
-						#end
-					}
+					baseNotes = baseNotes.concat(newNotes);
+					baseChart.notes = baseNotes;
 					updateUI('Merged ${newNotes.length} notes\n');
-					trace('Base notes after: ' + baseNotes.length);
 
-					trace('Base events before: ' + baseEvents.length);
-					for (j in 0...newEvents.length) {
-						baseEvents.push(newEvents[j]);
-						#if cpp
-						Sys.sleep(0.001);
-						#end
-					}
+					baseEvents = baseEvents.concat(newEvents);
+					baseChart.events = baseEvents;
 					updateUI('Merged ${newEvents.length} events\n');
-					trace('Base events after: ' + baseEvents.length);
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
 				}
@@ -554,15 +520,10 @@ class MergeChartState extends MusicBeatState
 
 	private function appendChartToTempFile(tempPath:String, nextChart:Dynamic, hasWrapper:Bool, chartIndex:Int, indentation:Bool = false):Void
 	{
-		trace('appendChartToTempFile() called for chart $chartIndex');
-
 		var newNotes = extractNewNotesFromChart(nextChart);
 		var newEvents = extractNewEventsFromChart(nextChart);
 
-		trace('Extracted ${newNotes.length} notes and ${newEvents.length} events');
-
 		if (newNotes.length == 0 && newEvents.length == 0) {
-			trace('No new notes or events to append');
 			return;
 		}
 
@@ -573,14 +534,11 @@ class MergeChartState extends MusicBeatState
 		var notesEndPos = positions.notes;
 		var eventsEndPos = positions.events;
 
-		trace('Array end positions: notes=$notesEndPos, events=$eventsEndPos');
-
 		var shouldAppend = true;
 
 		if (notesEndPos == -1 || eventsEndPos == -1) {
 			shouldAppend = false;
 			var funcYes = function() {
-				trace('Could not find array end positions, falling back to full rewrite');
 				var tempContent = File.getContent(tempPath);
 				var tempObj = SongJson.parse(tempContent);
 				var tempChart:Dynamic;
@@ -806,16 +764,12 @@ class MergeChartState extends MusicBeatState
 	var parsedEvents:Int = 0;
 	private function mergeInto(baseSong:Dynamic, nextSong:Dynamic):Void
 	{
-		trace('mergeInto() called');
-
 		if (baseSong.notes == null)
 		{
-			trace('baseSong.notes was null, creating empty array');
 			baseSong.notes = [];
 		}
 		if (baseSong.events == null)
 		{
-			trace('baseSong.events was null, creating empty array');
 			baseSong.events = [];
 		}
 
