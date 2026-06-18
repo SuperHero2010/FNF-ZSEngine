@@ -73,7 +73,7 @@ class FastJsonPrinter
 			return;
 		}
 
-		if (Std.isOfType(value, Map) || Reflect.isObject(value))
+		if (Reflect.isObject(value))
 		{
 			printObject(value);
 			return;
