@@ -21,6 +21,134 @@ import sys.FileSystem;
 import sys.io.File;
 import sys.thread.Thread;
 
+class FastJsonPrinter
+{
+	var output:haxe.io.BytesOutput;
+	var useIndentation:Bool;
+	var indentLevel:Int;
+	var first:Bool;
+
+	public function new(output:haxe.io.BytesOutput, useIndentation:Bool = false)
+	{
+		this.output = output;
+		this.useIndentation = useIndentation;
+		this.indentLevel = 0;
+		this.first = true;
+	}
+
+	public function print(value:Dynamic):Void
+	{
+		printValue(value);
+	}
+
+	function printValue(value:Dynamic):Void
+	{
+		if (value == null)
+		{
+			output.writeString("null");
+			return;
+		}
+
+		if (Std.isOfType(value, String))
+		{
+			output.writeString('"' + escapeString(value) + '"');
+			return;
+		}
+
+		if (Std.isOfType(value, Bool))
+		{
+			output.writeString(value ? "true" : "false");
+			return;
+		}
+
+		if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+		{
+			output.writeString(Std.string(value));
+			return;
+		}
+
+		if (Std.isOfType(value, Array))
+		{
+			printArray(value);
+			return;
+		}
+
+		if (Std.isOfType(value, Map) || Reflect.isObject(value))
+		{
+			printObject(value);
+			return;
+		}
+
+		output.writeString(Json.stringify(value));
+	}
+
+	function printArray(arr:Array<Dynamic>):Void
+	{
+		output.writeString("[");
+		indentLevel++;
+		var firstItem = true;
+		for (i in 0...arr.length)
+		{
+			if (!firstItem) output.writeString(",");
+			if (useIndentation) output.writeString("\n" + indentString());
+			firstItem = false;
+			printValue(arr[i]);
+		}
+		indentLevel--;
+		if (useIndentation && arr.length > 0) output.writeString("\n" + indentString());
+		output.writeString("]");
+	}
+
+	function printObject(obj:Dynamic):Void
+	{
+		output.writeString("{");
+		indentLevel++;
+		var firstField = true;
+		var fields = Reflect.fields(obj);
+		for (field in fields)
+		{
+			var value = Reflect.field(obj, field);
+			if (value == null) continue;
+
+			if (!firstField) output.writeString(",");
+			if (useIndentation) output.writeString("\n" + indentString());
+			firstField = false;
+			output.writeString('"' + field + '":');
+			if (useIndentation) output.writeString(" ");
+			printValue(value);
+		}
+		indentLevel--;
+		if (useIndentation && fields.length > 0) output.writeString("\n" + indentString());
+		output.writeString("}");
+	}
+
+	function indentString():String
+	{
+		var str = "";
+		for (i in 0...indentLevel) str += "\t";
+		return str;
+	}
+
+	function escapeString(str:String):String
+	{
+		var buf = new StringBuf();
+		for (i in 0...str.length)
+		{
+			var c = str.charAt(i);
+			switch(c)
+			{
+				case '"': buf.add('\\"');
+				case '\\': buf.add('\\\\');
+				case '\n': buf.add('\\n');
+				case '\r': buf.add('\\r');
+				case '\t': buf.add('\\t');
+				default: buf.add(c);
+			}
+		}
+		return buf.toString();
+	}
+}
+
 class MergeChartState extends MusicBeatState
 {
 	private var chartBoxes:Array<ChartBox> = [];
@@ -141,6 +269,50 @@ class MergeChartState extends MusicBeatState
 		new FlxTimer().start(delay, function(_) { callback(); });
 	}
 
+	private function saveChartFast(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
+	{
+		var output = new haxe.io.BytesOutput();
+		var printer = new FastJsonPrinter(output, useIndentation);
+
+		if (hasWrapper)
+		{
+			output.writeString('{"song":');
+			if (useIndentation) output.writeString("\n\t");
+		}
+
+		var chartObj:Dynamic = {};
+		chartObj.song = chart.song;
+		chartObj.notes = chart.notes;
+		chartObj.events = chart.events != null ? chart.events : [];
+		chartObj.bpm = chart.bpm;
+		chartObj.needsVoices = chart.needsVoices;
+		chartObj.speed = chart.speed;
+		chartObj.offset = chart.offset;
+		chartObj.player1 = chart.player1;
+		chartObj.player2 = chart.player2;
+		chartObj.gfVersion = chart.gfVersion;
+		chartObj.stage = chart.stage;
+		chartObj.format = chart.format;
+
+		if (Reflect.hasField(chart, "arrowSkin")) chartObj.arrowSkin = chart.arrowSkin;
+		if (Reflect.hasField(chart, "splashSkin")) chartObj.splashSkin = chart.splashSkin;
+		if (Reflect.hasField(chart, "gameOverChar")) chartObj.gameOverChar = chart.gameOverChar;
+		if (Reflect.hasField(chart, "gameOverSound")) chartObj.gameOverSound = chart.gameOverSound;
+		if (Reflect.hasField(chart, "gameOverLoop")) chartObj.gameOverLoop = chart.gameOverLoop;
+		if (Reflect.hasField(chart, "gameOverEnd")) chartObj.gameOverEnd = chart.gameOverEnd;
+		if (Reflect.hasField(chart, "disableNoteRGB")) chartObj.disableNoteRGB = chart.disableNoteRGB;
+
+		printer.print(chartObj);
+
+		if (hasWrapper)
+		{
+			if (useIndentation) output.writeString("\n");
+			output.writeString("}");
+		}
+
+		sys.io.File.saveBytes(path, output.getBytes());
+	}
+
 	private function mergeChartsThread(chartPaths:Array<String>):Void
 	{
 		var startTime = haxe.Timer.stamp();
@@ -172,10 +344,10 @@ class MergeChartState extends MusicBeatState
 			SongJson.log = false;
 
 
-			var tempPath = "temp_merged.json";
+			var tempPath = "temp_merged.bin";
 			if (temp) {
 				updateUI('Writing temp file...\n');
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base");
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base", false, true);
 			}
 
 			var totalCharts:Int = chartPaths.length;
@@ -187,15 +359,15 @@ class MergeChartState extends MusicBeatState
 				updateUI(progressMsg);
 
 				if (temp) {
-					SongJson.log = true;
-					var baseJson = File.getContent(tempPath);
-					var baseObj2 = SongJson.parse(baseJson);
+					var bytes = File.getBytes(tempPath);
+					var serialized = bytes.toString();
+					var unserializer = new haxe.Unserializer(serialized);
+					var baseObj2:Dynamic = unserializer.unserialize();
 
 					if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
 						baseChart2 = baseObj2.song;
 					else
 						baseChart2 = baseObj2;
-					SongJson.log = false;
 				}
 
 				SongJson.log = true;
@@ -238,7 +410,7 @@ class MergeChartState extends MusicBeatState
 
 						if (!(totalCharts == 2 && i == 1)) {
 							updateUI('Saving temp file...\n');
-							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}');
+							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', false, true);
 						}
 					}
 					else {
@@ -283,10 +455,12 @@ class MergeChartState extends MusicBeatState
 			if (temp) {
 				if (rewrite) {
 					updateUI('Saving temp file...\n');
-					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp");
+					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp", false, true);
 				}
-				var finalJson = File.getContent(tempPath);
-				var finalObj = SongJson.parse(finalJson);
+				var bytes = File.getBytes(tempPath);
+				var serialized = bytes.toString();
+				var unserializer = new haxe.Unserializer(serialized);
+				var finalObj:Dynamic = unserializer.unserialize();
 				if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
 					finalChart = finalObj.song;
 				else
@@ -924,8 +1098,22 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false, useBinary:Bool = false):Void
 	{
+		if (useBinary)
+		{
+			var serializer = new haxe.Serializer();
+			serializer.serialize(chart);
+			var serialized = serializer.toString();
+			var bytes = haxe.io.Bytes.ofString(serialized);
+			var file = sys.io.File.write(path, false);
+			file.writeBytes(bytes, 0, bytes.length);
+			file.close();
+			if (!silent)
+				showMergingProgress(true, 'Writing ' + (message != null ? message : 'chart') + ' ... 100%', false);
+			return;
+		}
+
 		var file = sys.io.File.write(path, false);
 		var buffer = new StringBuf();
 		var flushCount = 0;
@@ -965,6 +1153,7 @@ class MergeChartState extends MusicBeatState
 		var totalItems:Int = totalNotes + totalEvents;
 		var processedItems:Int = 0;
 		var lastProgressUpdate = 0;
+		var progressUpdateThreshold:Int = totalItems > 1000000 ? 100000 : 1000;
 
 		function updateProgress():Void
 		{
@@ -972,7 +1161,7 @@ class MergeChartState extends MusicBeatState
 			if (totalItems > 0)
 			{
 				processedItems++;
-				if (processedItems - lastProgressUpdate >= 1000 || processedItems == totalItems)
+				if (processedItems - lastProgressUpdate >= progressUpdateThreshold || processedItems == totalItems)
 				{
 					var percent = Std.int((processedItems / totalItems) * 100);
 					showMergingProgress(true, 'Writing ' + message + ' ... $percent%', false);
@@ -1109,18 +1298,31 @@ class MergeChartState extends MusicBeatState
 		showMergingProgress(true, '\nFile written: $path\n', true);
 	}
 
+	private function convertBinaryToJson(binPath:String, jsonPath:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
+	{
+		var bytes = sys.io.File.getBytes(binPath);
+		var serialized = bytes.toString();
+		var unserializer = new haxe.Unserializer(serialized);
+		var chart:Dynamic = unserializer.unserialize();
+
+		saveChartFast(chart, jsonPath, hasWrapper, useIndentation);
+	}
+
 	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
-		var tempPath = "temp_final_merged.json";
+		var tempPath = "temp_final_merged.bin";
 
-		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final", false, true);
 
 		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
 			{
+				var jsonPath = path.substring(0, path.lastIndexOf('.')) + ".json";
+				convertBinaryToJson(tempPath, jsonPath, hasWrapper, indentation);
+				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Merge complete!\n", true);
-				trace("Chart saved to: " + path);
+				trace("Chart saved to: " + jsonPath);
 			},
 			function()
 			{
