@@ -185,8 +185,7 @@ class MergeChartState extends MusicBeatState
 				baseChart = baseObj;
 			SongJson.log = false;
 
-
-			var tempPath:String;
+			var tempPath:String = '';
 			if (temp) {
 				updateUI('Writing temp file...\n');
 				tempPath = 'temp_merged.json';
