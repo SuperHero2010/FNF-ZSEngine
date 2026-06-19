@@ -762,7 +762,7 @@ class MergeChartState extends MusicBeatState
 				sb.add('    [\n');
 				sb.add('        gfSection: ${Reflect.field(section, "gfSection")},\n');
 				sb.add('        altAnim: ${Reflect.field(section, "altAnim")},\n');
-				sb.add('        sectionNotes: ${Json.stringify(Reflect.field(section, "sectionNotes"))}\n');
+				sb.add('        sectionNotes: ${Json.stringify(Reflect.field(section, "sectionNotes"))},\n');
 				sb.add('        bpm: ${Reflect.field(section, "bpm")},\n');
 				sb.add('        sectionBeats: ${Reflect.field(section, "sectionBeats")},\n');
 				sb.add('        changeBPM: ${Reflect.field(section, "changeBPM")},\n');
