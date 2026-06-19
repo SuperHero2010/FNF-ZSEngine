@@ -12,6 +12,7 @@ import flixel.FlxSubState;
 
 import backend.Song;
 import backend.SongJson;
+import backend.MemoryUtil;
 import backend.ui.*;
 import states.editors.content.*;
 import states.editors.content.Prompt;
@@ -342,7 +343,7 @@ class MergeChartState extends MusicBeatState
 		try
 		{
 			#if cpp
-			cpp.vm.Gc.enable(false);
+			MemoryUtil.disable();
 			#end
 
 			updateUI('Loading first chart...\n');
@@ -526,8 +527,8 @@ class MergeChartState extends MusicBeatState
 			}, 0);
 
 			#if cpp
-			cpp.vm.Gc.enable(true);
-			cpp.vm.Gc.run(true);
+			MemoryUtil.enable();
+			MemoryUtil.collect(true);
 			#end
 
 			if (temp && rewrite && FileSystem.exists(tempPath))
@@ -638,7 +639,7 @@ class MergeChartState extends MusicBeatState
 		}
 
 		#if cpp
-		cpp.vm.Gc.enable(false);
+		MemoryUtil.disable();
 		#end
 
 		SongJson.log = true;
@@ -729,8 +730,8 @@ class MergeChartState extends MusicBeatState
 		saveMergedChart(finalChart, hasWrapper, indentation);
 
 		#if cpp
-		cpp.vm.Gc.enable(true);
-		cpp.vm.Gc.run(true);
+		MemoryUtil.enable();
+		MemoryUtil.collect(true);
 		#end
 
 		if (FileSystem.exists(tempPath))

@@ -34,7 +34,11 @@ class SongJson
 	#if cpp
 	static function withGCFreeZone(func:Void->Dynamic):Dynamic
 	{
-		cpp.vm.Gc.enterGCFreeZone();
+		var gcWasEnabled = cpp.vm.Gc.isEnabled();
+		if (gcWasEnabled) {
+			cpp.vm.Gc.enterGCFreeZone();
+		}
+
 		var error:Dynamic = null;
 		var result:Dynamic = null;
 		try {
@@ -42,7 +46,11 @@ class SongJson
 		} catch (e:Dynamic) {
 			error = e;
 		}
-		cpp.vm.Gc.exitGCFreeZone();
+
+		if (gcWasEnabled) {
+			cpp.vm.Gc.exitGCFreeZone();
+		}
+
 		if (error != null)
 			throw error;
 		return result;
