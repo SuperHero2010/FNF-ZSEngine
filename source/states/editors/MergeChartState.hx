@@ -1318,41 +1318,6 @@ class MergeChartState extends MusicBeatState
 		writeString("{");
 		if (useIndentation) writeString(newline);
 
-		function writeValue(value:Dynamic):Void
-		{
-			if (value == null)
-			{
-				writeString("null");
-				return;
-			}
-
-			if (Std.isOfType(value, String))
-			{
-				writeString('"' + escapeString(value) + '"');
-				return;
-			}
-
-			if (Std.isOfType(value, Bool))
-			{
-				writeString(value ? "true" : "false");
-				return;
-			}
-
-			if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
-			{
-				writeString(Std.string(value));
-				return;
-			}
-
-			if (Std.isOfType(value, Array))
-			{
-				writeArray(value);
-				return;
-			}
-
-			writeObject(value);
-		}
-
 		function writeArray(arr:Array<Dynamic>):Void
 		{
 			writeString("[");
@@ -1401,6 +1366,41 @@ class MergeChartState extends MusicBeatState
 				writeIndent(1);
 			}
 			writeString("}");
+		}
+
+		function writeValue(value:Dynamic):Void
+		{
+			if (value == null)
+			{
+				writeString("null");
+				return;
+			}
+
+			if (Std.isOfType(value, String))
+			{
+				writeString('"' + escapeString(value) + '"');
+				return;
+			}
+
+			if (Std.isOfType(value, Bool))
+			{
+				writeString(value ? "true" : "false");
+				return;
+			}
+
+			if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+			{
+				writeString(Std.string(value));
+				return;
+			}
+
+			if (Std.isOfType(value, Array))
+			{
+				writeArray(value);
+				return;
+			}
+
+			writeObject(value);
 		}
 
 		function writeField(name:String, value:Dynamic, level:Int, isFirst:Bool):Bool
