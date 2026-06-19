@@ -289,34 +289,35 @@ class MergeChartState extends MusicBeatState
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
 
-					var txtContent = File.getContent(tempPath);
-					var notesEndPos = txtContent.indexOf(']');
-					var eventsEndPos = txtContent.lastIndexOf(']');
+					var input = sys.io.File.read(tempPath, false);
+					var content = input.readAll().toString();
+					input.close();
+
+					var notesEndPos = content.indexOf(']');
+					var eventsEndPos = content.lastIndexOf(']');
 
 					if (notesEndPos > 0 && eventsEndPos > notesEndPos) {
-						var beforeNotes = txtContent.substring(0, notesEndPos);
-						var betweenArrays = txtContent.substring(notesEndPos + 1, eventsEndPos + 1);
-						var afterEvents = txtContent.substring(eventsEndPos + 1);
+						var output = sys.io.File.write(tempPath, false);
+						output.writeString(content.substring(0, notesEndPos));
 
-						var newNotesStr = "";
 						if (newNotes.length > 0) {
 							for (note in newNotes) {
-								newNotesStr += "\n    " + valueToTxt(note);
+								output.writeString("\n    ");
+								output.writeString(Json.stringify(note));
 							}
 						}
 
-						var newEventsStr = "";
+						output.writeString(content.substring(notesEndPos + 1, eventsEndPos + 1));
+
 						if (newEvents.length > 0) {
 							for (event in newEvents) {
-								newEventsStr += "\n    " + valueToTxt(event);
+								output.writeString("\n    ");
+								output.writeString(Json.stringify(event));
 							}
 						}
 
-						var newContent = beforeNotes + newNotesStr + betweenArrays + newEventsStr + afterEvents;
-
-						var outputFile = sys.io.File.write(tempPath, false);
-						outputFile.writeString(newContent);
-						outputFile.close();
+						output.writeString(content.substring(eventsEndPos + 1));
+						output.close();
 
 						updateUI('Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 					}
@@ -803,24 +804,30 @@ class MergeChartState extends MusicBeatState
 		if (Std.isOfType(value, Array))
 		{
 			var arr:Array<Dynamic> = cast value;
-			var result = "[";
+			var result = new StringBuf();
+			result.add("[");
 			for (i in 0...arr.length)
 			{
-				if (i > 0) result += ",";
-				result += valueToTxt(arr[i]);
+				if (i > 0) result.add(",");
+				result.add(valueToTxt(arr[i]));
 			}
-			return result + "]";
+			result.add("]");
+			return result.toString();
 		}
 		if (Reflect.isObject(value))
 		{
-			var result = "{";
+			var result = new StringBuf();
+			result.add("{");
 			var fields = Reflect.fields(value);
 			for (i in 0...fields.length)
 			{
-				if (i > 0) result += ",";
-				result += fields[i] + ":" + valueToTxt(Reflect.field(value, fields[i]));
+				if (i > 0) result.add(",");
+				result.add(fields[i]);
+				result.add(":");
+				result.add(valueToTxt(Reflect.field(value, fields[i])));
 			}
-			return result + "}";
+			result.add("}");
+			return result.toString();
 		}
 		return Json.stringify(value);
 	}
