@@ -1215,6 +1215,91 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
+	private function writeJsonValue(value:Dynamic, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
+	{
+		if (value == null)
+		{
+			writeStringFunc("null");
+			return;
+		}
+
+		if (Std.isOfType(value, String))
+		{
+			writeStringFunc('"' + escapeStringFunc(value) + '"');
+			return;
+		}
+
+		if (Std.isOfType(value, Bool))
+		{
+			writeStringFunc(value ? "true" : "false");
+			return;
+		}
+
+		if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+		{
+			writeStringFunc(Std.string(value));
+			return;
+		}
+
+		if (Std.isOfType(value, Array))
+		{
+			writeJsonArray(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
+			return;
+		}
+
+		writeJsonObject(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
+	}
+
+	private function writeJsonArray(arr:Array<Dynamic>, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
+	{
+		writeStringFunc("[");
+		for (i in 0...arr.length)
+		{
+			if (i > 0) writeStringFunc(",");
+			if (useIndentation)
+			{
+				writeStringFunc(newline);
+				writeIndentFunc(2);
+			}
+			writeJsonValue(arr[i], output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
+		}
+		if (useIndentation && arr.length > 0)
+		{
+			writeStringFunc(newline);
+			writeIndentFunc(1);
+		}
+		writeStringFunc("]");
+	}
+
+	private function writeJsonObject(obj:Dynamic, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
+	{
+		writeStringFunc("{");
+		var fields = Reflect.fields(obj);
+		var firstField = true;
+		for (field in fields)
+		{
+			var value = Reflect.field(obj, field);
+			if (value == null) continue;
+
+			if (!firstField) writeStringFunc(",");
+			if (useIndentation)
+			{
+				writeStringFunc(newline);
+				writeIndentFunc(2);
+			}
+			firstField = false;
+			writeStringFunc('"' + field + '":');
+			if (useIndentation) writeStringFunc(" ");
+			writeJsonValue(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
+		}
+		if (useIndentation && fields.length > 0)
+		{
+			writeStringFunc(newline);
+			writeIndentFunc(1);
+		}
+		writeStringFunc("}");
+	}
+
 	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
 	{
 		var output = new haxe.io.BytesOutput();
@@ -1318,91 +1403,6 @@ class MergeChartState extends MusicBeatState
 		writeString("{");
 		if (useIndentation) writeString(newline);
 
-		function writeArray(arr:Array<Dynamic>):Void
-		{
-			writeString("[");
-			for (i in 0...arr.length)
-			{
-				if (i > 0) writeString(",");
-				if (useIndentation)
-				{
-					writeString(newline);
-					writeIndent(2);
-				}
-				writeValue(arr[i]);
-			}
-			if (useIndentation && arr.length > 0)
-			{
-				writeString(newline);
-				writeIndent(1);
-			}
-			writeString("]");
-		}
-
-		function writeObject(obj:Dynamic):Void
-		{
-			writeString("{");
-			var fields = Reflect.fields(obj);
-			var firstField = true;
-			for (field in fields)
-			{
-				var value = Reflect.field(obj, field);
-				if (value == null) continue;
-
-				if (!firstField) writeString(",");
-				if (useIndentation)
-				{
-					writeString(newline);
-					writeIndent(2);
-				}
-				firstField = false;
-				writeString('"' + field + '":');
-				if (useIndentation) writeString(" ");
-				writeValue(value);
-			}
-			if (useIndentation && fields.length > 0)
-			{
-				writeString(newline);
-				writeIndent(1);
-			}
-			writeString("}");
-		}
-
-		function writeValue(value:Dynamic):Void
-		{
-			if (value == null)
-			{
-				writeString("null");
-				return;
-			}
-
-			if (Std.isOfType(value, String))
-			{
-				writeString('"' + escapeString(value) + '"');
-				return;
-			}
-
-			if (Std.isOfType(value, Bool))
-			{
-				writeString(value ? "true" : "false");
-				return;
-			}
-
-			if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
-			{
-				writeString(Std.string(value));
-				return;
-			}
-
-			if (Std.isOfType(value, Array))
-			{
-				writeArray(value);
-				return;
-			}
-
-			writeObject(value);
-		}
-
 		function writeField(name:String, value:Dynamic, level:Int, isFirst:Bool):Bool
 		{
 			if (value == null) return isFirst;
@@ -1436,7 +1436,7 @@ class MergeChartState extends MusicBeatState
 						writeString(newline);
 						writeIndent(level + 1);
 					}
-					writeValue(arr[i]);
+					writeJsonValue(arr[i], output, buffer, bufferSize, useIndentation, newline, writeString, writeIndent, escapeString);
 
 					if (name == "notes")
 					{
@@ -1463,7 +1463,7 @@ class MergeChartState extends MusicBeatState
 				writeString("]");
 			}
 			else
-				writeObject(value);
+				writeJsonObject(value, output, buffer, bufferSize, useIndentation, newline, writeString, writeIndent, escapeString);
 
 			return false;
 		}
