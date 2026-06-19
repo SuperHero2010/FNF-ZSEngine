@@ -171,6 +171,22 @@ class MergeChartState extends MusicBeatState
 	private var mergeProgress:Float = 0;
 	private var progressSubState:BasePrompt = null;
 
+	#if cpp
+	static function withGCFreeZone(func:Void->Void):Void
+	{
+		cpp.vm.Gc.enterGCFreeZone();
+		var error:Dynamic = null;
+		try {
+			func();
+		} catch (e:Dynamic) {
+			error = e;
+		}
+		cpp.vm.Gc.exitGCFreeZone();
+		if (error != null)
+			throw error;
+	}
+	#end
+
 	override function create()
 	{
 		mergeChartSave.bind("MergeChartState", CoolUtil.getSavePath());
@@ -401,16 +417,16 @@ class MergeChartState extends MusicBeatState
 						var newNotesV = cpp.VirtualArray.fromArray(newNotes);
 						var newEventsV = cpp.VirtualArray.fromArray(newEvents);
 
-						cpp.vm.Gc.enterGCFreeZone();
-						baseNotes = baseNotes.concat(newNotesV);
-						baseChart2.notes = baseNotes.toArray();
-						cpp.vm.Gc.exitGCFreeZone();
+						withGCFreeZone(function() {
+							baseNotes = baseNotes.concat(newNotesV);
+							baseChart2.notes = baseNotes.toArray();
+						});
 						updateUI('Merged ${newNotes.length} notes\n');
 
-						cpp.vm.Gc.enterGCFreeZone();
-						baseEvents = baseEvents.concat(newEventsV);
-						baseChart2.events = baseEvents.toArray();
-						cpp.vm.Gc.exitGCFreeZone();
+						withGCFreeZone(function() {
+							baseEvents = baseEvents.concat(newEventsV);
+							baseChart2.events = baseEvents.toArray();
+						});
 						#else
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
@@ -448,16 +464,16 @@ class MergeChartState extends MusicBeatState
 					var newNotesV = cpp.VirtualArray.fromArray(newNotes);
 					var newEventsV = cpp.VirtualArray.fromArray(newEvents);
 
-					cpp.vm.Gc.enterGCFreeZone();
-					baseNotes = baseNotes.concat(newNotesV);
-					baseChart.notes = baseNotes.toArray();
-					cpp.vm.Gc.exitGCFreeZone();
+					withGCFreeZone(function() {
+						baseNotes = baseNotes.concat(newNotesV);
+						baseChart.notes = baseNotes.toArray();
+					});
 					updateUI('Merged ${newNotes.length} notes\n');
 
-					cpp.vm.Gc.enterGCFreeZone();
-					baseEvents = baseEvents.concat(newEventsV);
-					baseChart.events = baseEvents.toArray();
-					cpp.vm.Gc.exitGCFreeZone();
+					withGCFreeZone(function() {
+						baseEvents = baseEvents.concat(newEventsV);
+						baseChart.events = baseEvents.toArray();
+					});
 					#else
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;

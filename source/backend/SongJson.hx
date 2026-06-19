@@ -31,16 +31,33 @@ import haxe.ds.Vector;
 
 class SongJson
 {
+	#if cpp
+	static function withGCFreeZone(func:Void->Dynamic):Dynamic
+	{
+		cpp.vm.Gc.enterGCFreeZone();
+		var error:Dynamic = null;
+		var result:Dynamic = null;
+		try {
+			result = func();
+		} catch (e:Dynamic) {
+			error = e;
+		}
+		cpp.vm.Gc.exitGCFreeZone();
+		if (error != null)
+			throw error;
+		return result;
+	}
+	#end
+
 	static public inline function parse(str:String):Dynamic
 	{
 		#if cpp
-		cpp.vm.Gc.enterGCFreeZone();
+		return withGCFreeZone(function() {
+			return new SongJson(str).doParse();
+		});
+		#else
+		return new SongJson(str).doParse();
 		#end
-		var result = new SongJson(str).doParse();
-		#if cpp
-		cpp.vm.Gc.exitGCFreeZone();
-		#end
-		return result;
 	}
 
 	var str:String;
