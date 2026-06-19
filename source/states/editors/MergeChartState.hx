@@ -22,134 +22,6 @@ import sys.FileSystem;
 import sys.io.File;
 import sys.thread.Thread;
 
-class FastJsonPrinter
-{
-	var output:haxe.io.BytesOutput;
-	var useIndentation:Bool;
-	var indentLevel:Int;
-	var first:Bool;
-
-	public function new(output:haxe.io.BytesOutput, useIndentation:Bool = false)
-	{
-		this.output = output;
-		this.useIndentation = useIndentation;
-		this.indentLevel = 0;
-		this.first = true;
-	}
-
-	public function print(value:Dynamic):Void
-	{
-		printValue(value);
-	}
-
-	function printValue(value:Dynamic):Void
-	{
-		if (value == null)
-		{
-			output.writeString("null");
-			return;
-		}
-
-		if (Std.isOfType(value, String))
-		{
-			output.writeString('"' + escapeString(value) + '"');
-			return;
-		}
-
-		if (Std.isOfType(value, Bool))
-		{
-			output.writeString(value ? "true" : "false");
-			return;
-		}
-
-		if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
-		{
-			output.writeString(Std.string(value));
-			return;
-		}
-
-		if (Std.isOfType(value, Array))
-		{
-			printArray(value);
-			return;
-		}
-
-		if (Reflect.isObject(value))
-		{
-			printObject(value);
-			return;
-		}
-
-		output.writeString(Json.stringify(value));
-	}
-
-	function printArray(arr:Array<Dynamic>):Void
-	{
-		output.writeString("[");
-		indentLevel++;
-		var firstItem = true;
-		for (i in 0...arr.length)
-		{
-			if (!firstItem) output.writeString(",");
-			if (useIndentation) output.writeString("\n" + indentString());
-			firstItem = false;
-			printValue(arr[i]);
-		}
-		indentLevel--;
-		if (useIndentation && arr.length > 0) output.writeString("\n" + indentString());
-		output.writeString("]");
-	}
-
-	function printObject(obj:Dynamic):Void
-	{
-		output.writeString("{");
-		indentLevel++;
-		var firstField = true;
-		var fields = Reflect.fields(obj);
-		for (field in fields)
-		{
-			var value = Reflect.field(obj, field);
-			if (value == null) continue;
-
-			if (!firstField) output.writeString(",");
-			if (useIndentation) output.writeString("\n" + indentString());
-			firstField = false;
-			output.writeString('"' + field + '":');
-			if (useIndentation) output.writeString(" ");
-			printValue(value);
-		}
-		indentLevel--;
-		if (useIndentation && fields.length > 0) output.writeString("\n" + indentString());
-		output.writeString("}");
-	}
-
-	function indentString():String
-	{
-		var str = "";
-		for (i in 0...indentLevel) str += "\t";
-		return str;
-	}
-
-	function escapeString(str:String):String
-	{
-		var buf = new StringBuf();
-		for (i in 0...str.length)
-		{
-			var c = str.charAt(i);
-			switch(c)
-			{
-				case '"': buf.add('\\"');
-				case '\\': buf.add('\\\\');
-				case '\n': buf.add('\\n');
-				case '\r': buf.add('\\r');
-				case '\t': buf.add('\\t');
-				default: buf.add(c);
-			}
-		}
-		return buf.toString();
-	}
-}
-
 class MergeChartState extends MusicBeatState
 {
 	private var chartBoxes:Array<ChartBox> = [];
@@ -165,28 +37,14 @@ class MergeChartState extends MusicBeatState
 	var tempCheckbox:PsychUICheckBox;
 	var rewrite:Bool = false;
 	var rewriteCheckbox:PsychUICheckBox;
+	var convertToTxt:Bool = false;
+	var convertToTxtCheckbox:PsychUICheckBox;
 
 	static public var mergeThread:sys.thread.Thread;
 	private var mergeComplete:Bool = false;
 	private var mergeError:String = null;
 	private var mergeProgress:Float = 0;
 	private var progressSubState:BasePrompt = null;
-
-	#if cpp
-	static function withGCFreeZone(func:Void->Void):Void
-	{
-		cpp.vm.Gc.enterGCFreeZone();
-		var error:Dynamic = null;
-		try {
-			func();
-		} catch (e:Dynamic) {
-			error = e;
-		}
-		cpp.vm.Gc.exitGCFreeZone();
-		if (error != null)
-			throw error;
-	}
-	#end
 
 	override function create()
 	{
@@ -269,6 +127,15 @@ class MergeChartState extends MusicBeatState
 		rewrite = rewriteCheckbox.checked;
 		add(rewriteCheckbox);
 
+		convertToTxtCheckbox = new PsychUICheckBox(20, backButton.y - 120, "Convert to TXT", 200, function() {
+			mergeChartSave.data.convertToTxt = convertToTxtCheckbox.checked;
+			mergeChartSave.flush();
+			convertToTxt = convertToTxtCheckbox.checked;
+		});
+		convertToTxtCheckbox.checked = (mergeChartSave.data.convertToTxt == true);
+		convertToTxt = convertToTxtCheckbox.checked;
+		add(convertToTxtCheckbox);
+
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
 		fileDialog.onComplete = onFileSelected;
@@ -279,55 +146,13 @@ class MergeChartState extends MusicBeatState
 		temp = mergeChartSave.data.temp;
 		if (mergeChartSave.data.rewrite == null) mergeChartSave.data.rewrite = false;
 		rewrite = mergeChartSave.data.rewrite;
+		if (mergeChartSave.data.convertToTxt == null) mergeChartSave.data.convertToTxt = false;
+		convertToTxt = mergeChartSave.data.convertToTxt;
 	}
 
 	private function callLater(callback:Void->Void, delay:Float):Void
 	{
 		new FlxTimer().start(delay, function(_) { callback(); });
-	}
-
-	private function saveChartFast(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
-	{
-		var output = new haxe.io.BytesOutput();
-		var printer = new FastJsonPrinter(output, useIndentation);
-
-		if (hasWrapper)
-		{
-			output.writeString('{"song":');
-			if (useIndentation) output.writeString("\n\t");
-		}
-
-		var chartObj:Dynamic = {};
-		chartObj.song = chart.song;
-		chartObj.notes = chart.notes;
-		chartObj.events = chart.events != null ? chart.events : [];
-		chartObj.bpm = chart.bpm;
-		chartObj.needsVoices = chart.needsVoices;
-		chartObj.speed = chart.speed;
-		chartObj.offset = chart.offset;
-		chartObj.player1 = chart.player1;
-		chartObj.player2 = chart.player2;
-		chartObj.gfVersion = chart.gfVersion;
-		chartObj.stage = chart.stage;
-		chartObj.format = chart.format;
-
-		if (Reflect.hasField(chart, "arrowSkin")) chartObj.arrowSkin = chart.arrowSkin;
-		if (Reflect.hasField(chart, "splashSkin")) chartObj.splashSkin = chart.splashSkin;
-		if (Reflect.hasField(chart, "gameOverChar")) chartObj.gameOverChar = chart.gameOverChar;
-		if (Reflect.hasField(chart, "gameOverSound")) chartObj.gameOverSound = chart.gameOverSound;
-		if (Reflect.hasField(chart, "gameOverLoop")) chartObj.gameOverLoop = chart.gameOverLoop;
-		if (Reflect.hasField(chart, "gameOverEnd")) chartObj.gameOverEnd = chart.gameOverEnd;
-		if (Reflect.hasField(chart, "disableNoteRGB")) chartObj.disableNoteRGB = chart.disableNoteRGB;
-
-		printer.print(chartObj);
-
-		if (hasWrapper)
-		{
-			if (useIndentation) output.writeString("\n");
-			output.writeString("}");
-		}
-
-		sys.io.File.saveBytes(path, output.getBytes());
 	}
 
 	private function mergeChartsThread(chartPaths:Array<String>):Void
@@ -361,10 +186,19 @@ class MergeChartState extends MusicBeatState
 			SongJson.log = false;
 
 
-			var tempPath = "temp_merged.bin";
+			var tempPath:String;
 			if (temp) {
 				updateUI('Writing temp file...\n');
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base", false, true);
+				tempPath = 'temp_merged.json';
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base", false);
+			}
+			else if (convertToTxt) {
+				updateUI('Converting to TXT format...\n');
+				tempPath = 'temp_merged.txt';
+				var txtContent = convertToTxtFormat(baseChart, hasWrapper);
+				var outputFile = sys.io.File.write(tempPath, false);
+				outputFile.writeString(txtContent);
+				outputFile.close();
 			}
 
 			var totalCharts:Int = chartPaths.length;
@@ -376,15 +210,19 @@ class MergeChartState extends MusicBeatState
 				updateUI(progressMsg);
 
 				if (temp) {
-					var bytes = File.getBytes(tempPath);
-					var serialized = bytes.toString();
-					var unserializer = new haxe.Unserializer(serialized);
-					var baseObj2:Dynamic = unserializer.unserialize();
+					SongJson.log = true;
+					var baseJson = File.getContent(tempPath);
+					var baseObj2 = SongJson.parse(baseJson);
 
 					if (baseObj2.song != null && Std.isOfType(baseObj2.song, Dynamic))
 						baseChart2 = baseObj2.song;
 					else
 						baseChart2 = baseObj2;
+					SongJson.log = false;
+				}
+				else if (convertToTxt) {
+					var txtContent = File.getContent(tempPath);
+					baseChart2 = txtContent;
 				}
 
 				SongJson.log = true;
@@ -418,16 +256,12 @@ class MergeChartState extends MusicBeatState
 						var newNotesV = cpp.VirtualArray.fromArray(newNotes);
 						var newEventsV = cpp.VirtualArray.fromArray(newEvents);
 
-						withGCFreeZone(function() {
-							baseNotes = baseNotes.concat(newNotesV);
-							baseChart2.notes = baseNotes.toArray();
-						});
+						baseNotes = baseNotes.concat(newNotesV);
+						baseChart2.notes = baseNotes.toArray();
 						updateUI('Merged ${newNotes.length} notes\n');
 
-						withGCFreeZone(function() {
-							baseEvents = baseEvents.concat(newEventsV);
-							baseChart2.events = baseEvents.toArray();
-						});
+						baseEvents = baseEvents.concat(newEventsV);
+						baseChart2.events = baseEvents.toArray();
 						#else
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
@@ -442,12 +276,50 @@ class MergeChartState extends MusicBeatState
 
 						if (!(totalCharts == 2 && i == 1)) {
 							updateUI('Saving temp file...\n');
-							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', false, true);
+							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', false);
 						}
 					}
 					else {
 						updateUI('Appending chart ${i + 1}...\n');
 						appendChartToTempFile(tempPath, nextChart, hasWrapper, i + 1, indentation);
+					}
+				}
+				else if (convertToTxt) {
+					updateUI('Appending to TXT format...\n');
+
+					var newNotes = extractNewNotesFromChart(nextChart);
+					var newEvents = extractNewEventsFromChart(nextChart);
+
+					var txtContent = File.getContent(tempPath);
+					var notesEndPos = txtContent.indexOf(']');
+					var eventsEndPos = txtContent.lastIndexOf(']');
+
+					if (notesEndPos > 0 && eventsEndPos > notesEndPos) {
+						var beforeNotes = txtContent.substring(0, notesEndPos);
+						var betweenArrays = txtContent.substring(notesEndPos + 1, eventsEndPos + 1);
+						var afterEvents = txtContent.substring(eventsEndPos + 1);
+
+						var newNotesStr = "";
+						if (newNotes.length > 0) {
+							for (note in newNotes) {
+								newNotesStr += "\n    " + valueToTxt(note);
+							}
+						}
+
+						var newEventsStr = "";
+						if (newEvents.length > 0) {
+							for (event in newEvents) {
+								newEventsStr += "\n    " + valueToTxt(event);
+							}
+						}
+
+						var newContent = beforeNotes + newNotesStr + betweenArrays + newEventsStr + afterEvents;
+
+						var outputFile = sys.io.File.write(tempPath, false);
+						outputFile.writeString(newContent);
+						outputFile.close();
+
+						updateUI('Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 					}
 				}
 				else {
@@ -465,16 +337,12 @@ class MergeChartState extends MusicBeatState
 					var newNotesV = cpp.VirtualArray.fromArray(newNotes);
 					var newEventsV = cpp.VirtualArray.fromArray(newEvents);
 
-					withGCFreeZone(function() {
-						baseNotes = baseNotes.concat(newNotesV);
-						baseChart.notes = baseNotes.toArray();
-					});
+					baseNotes = baseNotes.concat(newNotesV);
+					baseChart.notes = baseNotes.toArray();
 					updateUI('Merged ${newNotes.length} notes\n');
 
-					withGCFreeZone(function() {
-						baseEvents = baseEvents.concat(newEventsV);
-						baseChart.events = baseEvents.toArray();
-					});
+					baseEvents = baseEvents.concat(newEventsV);
+					baseChart.events = baseEvents.toArray();
 					#else
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
@@ -499,19 +367,34 @@ class MergeChartState extends MusicBeatState
 			updateUI('Finalizing...\n');
 
 			var finalChart:Dynamic;
-			if (temp) {
-				if (rewrite) {
-					updateUI('Saving temp file...\n');
-					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp", false, true);
-				}
-				var bytes = File.getBytes(tempPath);
-				var serialized = bytes.toString();
-				var unserializer = new haxe.Unserializer(serialized);
-				var finalObj:Dynamic = unserializer.unserialize();
+			if (convertToTxt) {
+				updateUI('Loading TXT temp file...\n');
+				var txtContent = File.getContent(tempPath);
+				var finalObj = convertToJsonFormat(txtContent);
 				if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
 					finalChart = finalObj.song;
 				else
 					finalChart = finalObj;
+			}
+			else if (temp) {
+				if (rewrite) {
+					updateUI('Saving temp file...\n');
+					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp", false);
+					var baseData = File.getContent(tempPath);
+					var baseObj = SongJson.parse(baseData);
+					if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
+						finalChart = baseObj.song;
+					else
+						finalChart = baseObj;
+				}
+				else {
+					var baseData = File.getContent(tempPath);
+					var baseObj = SongJson.parse(baseData);
+					if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
+						finalChart = baseObj.song;
+					else
+						finalChart = baseObj;
+				}
 			}
 			else {
 				finalChart = baseChart;
@@ -523,7 +406,7 @@ class MergeChartState extends MusicBeatState
 					updateUI('ERROR: finalChart is null, cannot save merged chart\n');
 					return;
 				}
-				saveMergedChart(finalChart, hasWrapper, indentation);
+				saveMergedChart(finalChart, hasWrapper, indentation, convertToTxt);
 			}, 0);
 
 			#if cpp
@@ -849,6 +732,193 @@ class MergeChartState extends MusicBeatState
 		}
 	}
 
+	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
+	{
+		var sb = new StringBuf();
+
+		if (hasWrapper) {
+			sb.add('songWrapper: true\n');
+			sb.add('speed: ${Reflect.field(chart, "speed")}\n');
+			sb.add('bpm: ${Reflect.field(chart, "bpm")}\n');
+			sb.add('stage: "${Reflect.field(chart, "stage")}"\n');
+			sb.add('player1: "${Reflect.field(chart, "player1")}"\n');
+			sb.add('player2: "${Reflect.field(chart, "player2")}"\n');
+			sb.add('events: ${Json.stringify(Reflect.field(chart, "events"))}\n');
+		} else {
+			sb.add('songWrapper: false\n');
+			sb.add('speed: ${Reflect.field(chart, "speed")}\n');
+			sb.add('bpm: ${Reflect.field(chart, "bpm")}\n');
+			sb.add('stage: "${Reflect.field(chart, "stage")}"\n');
+			sb.add('player1: "${Reflect.field(chart, "player1")}"\n');
+			sb.add('player2: "${Reflect.field(chart, "player2")}"\n');
+			sb.add('events: ${Json.stringify(Reflect.field(chart, "events"))}\n');
+		}
+
+		sb.add('notes: [\n');
+		var notes = Reflect.field(chart, "notes");
+		if (notes != null) {
+			for (i in 0...notes.length) {
+				var section = notes[i];
+				sb.add('    [\n');
+				sb.add('        gfSection: ${Reflect.field(section, "gfSection")},\n');
+				sb.add('        altAnim: ${Reflect.field(section, "altAnim")},\n');
+				sb.add('        sectionNotes: ${Json.stringify(Reflect.field(section, "sectionNotes"))}\n');
+				sb.add('        bpm: ${Reflect.field(section, "bpm")},\n');
+				sb.add('        sectionBeats: ${Reflect.field(section, "sectionBeats")},\n');
+				sb.add('        changeBPM: ${Reflect.field(section, "changeBPM")},\n');
+				sb.add('        mustHitSection: ${Reflect.field(section, "mustHitSection")}\n');
+				sb.add('    ]');
+				if (i < notes.length - 1) sb.add(',\n');
+				else sb.add('\n');
+			}
+		}
+		sb.add(']\n');
+
+		if (hasWrapper) {
+			sb.add('gfVersion: "${Reflect.field(chart, "gfVersion")}"\n');
+			sb.add('format: "psych_v1"\n');
+			sb.add('bpm: ${Reflect.field(chart, "bpm")}\n');
+			sb.add('needsVoices: ${Reflect.field(chart, "needsVoices")}\n');
+			sb.add('song: "${Reflect.field(chart, "song")}"\n');
+			sb.add('offset: ${Reflect.field(chart, "offset")}\n');
+		} else {
+			sb.add('gfVersion: "${Reflect.field(chart, "gfVersion")}"\n');
+			sb.add('bpm: ${Reflect.field(chart, "bpm")}\n');
+			sb.add('needsVoices: ${Reflect.field(chart, "needsVoices")}\n');
+			sb.add('song: "${Reflect.field(chart, "song")}"\n');
+		}
+
+		return sb.toString();
+	}
+
+	private function valueToTxt(value:Dynamic):String
+	{
+		if (value == null)
+			return "null";
+		if (Std.isOfType(value, String))
+			return '"' + value + '"';
+		if (Std.isOfType(value, Bool))
+			return value ? "true" : "false";
+		if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+			return Std.string(value);
+		if (Std.isOfType(value, Array))
+		{
+			var arr:Array<Dynamic> = cast value;
+			var result = "[";
+			for (i in 0...arr.length)
+			{
+				if (i > 0) result += ",";
+				result += valueToTxt(arr[i]);
+			}
+			return result + "]";
+		}
+		if (Reflect.isObject(value))
+		{
+			var result = "{";
+			var fields = Reflect.fields(value);
+			for (i in 0...fields.length)
+			{
+				if (i > 0) result += ",";
+				result += fields[i] + ":" + valueToTxt(Reflect.field(value, fields[i]));
+			}
+			return result + "}";
+		}
+		return Json.stringify(value);
+	}
+
+	private function convertToJsonFormat(txtContent:String):Dynamic
+	{
+		var lines = txtContent.split('\n');
+		var result:Dynamic = {};
+		var songWrapper:Bool = false;
+		var inNotesArray = false;
+		var inSection = false;
+		var currentSection:Dynamic = null;
+		var notesArray:Array<Dynamic> = [];
+		var sectionNotesStr = "";
+
+		for (line in lines) {
+			line = StringTools.trim(line);
+			if (line.length == 0) continue;
+
+			if (line.startsWith('songWrapper:')) {
+				songWrapper = line.substring(13) == 'true';
+				continue;
+			}
+
+			if (line == 'notes: [') {
+				inNotesArray = true;
+				continue;
+			}
+
+			if (line == ']') {
+				if (inSection) {
+					if (sectionNotesStr.length > 0) {
+						Reflect.setField(currentSection, "sectionNotes", Json.parse(sectionNotesStr));
+					}
+					notesArray.push(currentSection);
+					currentSection = null;
+					inSection = false;
+					sectionNotesStr = "";
+				}
+				if (inNotesArray) {
+					inNotesArray = false;
+					Reflect.setField(result, "notes", notesArray);
+				}
+				continue;
+			}
+
+			if (inNotesArray) {
+				if (line == '[') {
+					inSection = true;
+					currentSection = {};
+					continue;
+				}
+
+				if (inSection) {
+					if (line.startsWith('sectionNotes:')) {
+						sectionNotesStr = line.substring(13);
+					} else if (line.indexOf(':') > 0) {
+						var parts = line.split(':');
+						var key = StringTools.trim(parts[0]);
+						var value = StringTools.trim(parts[1]);
+						if (value.endsWith(',')) value = value.substring(0, value.length - 1);
+
+						if (value == 'true') Reflect.setField(currentSection, key, true);
+						else if (value == 'false') Reflect.setField(currentSection, key, false);
+						else if (value.startsWith('"')) Reflect.setField(currentSection, key, value.substring(1, value.length - 1));
+						else Reflect.setField(currentSection, key, Std.parseInt(value));
+					}
+				}
+			} else {
+				if (line.indexOf(':') > 0) {
+					var parts = line.split(':');
+					var key = StringTools.trim(parts[0]);
+					var value = StringTools.trim(parts[1]);
+
+					if (value.startsWith('[') || value.startsWith('{')) {
+						Reflect.setField(result, key, Json.parse(value));
+					} else if (value == 'true') {
+						Reflect.setField(result, key, true);
+					} else if (value == 'false') {
+						Reflect.setField(result, key, false);
+					} else if (value.startsWith('"')) {
+						Reflect.setField(result, key, value.substring(1, value.length - 1));
+					} else {
+						Reflect.setField(result, key, Std.parseInt(value));
+					}
+				}
+			}
+		}
+
+		if (songWrapper) {
+			var wrapped:Dynamic = {};
+			Reflect.setField(wrapped, "song", result);
+			return wrapped;
+		}
+		return result;
+	}
+
 	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int, message:String):Void
 	{
 		var bufferSize = 65536;
@@ -1145,32 +1215,17 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false, useBinary:Bool = false):Void
+	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
 	{
-		if (useBinary)
-		{
-			var serializer = new haxe.Serializer();
-			serializer.serialize(chart);
-			var serialized = serializer.toString();
-			var bytes = haxe.io.Bytes.ofString(serialized);
-			var file = sys.io.File.write(path, false);
-			file.writeBytes(bytes, 0, bytes.length);
-			file.close();
-			if (!silent)
-				showMergingProgress(true, 'Writing ' + (message != null ? message : 'chart') + ' ... 100%', false);
-			return;
-		}
-
-		var file = sys.io.File.write(path, false);
+		var output = new haxe.io.BytesOutput();
 		var buffer = new StringBuf();
-		var flushCount = 0;
-		var flushThreshold = 1000;
+		var bufferSize = 65536;
 
 		function flushBuffer():Void
 		{
 			if (buffer.length > 0)
 			{
-				file.writeString(buffer.toString());
+				output.writeString(buffer.toString());
 				buffer = new StringBuf();
 			}
 		}
@@ -1178,12 +1233,37 @@ class MergeChartState extends MusicBeatState
 		function writeString(str:String):Void
 		{
 			buffer.add(str);
-			flushCount++;
-			if (flushCount >= flushThreshold)
+			if (buffer.length >= bufferSize)
 			{
 				flushBuffer();
-				flushCount = 0;
 			}
+		}
+
+		function escapeString(str:String):String
+		{
+			var buf = new StringBuf();
+			for (i in 0...str.length)
+			{
+				var c = str.charCodeAt(i);
+				switch(c)
+				{
+					case 34: buf.add('\\"');
+					case 92: buf.add('\\\\');
+					case 10: buf.add('\\n');
+					case 13: buf.add('\\r');
+					case 9: buf.add('\\t');
+					default:
+						if (c < 32)
+						{
+							buf.add('\\u');
+							var hex = StringTools.hex(c, 4);
+							buf.add(hex);
+						}
+						else
+							buf.add(str.charAt(i));
+				}
+			}
+			return buf.toString();
 		}
 
 		var totalNotes:Int = 0;
@@ -1217,7 +1297,6 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		var indent = useIndentation ? "\t" : "";
 		var newline = useIndentation ? "\n" : "";
 
 		function writeIndent(level:Int):Void
@@ -1239,6 +1318,91 @@ class MergeChartState extends MusicBeatState
 		writeString("{");
 		if (useIndentation) writeString(newline);
 
+		function writeValue(value:Dynamic):Void
+		{
+			if (value == null)
+			{
+				writeString("null");
+				return;
+			}
+
+			if (Std.isOfType(value, String))
+			{
+				writeString('"' + escapeString(value) + '"');
+				return;
+			}
+
+			if (Std.isOfType(value, Bool))
+			{
+				writeString(value ? "true" : "false");
+				return;
+			}
+
+			if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
+			{
+				writeString(Std.string(value));
+				return;
+			}
+
+			if (Std.isOfType(value, Array))
+			{
+				writeArray(value);
+				return;
+			}
+
+			writeObject(value);
+		}
+
+		function writeArray(arr:Array<Dynamic>):Void
+		{
+			writeString("[");
+			for (i in 0...arr.length)
+			{
+				if (i > 0) writeString(",");
+				if (useIndentation)
+				{
+					writeString(newline);
+					writeIndent(2);
+				}
+				writeValue(arr[i]);
+			}
+			if (useIndentation && arr.length > 0)
+			{
+				writeString(newline);
+				writeIndent(1);
+			}
+			writeString("]");
+		}
+
+		function writeObject(obj:Dynamic):Void
+		{
+			writeString("{");
+			var fields = Reflect.fields(obj);
+			var firstField = true;
+			for (field in fields)
+			{
+				var value = Reflect.field(obj, field);
+				if (value == null) continue;
+
+				if (!firstField) writeString(",");
+				if (useIndentation)
+				{
+					writeString(newline);
+					writeIndent(2);
+				}
+				firstField = false;
+				writeString('"' + field + '":');
+				if (useIndentation) writeString(" ");
+				writeValue(value);
+			}
+			if (useIndentation && fields.length > 0)
+			{
+				writeString(newline);
+				writeIndent(1);
+			}
+			writeString("}");
+		}
+
 		function writeField(name:String, value:Dynamic, level:Int, isFirst:Bool):Bool
 		{
 			if (value == null) return isFirst;
@@ -1255,21 +1419,24 @@ class MergeChartState extends MusicBeatState
 				writeString(" ");
 
 			if (Std.isOfType(value, String))
-				writeString('"' + value + '"');
+				writeString('"' + escapeString(value) + '"');
 			else if (Std.isOfType(value, Bool))
 				writeString(value ? "true" : "false");
 			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
 				writeString(Std.string(value));
 			else if (Std.isOfType(value, Array))
 			{
-				writeString("[");
 				var arr:Array<Dynamic> = cast value;
+				writeString("[");
 				for (i in 0...arr.length)
 				{
 					if (i > 0) writeString(",");
-					if (useIndentation) writeString(newline);
-					writeIndent(level + 1);
-					writeString(Json.stringify(arr[i]));
+					if (useIndentation)
+					{
+						writeString(newline);
+						writeIndent(level + 1);
+					}
+					writeValue(arr[i]);
 
 					if (name == "notes")
 					{
@@ -1288,12 +1455,15 @@ class MergeChartState extends MusicBeatState
 						updateProgress();
 					}
 				}
-				if (useIndentation && arr.length > 0) writeString(newline);
-				writeIndent(level);
+				if (useIndentation && arr.length > 0)
+				{
+					writeString(newline);
+					writeIndent(level);
+				}
 				writeString("]");
 			}
 			else
-				writeString(Json.stringify(value));
+				writeObject(value);
 
 			return false;
 		}
@@ -1340,36 +1510,38 @@ class MergeChartState extends MusicBeatState
 		}
 
 		flushBuffer();
+		var file = sys.io.File.write(path, false);
+		file.write(output.getBytes());
 		file.close();
 
 		showMergingProgress(true, '\nFile written: $path\n', true);
 	}
 
-	private function convertBinaryToJson(binPath:String, jsonPath:String, hasWrapper:Bool = true, useIndentation:Bool = false):Void
-	{
-		var bytes = sys.io.File.getBytes(binPath);
-		var serialized = bytes.toString();
-		var unserializer = new haxe.Unserializer(serialized);
-		var chart:Dynamic = unserializer.unserialize();
-
-		saveChartFast(chart, jsonPath, hasWrapper, useIndentation);
-	}
-
-	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false):Void
+	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false, txt:Bool = false):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
-		var tempPath = "temp_final_merged.bin";
+		var tempPath:String;
 
-		saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final", false, true);
+		if (!txt) {
+			tempPath = "temp_final_merged.json";
+			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+		}
+		else {
+			tempPath = "temp_final_merged.txt";
+			var txtContent = convertToTxtFormat(chart, hasWrapper);
+			var outputFile = sys.io.File.write(tempPath, false);
+			outputFile.writeString(txtContent);
+			tempPath = "temp_final_merged.json";
+			var jsonContent = convertToJsonFormat(txtContent);
+			saveChartStreaming(jsonContent, tempPath, hasWrapper, indentation, "final");
+			outputFile.close();
+		}
 
 		fileDialog.saveFile(tempPath, defaultName,
 			function(path:String)
 			{
-				var jsonPath = path.substring(0, path.lastIndexOf('.')) + ".json";
-				convertBinaryToJson(tempPath, jsonPath, hasWrapper, indentation);
-				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
 				showMergingProgress(false, "Merge complete!\n", true);
-				trace("Chart saved to: " + jsonPath);
+				trace("Chart saved to: " + path);
 			},
 			function()
 			{
