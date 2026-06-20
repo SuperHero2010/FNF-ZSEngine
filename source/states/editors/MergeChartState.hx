@@ -249,26 +249,12 @@ class MergeChartState extends MusicBeatState
 						var newNotes = extractNewNotesFromChart(nextChart);
 						var newEvents = extractNewEventsFromChart(nextChart);
 
-						#if cpp
-						var baseNotes = cpp.VirtualArray.fromArray(cast baseChart2.notes);
-						var baseEvents = cpp.VirtualArray.fromArray(cast baseChart2.events);
-						var newNotesV = cpp.VirtualArray.fromArray(newNotes);
-						var newEventsV = cpp.VirtualArray.fromArray(newEvents);
-
-						baseNotes = baseNotes.concat(newNotesV);
-						baseChart2.notes = baseNotes.toArray();
-						updateUI('Merged ${newNotes.length} notes\n');
-
-						baseEvents = baseEvents.concat(newEventsV);
-						baseChart2.events = baseEvents.toArray();
-						#else
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
 						baseNotes = baseNotes.concat(newNotes);
 						baseChart2.notes = baseNotes;
 						baseEvents = baseEvents.concat(newEvents);
 						baseChart2.events = baseEvents;
-						#end
 						updateUI('Merged ${newEvents.length} events\n');
 
 						updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -293,30 +279,49 @@ class MergeChartState extends MusicBeatState
 					var content = input.readAll().toString();
 					input.close();
 
-					var notesEndPos = content.indexOf(']');
-					var eventsEndPos = content.lastIndexOf(']');
+					var notesArrayStart = content.indexOf('notes: [');
+					var eventsArrayStart = content.indexOf('events:');
 
-					if (notesEndPos > 0 && eventsEndPos > notesEndPos) {
+					if (notesArrayStart > 0 && eventsArrayStart > notesArrayStart) {
+						var beforeNotes = content.substring(0, notesArrayStart + 8);
+						var notesContent = content.substring(notesArrayStart + 8, eventsArrayStart);
+						var afterEvents = content.substring(eventsArrayStart);
+
+						var notesEndBracket = notesContent.lastIndexOf(']');
+						var notesArrayContent = notesContent.substring(0, notesEndBracket);
+
+						var eventsArrayBracket = afterEvents.indexOf('[');
+						var eventsEndBracket = afterEvents.lastIndexOf(']');
+						var eventsArrayContent = afterEvents.substring(eventsArrayBracket + 1, eventsEndBracket);
+
 						var output = sys.io.File.write(tempPath, false);
-						output.writeString(content.substring(0, notesEndPos));
+						output.writeString(beforeNotes);
+						output.writeString(notesArrayContent);
 
 						if (newNotes.length > 0) {
-							for (note in newNotes) {
+							for (i in 0...newNotes.length) {
+								var note = newNotes[i];
+								if (i > 0 || notesArrayContent.length > 0) output.writeString(",");
 								output.writeString("\n    ");
 								output.writeString(Json.stringify(note));
 							}
 						}
 
-						output.writeString(content.substring(notesEndPos + 1, eventsEndPos + 1));
+						output.writeString("]\n");
+						output.writeString(afterEvents.substring(0, eventsArrayBracket + 1));
+						output.writeString(eventsArrayContent);
 
 						if (newEvents.length > 0) {
-							for (event in newEvents) {
+							for (i in 0...newEvents.length) {
+								var event = newEvents[i];
+								if (i > 0 || eventsArrayContent.length > 0) output.writeString(",");
 								output.writeString("\n    ");
 								output.writeString(Json.stringify(event));
 							}
 						}
 
-						output.writeString(content.substring(eventsEndPos + 1));
+						output.writeString("\n]");
+						output.writeString(afterEvents.substring(eventsEndBracket + 1));
 						output.close();
 
 						updateUI('Appended ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -331,26 +336,12 @@ class MergeChartState extends MusicBeatState
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
 
-					#if cpp
-					var baseNotes = cpp.VirtualArray.fromArray(cast baseChart.notes);
-					var baseEvents = cpp.VirtualArray.fromArray(cast baseChart.events);
-					var newNotesV = cpp.VirtualArray.fromArray(newNotes);
-					var newEventsV = cpp.VirtualArray.fromArray(newEvents);
-
-					baseNotes = baseNotes.concat(newNotesV);
-					baseChart.notes = baseNotes.toArray();
-					updateUI('Merged ${newNotes.length} notes\n');
-
-					baseEvents = baseEvents.concat(newEventsV);
-					baseChart.events = baseEvents.toArray();
-					#else
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
 					baseNotes = baseNotes.concat(newNotes);
 					baseChart.notes = baseNotes;
 					baseEvents = baseEvents.concat(newEvents);
 					baseChart.events = baseEvents;
-					#end
 					updateUI('Merged ${newEvents.length} events\n');
 
 					updateUI('Merged ${newNotes.length} notes and ${newEvents.length} events\n');
@@ -1221,102 +1212,18 @@ class MergeChartState extends MusicBeatState
 		return rawData;
 	}
 
-	private function writeJsonValue(value:Dynamic, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
-	{
-		if (value == null)
-		{
-			writeStringFunc("null");
-			return;
-		}
-
-		if (Std.isOfType(value, String))
-		{
-			writeStringFunc('"' + escapeStringFunc(value) + '"');
-			return;
-		}
-
-		if (Std.isOfType(value, Bool))
-		{
-			writeStringFunc(value ? "true" : "false");
-			return;
-		}
-
-		if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
-		{
-			writeStringFunc(Std.string(value));
-			return;
-		}
-
-		if (Std.isOfType(value, Array))
-		{
-			writeJsonArray(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
-			return;
-		}
-
-		writeJsonObject(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
-	}
-
-	private function writeJsonArray(arr:Array<Dynamic>, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
-	{
-		writeStringFunc("[");
-		for (i in 0...arr.length)
-		{
-			if (i > 0) writeStringFunc(",");
-			if (useIndentation)
-			{
-				writeStringFunc(newline);
-				writeIndentFunc(2);
-			}
-			writeJsonValue(arr[i], output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
-		}
-		if (useIndentation && arr.length > 0)
-		{
-			writeStringFunc(newline);
-			writeIndentFunc(1);
-		}
-		writeStringFunc("]");
-	}
-
-	private function writeJsonObject(obj:Dynamic, output:haxe.io.BytesOutput, buffer:StringBuf, bufferSize:Int, useIndentation:Bool, newline:String, writeStringFunc:String->Void, writeIndentFunc:Int->Void, escapeStringFunc:String->String):Void
-	{
-		writeStringFunc("{");
-		var fields = Reflect.fields(obj);
-		var firstField = true;
-		for (field in fields)
-		{
-			var value = Reflect.field(obj, field);
-			if (value == null) continue;
-
-			if (!firstField) writeStringFunc(",");
-			if (useIndentation)
-			{
-				writeStringFunc(newline);
-				writeIndentFunc(2);
-			}
-			firstField = false;
-			writeStringFunc('"' + field + '":');
-			if (useIndentation) writeStringFunc(" ");
-			writeJsonValue(value, output, buffer, bufferSize, useIndentation, newline, writeStringFunc, writeIndentFunc, escapeStringFunc);
-		}
-		if (useIndentation && fields.length > 0)
-		{
-			writeStringFunc(newline);
-			writeIndentFunc(1);
-		}
-		writeStringFunc("}");
-	}
-
 	function saveChartStreaming(chart:Dynamic, path:String, hasWrapper:Bool = true, useIndentation:Bool = false, ?message:String, silent:Bool = false):Void
 	{
-		var output = new haxe.io.BytesOutput();
+		var file = sys.io.File.write(path, false);
 		var buffer = new StringBuf();
-		var bufferSize = 65536;
+		var flushCount = 0;
+		var flushThreshold = 1000;
 
 		function flushBuffer():Void
 		{
 			if (buffer.length > 0)
 			{
-				output.writeString(buffer.toString());
+				file.writeString(buffer.toString());
 				buffer = new StringBuf();
 			}
 		}
@@ -1324,37 +1231,12 @@ class MergeChartState extends MusicBeatState
 		function writeString(str:String):Void
 		{
 			buffer.add(str);
-			if (buffer.length >= bufferSize)
+			flushCount++;
+			if (flushCount >= flushThreshold)
 			{
 				flushBuffer();
+				flushCount = 0;
 			}
-		}
-
-		function escapeString(str:String):String
-		{
-			var buf = new StringBuf();
-			for (i in 0...str.length)
-			{
-				var c = str.charCodeAt(i);
-				switch(c)
-				{
-					case 34: buf.add('\\"');
-					case 92: buf.add('\\\\');
-					case 10: buf.add('\\n');
-					case 13: buf.add('\\r');
-					case 9: buf.add('\\t');
-					default:
-						if (c < 32)
-						{
-							buf.add('\\u');
-							var hex = StringTools.hex(c, 4);
-							buf.add(hex);
-						}
-						else
-							buf.add(str.charAt(i));
-				}
-			}
-			return buf.toString();
 		}
 
 		var totalNotes:Int = 0;
@@ -1425,24 +1307,21 @@ class MergeChartState extends MusicBeatState
 				writeString(" ");
 
 			if (Std.isOfType(value, String))
-				writeString('"' + escapeString(value) + '"');
+				writeString('"' + value + '"');
 			else if (Std.isOfType(value, Bool))
 				writeString(value ? "true" : "false");
 			else if (Std.isOfType(value, Float) || Std.isOfType(value, Int))
 				writeString(Std.string(value));
 			else if (Std.isOfType(value, Array))
 			{
-				var arr:Array<Dynamic> = cast value;
 				writeString("[");
+				var arr:Array<Dynamic> = cast value;
 				for (i in 0...arr.length)
 				{
 					if (i > 0) writeString(",");
-					if (useIndentation)
-					{
-						writeString(newline);
-						writeIndent(level + 1);
-					}
-					writeJsonValue(arr[i], output, buffer, bufferSize, useIndentation, newline, writeString, writeIndent, escapeString);
+					if (useIndentation) writeString(newline);
+					writeIndent(level + 1);
+					writeString(Json.stringify(arr[i]));
 
 					if (name == "notes")
 					{
@@ -1461,15 +1340,12 @@ class MergeChartState extends MusicBeatState
 						updateProgress();
 					}
 				}
-				if (useIndentation && arr.length > 0)
-				{
-					writeString(newline);
-					writeIndent(level);
-				}
+				if (useIndentation && arr.length > 0) writeString(newline);
+				writeIndent(level);
 				writeString("]");
 			}
 			else
-				writeJsonObject(value, output, buffer, bufferSize, useIndentation, newline, writeString, writeIndent, escapeString);
+				writeString(Json.stringify(value));
 
 			return false;
 		}
@@ -1516,8 +1392,6 @@ class MergeChartState extends MusicBeatState
 		}
 
 		flushBuffer();
-		var file = sys.io.File.write(path, false);
-		file.write(output.getBytes());
 		file.close();
 
 		showMergingProgress(true, '\nFile written: $path\n', true);
