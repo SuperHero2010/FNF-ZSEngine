@@ -360,12 +360,17 @@ class MergeChartState extends MusicBeatState
 			var finalChart:Dynamic;
 			if (convertToTxt) {
 				updateUI('Loading TXT temp file...\n');
-				var txtContent = File.getContent(tempPath);
-				var finalObj = convertToJsonFormat(txtContent);
-				if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
-					finalChart = finalObj.song;
-				else
-					finalChart = finalObj;
+				try {
+					var txtContent = File.getContent(tempPath);
+					var finalObj = convertToJsonFormat(txtContent);
+					if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
+						finalChart = finalObj.song;
+					else
+						finalChart = finalObj;
+				} catch(e:Dynamic) {
+					updateUI('Error loading TXT: ' + Std.string(e) + '\n');
+					finalChart = baseChart;
+				}
 			}
 			else if (temp) {
 				if (rewrite) {
@@ -825,6 +830,7 @@ class MergeChartState extends MusicBeatState
 
 	private function convertToJsonFormat(txtContent:String):Dynamic
 	{
+		trace("convertToJsonFormat() called");
 		var lines = txtContent.split('\n');
 		var result:Dynamic = {};
 		var songWrapper:Bool = false;
