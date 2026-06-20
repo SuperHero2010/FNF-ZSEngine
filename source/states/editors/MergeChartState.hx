@@ -857,7 +857,11 @@ class MergeChartState extends MusicBeatState
 			if (line == ']') {
 				if (inSection) {
 					if (sectionNotesStr.length > 0) {
-						Reflect.setField(currentSection, "sectionNotes", Json.parse(sectionNotesStr));
+						try {
+							Reflect.setField(currentSection, "sectionNotes", Json.parse(sectionNotesStr));
+						} catch(e:Dynamic) {
+							Reflect.setField(currentSection, "sectionNotes", []);
+						}
 					}
 					notesArray.push(currentSection);
 					currentSection = null;
@@ -881,6 +885,7 @@ class MergeChartState extends MusicBeatState
 				if (inSection) {
 					if (line.startsWith('sectionNotes:')) {
 						sectionNotesStr = line.substring(13);
+						if (sectionNotesStr.endsWith(',')) sectionNotesStr = sectionNotesStr.substring(0, sectionNotesStr.length - 1);
 					} else if (line.indexOf(':') > 0) {
 						var parts = line.split(':');
 						var key = StringTools.trim(parts[0]);
