@@ -191,9 +191,16 @@ class ZSParenthesisValidator {
                             }
                         }
                     } else {
+                        var hasParen = content.indexOf("(") != -1 || content.indexOf(")") != -1;
+                        var hasBracket = content.indexOf("[") != -1 || content.indexOf("]") != -1;
                         var hasMathOp = content.indexOf("+") != -1 || content.indexOf("−") != -1 || content.indexOf("×") != -1 || content.indexOf("÷") != -1;
+
+                        if (hasParen && !hasBracket) {
+                            diagnostics.push('Error at line $lineNum: { } must contain [ ] before ( )');
+                            return diagnostics;
+                        }
+
                         if (hasMathOp) {
-                            var hasBracket = content.indexOf("[") != -1 || content.indexOf("]") != -1;
                             if (!hasBracket) {
                                 diagnostics.push('Error at line $lineNum: { } must contain [ ] for math grouping');
                                 return diagnostics;
