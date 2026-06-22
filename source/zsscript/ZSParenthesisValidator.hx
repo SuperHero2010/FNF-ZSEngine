@@ -181,26 +181,36 @@ class ZSParenthesisValidator {
 
             if (pair.type == "brace") {
                 if (content != "") {
-                    if (hasMathOp) {
-                        var hasBracket = content.indexOf("[") != -1 || content.indexOf("]") != -1;
-
-                        if (!hasBracket) {
-                            diagnostics.push('Error at line $lineNum: { } must contain [ ] for math grouping');
-                            return diagnostics;
-                        } else {
-                            var firstBracketPos = -1;
-                            var firstParenPos = -1;
-                            var idx = pair.openPos + 1;
-                            while (idx < pair.closePos) {
-                                var ch = line.charAt(idx);
-                                if (ch == '[' && firstBracketPos == -1) firstBracketPos = idx;
-                                if (ch == '(' && firstParenPos == -1) firstParenPos = idx;
-                                idx++;
-                            }
-
-                            if (firstBracketPos != -1 && firstParenPos != -1 && firstParenPos < firstBracketPos) {
-                                diagnostics.push('Error at line $lineNum: [ ] must come before ( ) inside { }');
+                    if (content.indexOf(",") != -1) {
+                        var elements = splitByCommas(content);
+                        for (elem in elements) {
+                            var elemErrors = validateElement(elem, lineNum);
+                            if (elemErrors.length > 0) {
+                                diagnostics = diagnostics.concat(elemErrors);
                                 return diagnostics;
+                            }
+                        }
+                    } else {
+                        var hasMathOp = content.indexOf("+") != -1 || content.indexOf("−") != -1 || content.indexOf("×") != -1 || content.indexOf("÷") != -1;
+                        if (hasMathOp) {
+                            var hasBracket = content.indexOf("[") != -1 || content.indexOf("]") != -1;
+                            if (!hasBracket) {
+                                diagnostics.push('Error at line $lineNum: { } must contain [ ] for math grouping');
+                                return diagnostics;
+                            } else {
+                                var firstBracketPos = -1;
+                                var firstParenPos = -1;
+                                var idx = pair.openPos + 1;
+                                while (idx < pair.closePos) {
+                                    var ch = line.charAt(idx);
+                                    if (ch == '[' && firstBracketPos == -1) firstBracketPos = idx;
+                                    if (ch == '(' && firstParenPos == -1) firstParenPos = idx;
+                                    idx++;
+                                }
+                                if (firstBracketPos != -1 && firstParenPos != -1 && firstParenPos < firstBracketPos) {
+                                    diagnostics.push('Error at line $lineNum: [ ] must come before ( ) inside { }');
+                                    return diagnostics;
+                                }
                             }
                         }
                     }
@@ -281,5 +291,70 @@ class ZSParenthesisValidator {
             i++;
         }
         return true;
+    }
+
+    static function splitByCommas(content:String):Array<String> {
+        var parts = [];
+        var current = "";
+        var depth = 0;
+        var inString = false;
+        var i = 0;
+        while (i < content.length) {
+            var c = content.charAt(i);
+            if (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”") {
+                inString = !inString;
+                current += c;
+            } else if (!inString && (c == '(' || c == '[' || c == '{')) {
+                depth++;
+                current += c;
+            } else if (!inString && (c == ')' || c == ']' || c == '}')) {
+                depth--;
+                current += c;
+            } else if (!inString && depth == 0 && c == ',') {
+                parts.push(current);
+                current = "";
+            } else {
+                current += c;
+            }
+            i++;
+        }
+        if (current != "") parts.push(current);
+        return parts;
+    }
+
+    static function validateElement(element:String, lineNum:Int):Array<String> {
+        var diagnostics = [];
+        var trimmed = trimStr(element);
+        if (trimmed == "") return diagnostics;
+
+        var bracketOpen = trimmed.indexOf("[");
+        if (bracketOpen != -1) {
+            var bracketClose = trimmed.indexOf("]", bracketOpen);
+            if (bracketClose != -1) {
+                var inner = trimmed.substring(bracketOpen + 1, bracketClose);
+                if (inner.indexOf("(") == -1 && inner.indexOf(")") == -1) {
+                    diagnostics.push('Error at line $lineNum: [ ] must contain ( ) for math expressions inside set/table');
+                    return diagnostics;
+                }
+            }
+        }
+
+        var braceOpen = trimmed.indexOf("{");
+        if (braceOpen != -1) {
+            var braceClose = trimmed.indexOf("}", braceOpen);
+            if (braceClose != -1) {
+                var inner = trimmed.substring(braceOpen + 1, braceClose);
+                var hasMathOp = inner.indexOf("+") != -1 || inner.indexOf("−") != -1 || inner.indexOf("×") != -1 || inner.indexOf("÷") != -1;
+                if (hasMathOp) {
+                    var hasBracket = inner.indexOf("[") != -1 || inner.indexOf("]") != -1;
+                    if (!hasBracket) {
+                        diagnostics.push('Error at line $lineNum: { } must contain [ ] for math grouping inside set/table');
+                        return diagnostics;
+                    }
+                }
+            }
+        }
+
+        return diagnostics;
     }
 }

@@ -46,7 +46,7 @@ class ZSParser {
                 continue;
             }
 
-            if (c == '"' || c == "'" || c == "“" || c == "”") {
+            if (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”") {
                 var start = i;
                 var quote = c;
                 i++;

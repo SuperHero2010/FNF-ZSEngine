@@ -279,6 +279,25 @@ class ZSTranspiler {
                 }
             }
 
+            if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
+                var hasLocal = trimmedLine.indexOf("local <") == 0;
+                var hasGlobal = trimmedLine.indexOf("global <") == 0;
+                var hasChange = trimmedLine.indexOf("change <") == 0;
+                var hasRead = trimmedLine.indexOf("read <") == 0;
+
+                if (!hasLocal && !hasGlobal && !hasChange && !hasRead) {
+                    var hasListAccess = trimmedLine.indexOf(">[" ) > -1 || trimmedLine.indexOf("> [") > -1;
+                    var hasTableAccess = trimmedLine.indexOf(">." ) > -1 || trimmedLine.indexOf("> .") > -1;
+
+                    if (!hasListAccess && !hasTableAccess) {
+                        errors.push('Error at line $currentLine: Noun "<...>" must be used with local, global, change, or read');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use local <name> = value, change <name> to value, or read <name>');
+                        return null;
+                    }
+                }
+            }
+
             var colonPos = trimmedLine.indexOf(":");
             if (colonPos > 0) {
                 if (isInsideTableLiteral(trimmedLine, colonPos)) {}
@@ -361,13 +380,14 @@ class ZSTranspiler {
 
             trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
-            trimmedLine = convertGroupingBrackets(trimmedLine);
 
+            trace('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
             var luaLine = trimmedLine;
             for (pattern in ZSPatterns.patterns) {
                 var regex = new EReg(pattern.pattern, "g");
                 luaLine = regex.replace(luaLine, pattern.replacement);
             }
+            trace('AFTER ZSPatterns: luaLine="$luaLine"');
 
             luaLine = luaLine.split("≠").join("~=");
             luaLine = luaLine.split("≤").join("<=");
@@ -378,6 +398,8 @@ class ZSTranspiler {
             luaLine = luaLine.split("×").join("*");
             luaLine = luaLine.split("÷").join("/");
             luaLine = luaLine.split("−").join("-");
+            luaLine = convertGroupingBrackets(luaLine);
+            trace('AFTER convertGroupingBrackets: luaLine="$luaLine"');
 
             if (luaLine.indexOf("else if ") == 0) {
                 luaLine = "elseif " + luaLine.substr(8);
@@ -385,20 +407,55 @@ class ZSTranspiler {
 
             var startParen = luaLine.indexOf("(");
             if (startParen > -1) {
-                var endParen = luaLine.lastIndexOf(")");
-                if (endParen > startParen) {
-                    var beforeParen = luaLine.substring(0, startParen);
-                    var content = luaLine.substring(startParen + 1, endParen);
-                    var afterParen = luaLine.substring(endParen + 1);
-                    var args = splitArgs(content);
-                    for (j in 0...args.length) {
-                        trace('Argument $j before parse: "${args[j]}"');
-                        args[j] = ZSParser.parseExpression(args[j]);
-                        trace('Argument $j after parse: "${args[j]}"');
+                var beforeParen = StringTools.trim(luaLine.substring(0, startParen));
+                var isFunctionCall = false;
+
+                if (beforeParen.length > 0 && beforeParen.indexOf(" ") == -1) {
+                    var firstChar = beforeParen.charAt(0);
+                    if ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || firstChar == '_') {
+                        isFunctionCall = true;
                     }
-                    var parsedContent = args.join(", ");
-                    luaLine = beforeParen + "(" + parsedContent + ")" + afterParen;
-                    trace('splitArgs result: $args');
+                }
+
+                if (isFunctionCall) {
+                    var depth = 1;
+                    var endParen = startParen + 1;
+                    while (endParen < luaLine.length && depth > 0) {
+                        var ch = luaLine.charAt(endParen);
+                        if (ch == '(') depth++;
+                        if (ch == ')') depth--;
+                        endParen++;
+                    }
+                    endParen--;
+
+                    if (endParen > startParen) {
+                        var beforeParenFull = luaLine.substring(0, startParen);
+                        var content = luaLine.substring(startParen + 1, endParen);
+                        var afterParen = luaLine.substring(endParen + 1);
+
+                        trace('BEFORE splitArgs: content="$content"');
+
+                        var args = splitArgs(content);
+                        for (j in 0...args.length) {
+                            var arg = args[j];
+                            var trimmedArg = StringTools.trim(arg);
+
+                            var isTableLiteral = (trimmedArg.indexOf("{") == 0 && trimmedArg.lastIndexOf("}") == trimmedArg.length - 1);
+                            var isListLiteral = (trimmedArg.indexOf("[") == 0 && trimmedArg.lastIndexOf("]") == trimmedArg.length - 1);
+
+                            if (isTableLiteral || isListLiteral) {
+                                args[j] = arg;
+                                trace('Argument $j is literal, keeping: "${args[j]}"');
+                            } else {
+                                trace('Argument $j before parse: "${args[j]}"');
+                                args[j] = ZSParser.parseExpression(args[j]);
+                                trace('Argument $j after parse: "${args[j]}"');
+                            }
+                        }
+                        var parsedContent = args.join(", ");
+                        luaLine = beforeParenFull + "(" + parsedContent + ")" + afterParen;
+                        trace('splitArgs result: $args');
+                    }
                 }
             }
 
@@ -619,6 +676,7 @@ class ZSTranspiler {
     }
 
     static function splitArgs(content:String):Array<String> {
+        trace('=== splitArgs INPUT: "$content" ===');
         var args = [];
         var current = "";
         var depth = 0;
@@ -626,16 +684,18 @@ class ZSTranspiler {
         var i = 0;
         while (i < content.length) {
             var c = content.charAt(i);
+            trace('  pos $i: char="$c", depth=$depth, inQuote=$inQuote, current="$current"');
             if (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”") {
                 inQuote = !inQuote;
                 current += c;
-            } else if (c == '(') {
+            } else if (!inQuote && (c == '(' || c == '[' || c == '{')) {
                 depth++;
                 current += c;
-            } else if (c == ')') {
+            } else if (!inQuote && (c == ')' || c == ']' || c == '}')) {
                 depth--;
                 current += c;
-            } else if (c == ',' && !inQuote && depth == 0) {
+            } else if (!inQuote && depth == 0 && c == ',') {
+                trace('    -> splitting at comma, pushing "$current"');
                 args.push(current);
                 current = "";
             } else {
@@ -644,6 +704,7 @@ class ZSTranspiler {
             i++;
         }
         if (current != "") args.push(current);
+        trace('=== splitArgs OUTPUT: $args ===');
         return args;
     }
 

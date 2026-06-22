@@ -4,26 +4,8 @@ class DebugTranspiler {
 "! ZS-LUA
 
 onCreate:
-    -/ Case 2: (47 + 4) -> SUCCESS
-    change <result2> to (47 + 4)
-
-    -/ Case 3: [34 − (58 ÷ 2)] -> SUCCESS
-    change <result3> to [34 − (58 ÷ 2)]
-
-    -/ Case 7: {473 + [(92 − 14) × (68 + 48)]} − 475 -> SUCCESS
-    change <result7> to {473 + [(92 − 14) × (68 + 48)]} − 475
-
-    -/ Valid literal (table) - should not be validated
-    change <table> to {“name”: “John”, “age”: 30}
-
-    -/ Valid literal (list) - should not be validated
-    change <list> to [1, 2, 3, 4, 5]
-
-    -/ Valid list access - should not be validated
-    change <item> to <myList>[<index>]
-
-    -/ Valid function call - should not be validated
-    change <value> to myFunc<arg1>, <arg2>";
+    local <set> = {1, 2, 3, 4, 5}
+    global <set_math> = {(2 + 4), (1 + 6)}";
 
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");
