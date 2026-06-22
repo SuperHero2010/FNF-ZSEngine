@@ -134,7 +134,7 @@ class School extends BaseStage
 		doof.nextDialogueThing = PlayState.instance.startNextDialogue;
 		doof.skipDialogueThing = PlayState.instance.skipDialogue;
 	}
-	
+
 	function schoolIntro():Void
 	{
 		inCutscene = true;

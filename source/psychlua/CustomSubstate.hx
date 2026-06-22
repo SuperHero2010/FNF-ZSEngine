@@ -16,7 +16,7 @@ class CustomSubstate extends MusicBeatSubstate
 		Lua_helper.add_callback(lua, "insertToCustomSubstate", insertToCustomSubstate);
 	}
 	#end
-	
+
 	public static function openCustomSubstate(name:String, ?pauseGame:Bool = false)
 	{
 		if(pauseGame)
@@ -64,12 +64,11 @@ class CustomSubstate extends MusicBeatSubstate
 		instance = this;
 		PlayState.instance.setOnHScript('customSubstate', instance);
 
-
 		PlayState.instance.callOnScripts('onCustomSubstateCreate', [name]);
 		super.create();
 		PlayState.instance.callOnScripts('onCustomSubstateCreatePost', [name]);
 	}
-	
+
 	public function new(name:String)
 	{
 		CustomSubstate.name = name;
@@ -77,7 +76,7 @@ class CustomSubstate extends MusicBeatSubstate
 		super();
 		cameras = [FlxG.cameras.list[FlxG.cameras.list.length - 1]];
 	}
-	
+
 	override function update(elapsed:Float)
 	{
 		PlayState.instance.callOnScripts('onCustomSubstateUpdate', [name, elapsed]);

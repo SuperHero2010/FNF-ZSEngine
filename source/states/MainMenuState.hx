@@ -167,7 +167,7 @@ class MainMenuState extends MusicBeatState
 		menuItem.animation.addByPrefix('selected', '$name selected', 24, true);
 		menuItem.animation.play('idle');
 		menuItem.updateHitbox();
-		
+
 		menuItem.antialiasing = ClientPrefs.data.antialiasing;
 		menuItem.scrollFactor.set();
 		menuItems.add(menuItem);
@@ -364,7 +364,7 @@ class MainMenuState extends MusicBeatState
 							item.visible = true;
 					}
 				});
-				
+
 				for (memb in menuItems)
 				{
 					if(memb == item)

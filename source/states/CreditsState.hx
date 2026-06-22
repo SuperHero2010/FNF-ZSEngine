@@ -29,7 +29,7 @@ class CreditsState extends MusicBeatState
 		bg.antialiasing = ClientPrefs.data.antialiasing;
 		add(bg);
 		bg.screenCenter();
-		
+
 		grpOptions = new FlxTypedGroup<Alphabet>();
 		add(grpOptions);
 
@@ -75,7 +75,7 @@ class CreditsState extends MusicBeatState
 			["Psych Engine Discord"],
 			["Join the Psych Ward!", "discord",         "Original Psych Engine Discord",                                             "https://discord.gg/2ka77eMXDv",                       "5165F6"]
 		];
-		
+
 		for(i in defaultList)
 			creditsStuff.push(i);
 

@@ -42,7 +42,7 @@ class RGBPalette {
 		shader.b.value = [color.redFloat, color.greenFloat, color.blueFloat];
 		return color;
 	}
-	
+
 	private function set_mult(value:Float) {
 		mult = FlxMath.bound(value, 0, 1);
 		shader.mult.value = [mult];
@@ -85,7 +85,7 @@ class RGBShaderReference
 			mult = parent.mult;
 		}
 	}
-	
+
 	private function set_r(value:FlxColor)
 	{
 		if(allowNew && value != _original.r) cloneOriginal();
@@ -134,7 +134,7 @@ class RGBShaderReference
 class RGBPaletteShader extends FlxShader {
 	@:glFragmentHeader('
 		#pragma header
-		
+
 		uniform vec3 r;
 		uniform vec3 g;
 		uniform vec3 b;
@@ -149,9 +149,9 @@ class RGBPaletteShader extends FlxShader {
 			vec4 newColor = color;
 			newColor.rgb = min(color.r * r + color.g * g + color.b * b, vec3(1.0));
 			newColor.a = color.a;
-			
+
 			color = mix(color, newColor, mult);
-			
+
 			if(color.a > 0.0) {
 				return vec4(color.rgb, color.a);
 			}

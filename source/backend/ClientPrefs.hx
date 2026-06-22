@@ -131,21 +131,21 @@ class ClientPrefs {
 		'note_left'		=> [A, LEFT],
 		'note_down'		=> [S, DOWN],
 		'note_right'	=> [D, RIGHT],
-		
+
 		'ui_up'			=> [W, UP],
 		'ui_left'		=> [A, LEFT],
 		'ui_down'		=> [S, DOWN],
 		'ui_right'		=> [D, RIGHT],
-		
+
 		'accept'		=> [SPACE, ENTER],
 		'back'			=> [BACKSPACE, ESCAPE],
 		'pause'			=> [ENTER, ESCAPE],
 		'reset'			=> [R],
-		
+
 		'volume_mute'	=> [ZERO],
 		'volume_up'		=> [NUMPADPLUS, PLUS],
 		'volume_down'	=> [NUMPADMINUS, MINUS],
-		
+
 		'debug_1'		=> [SEVEN],
 		'debug_2'		=> [EIGHT]
 	];
@@ -154,12 +154,12 @@ class ClientPrefs {
 		'note_left'		=> [DPAD_LEFT, X],
 		'note_down'		=> [DPAD_DOWN, A],
 		'note_right'	=> [DPAD_RIGHT, B],
-		
+
 		'ui_up'			=> [DPAD_UP, LEFT_STICK_DIGITAL_UP],
 		'ui_left'		=> [DPAD_LEFT, LEFT_STICK_DIGITAL_LEFT],
 		'ui_down'		=> [DPAD_DOWN, LEFT_STICK_DIGITAL_DOWN],
 		'ui_right'		=> [DPAD_RIGHT, LEFT_STICK_DIGITAL_RIGHT],
-		
+
 		'accept'		=> [A, START],
 		'back'			=> [B],
 		'pause'			=> [START],
@@ -217,7 +217,7 @@ class ClientPrefs {
 		for (key in Reflect.fields(data))
 			if (key != 'gameplaySettings' && Reflect.hasField(FlxG.save.data, key))
 				Reflect.setField(data, key, Reflect.field(FlxG.save.data, key));
-		
+
 		if(Main.fpsVar != null)
 			Main.fpsVar.visible = data.showFPS;
 
@@ -247,7 +247,7 @@ class ClientPrefs {
 			for (name => value in savedMap)
 				data.gameplaySettings.set(name, value);
 		}
-		
+
 		// flixel automatically saves your volume!
 		if(FlxG.save.data.volume != null)
 			FlxG.sound.volume = FlxG.save.data.volume;

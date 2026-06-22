@@ -21,7 +21,7 @@ class OptimizeSettingsSubState extends BaseOptionsMenu
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("Optimizations Menu", null);
 		#end
-		
+
 		title = 'Optimizations';
 		rpcTitle = 'Optimization Settings Menu'; //for Discord Rich Presence
 
@@ -50,7 +50,7 @@ class OptimizeSettingsSubState extends BaseOptionsMenu
 		 	'keepNotes',
 		 	BOOL);
 		addOption(option);
-		
+
         var option:Option = new Option('Sort Notes:',
 			"If checked, the notes array is sorted every frame when notes are added.\nUnchecking improves performance, especially if a lot of notes are displayed.\nDefault: \"After Note Finalized\"",
 			'sortNotes',

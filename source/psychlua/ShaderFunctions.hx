@@ -20,7 +20,7 @@ class ShaderFunctions
 			#end
 			return false;
 		});
-		
+
 		funk.addLocalCallback("setSpriteShader", function(obj:String, shader:String) {
 			if(!ClientPrefs.data.shaders) return false;
 
@@ -60,7 +60,6 @@ class ShaderFunctions
 			}
 			return false;
 		});
-
 
 		Lua_helper.add_callback(lua, "getShaderBool", function(obj:String, prop:String) {
 			#if (!flash && sys)
@@ -146,7 +145,6 @@ class ShaderFunctions
 			return null;
 			#end
 		});
-
 
 		Lua_helper.add_callback(lua, "setShaderBool", function(obj:String, prop:String, value:Bool) {
 			#if (!flash && sys)
@@ -264,7 +262,7 @@ class ShaderFunctions
 			#end
 		});
 	}
-	
+
 	#if (!flash && sys)
 	public static function getShader(obj:String):FlxRuntimeShader
 	{

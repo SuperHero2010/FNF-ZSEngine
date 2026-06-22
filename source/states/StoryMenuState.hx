@@ -155,7 +155,7 @@ class StoryMenuState extends MusicBeatState
 			lastDifficultyName = Difficulty.getDefault();
 		}
 		curDifficulty = Math.round(Math.max(0, Difficulty.defaultList.indexOf(lastDifficultyName)));
-		
+
 		sprDifficulty = new FlxSprite(0, leftArrow.y);
 		sprDifficulty.antialiasing = ClientPrefs.data.antialiasing;
 		difficultySelectors.add(sprDifficulty);
@@ -216,7 +216,7 @@ class StoryMenuState extends MusicBeatState
 		{
 			lerpScore = Math.floor(FlxMath.lerp(intendedScore, lerpScore, Math.exp(-elapsed * 30)));
 			if(Math.abs(intendedScore - lerpScore) < 10) lerpScore = intendedScore;
-	
+
 			scoreText.text = Language.getPhrase('week_score', 'WEEK SCORE: {1}', [lerpScore]);
 		}
 
@@ -286,7 +286,7 @@ class StoryMenuState extends MusicBeatState
 		}
 
 		super.update(elapsed);
-		
+
 		var offY:Float = grpWeekText.members[curWeek].targetY;
 		for (num => item in grpWeekText.members)
 			item.y = FlxMath.lerp(item.targetY - offY + 480, item.y, Math.exp(-elapsed * 10.2));
@@ -316,10 +316,10 @@ class StoryMenuState extends MusicBeatState
 				PlayState.storyPlaylist = songArray;
 				PlayState.isStoryMode = true;
 				selectedWeek = true;
-	
+
 				var diffic = Difficulty.getFilePath(curDifficulty);
 				if(diffic == null) diffic = '';
-	
+
 				PlayState.storyDifficulty = curDifficulty;
 
 				trace('[FAST JSON] Story mode loading: ${PlayState.storyPlaylist[0].toLowerCase()} with skipChart=false');
@@ -340,7 +340,7 @@ class StoryMenuState extends MusicBeatState
 				trace('ERROR! $e');
 				return;
 			}
-			
+
 			if (stopspamming == false)
 			{
 				FlxG.sound.play(Paths.sound('confirmMenu'));
@@ -373,7 +373,7 @@ class StoryMenuState extends MusicBeatState
 				LoadingState.loadAndSwitchState(new PlayState(), true);
 				FreeplayState.destroyFreeplayVocals();
 			});
-			
+
 			#if (MODS_ALLOWED && DISCORD_ALLOWED)
 			DiscordClient.loadModRPC();
 			#end

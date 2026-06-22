@@ -114,7 +114,7 @@ class ModSettingsSubState extends BaseOptionsMenu
 						myValue = newOption.getValue();
 						if(myValue == null) myValue = newOption.defaultValue;
 					}
-	
+
 					switch(newOption.type)
 					{
 						case STRING:
@@ -123,7 +123,7 @@ class ModSettingsSubState extends BaseOptionsMenu
 
 						default:
 					}
-	
+
 					save.set(option.save, myValue);
 				}
 				addOption(newOption);

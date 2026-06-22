@@ -90,7 +90,7 @@ class Character extends FlxSprite
 		animOffsets = new Map<String, Array<Dynamic>>();
 		this.isPlayer = isPlayer;
 		changeCharacter(character);
-		
+
 		switch(curCharacter)
 		{
 			case 'pico-speaker':

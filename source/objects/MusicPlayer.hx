@@ -179,7 +179,7 @@ class MusicPlayer extends FlxGroup
 				setPlaybackRate();
 			}
 		}
-	
+
 		if (controls.RESET)
 		{
 			playbackRate = 1;
@@ -251,7 +251,7 @@ class MusicPlayer extends FlxGroup
 
 		for (i in playbackSymbols)
 			i.visible = playingMusic;
-		
+
 		holdPitchTime = 0;
 		instance.holdTime = 0;
 		playbackRate = 1;
@@ -261,7 +261,7 @@ class MusicPlayer extends FlxGroup
 		{
 			instance.bottomText.text = Language.getPhrase('musicplayer_tip', 'Press SPACE to Pause / Press ESCAPE to Exit / Press R to Reset the Song');
 			positionSong();
-			
+
 			progressBar.setRange(0, FlxG.sound.music.length);
 			progressBar.setParent(FlxG.sound.music, "time");
 			progressBar.numDivisions = 1600;

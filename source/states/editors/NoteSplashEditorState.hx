@@ -498,7 +498,7 @@ class NoteSplashEditorState extends MusicBeatState
             onCheck(false);
         });
         add(changeShader);
-        
+
         defaultButton = new PsychUICheckBox(shaderUI.x + 30, shaderUI.y + 115, "Do not replace", 100, () -> onCheck());
         defaultButton.text.y += 2.5;
         add(defaultButton);
@@ -542,7 +542,7 @@ class NoteSplashEditorState extends MusicBeatState
 
             config.scale = scaleNumericStepper.value;
         }
-        
+
         var blockInput:Bool = PsychUIInputText.focusOn != null;
         if (!blockInput && config != null && config.animations != null && config.animations.exists(curAnim) && curAnim != null && curAnim.length > 0)
         {
@@ -588,7 +588,7 @@ class NoteSplashEditorState extends MusicBeatState
                 config.animations[curAnim].offsets[1] += ((moveKeysP[2] ? 1 : 0) - (moveKeysP[3] ? 1 : 0)) * multiplier;
                 changedOffset = true;
             }
-    
+
             var moveKeys = [FlxG.keys.pressed.LEFT, FlxG.keys.pressed.RIGHT, FlxG.keys.pressed.UP, FlxG.keys.pressed.DOWN];
             if(moveKeys.contains(true))
             {
@@ -688,7 +688,7 @@ class NoteSplashEditorState extends MusicBeatState
         {
             errorText.alpha = 1;
             errorText.text = "ERROR while playing splash";
-            
+
             FlxTween.cancelTweensOf(errorText);
             FlxTween.tween(errorText, {alpha: 0}, {startDelay: 1});
         }
@@ -730,7 +730,7 @@ class NoteSplashEditorState extends MusicBeatState
                     else if (i == 2)
                         blueEnabled = true;
                 }
-                
+
                 var colors = [rgb.r, rgb.g, rgb.b];
                 if (i == 0)
                     redShader = colors;
@@ -750,7 +750,7 @@ class NoteSplashEditorState extends MusicBeatState
     {
         if (config == null)
             config = NoteSplash.createConfig();
-        
+
         if (!redEnabled && !greenEnabled && !blueEnabled)
         {
             config.rgb = null;
@@ -963,7 +963,6 @@ class NoteSplashEditorState extends MusicBeatState
         return config;
     }
 }
-
 
 class NoteSplashEditorHelpSubState extends MusicBeatSubstate
 {

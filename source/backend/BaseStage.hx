@@ -39,7 +39,7 @@ class BaseStage extends FlxBasic
 	public var gfGroup(get, never):FlxSpriteGroup;
 
 	public var unspawnNotes(get, never):Array<Note>;
-	
+
 	public var camGame(get, never):FlxCamera;
 	public var camHUD(get, never):FlxCamera;
 	public var camOther(get, never):FlxCamera;
@@ -98,7 +98,7 @@ class BaseStage extends FlxBasic
 	function add(object:FlxBasic) return FlxG.state.add(object);
 	function remove(object:FlxBasic, splice:Bool = false) return FlxG.state.remove(object, splice);
 	function insert(position:Int, object:FlxBasic) return FlxG.state.insert(position, object);
-	
+
 	public function addBehindGF(obj:FlxBasic) return insert(members.indexOf(game.gfGroup), obj);
 	public function addBehindBF(obj:FlxBasic) return insert(members.indexOf(game.boyfriendGroup), obj);
 	public function addBehindDad(obj:FlxBasic) return insert(members.indexOf(game.dadGroup), obj);
@@ -165,7 +165,7 @@ class BaseStage extends FlxBasic
 	{
 		return cast game.unspawnNotes;
 	}
-	
+
 	inline private function get_camGame():FlxCamera return game.camGame;
 	inline private function get_camHUD():FlxCamera return game.camHUD;
 	inline private function get_camOther():FlxCamera return game.camOther;

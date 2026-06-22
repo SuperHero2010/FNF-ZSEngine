@@ -71,7 +71,7 @@ class CutsceneHandler extends FlxBasic
 			timedEvents[0].func();
 			timedEvents.shift();
 		}
-		
+
 		if(_canSkip && cutsceneTime > 0.1)
 		{
 			if(Controls.instance.pressed('accept'))
@@ -98,7 +98,7 @@ class CutsceneHandler extends FlxBasic
 				PlayState.instance.remove(spr);
 				spr.destroy();
 			}
-			
+
 			skipSprite = FlxDestroyUtil.destroy(skipSprite);
 			destroy();
 			PlayState.instance.remove(this);

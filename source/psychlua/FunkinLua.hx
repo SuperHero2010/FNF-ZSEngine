@@ -137,7 +137,6 @@ class FunkinLua {
 		set('screenWidth', FlxG.width);
 		set('screenHeight', FlxG.height);
 
-
 		// PlayState-only variables
 		if(game != null)
 		@:privateAccess
@@ -542,7 +541,7 @@ class FunkinLua {
 							ease: myOptions.ease,
 							startDelay: myOptions.startDelay,
 							loopDelay: myOptions.loopDelay,
-	
+
 							onUpdate: function(twn:FlxTween) {
 								if(myOptions.onUpdate != null) game.callOnLuas(myOptions.onUpdate, [originalTag, vars]);
 							},
@@ -607,7 +606,7 @@ class FunkinLua {
 			if(penisExam != null) {
 				var curColor:FlxColor = penisExam.color;
 				curColor.alphaFloat = penisExam.alpha;
-				
+
 				if(tag != null)
 				{
 					var originalTag:String = tag;
@@ -724,7 +723,7 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "runTimer", function(tag:String, time:Float = 1, loops:Int = 1) {
 			LuaUtils.cancelTimer(tag);
 			var variables = MusicBeatState.getVariables();
-			
+
 			var originalTag:String = tag;
 			tag = LuaUtils.formatVariable('timer_$tag');
 			variables.set(tag, new FlxTimer().start(time, function(tmr:FlxTimer)
@@ -1172,7 +1171,7 @@ class FunkinLua {
 			var obj:FlxSprite = LuaUtils.getObjectDirectly(tag);
 			if(obj == null || obj.destroy == null)
 				return;
-			
+
 			var groupObj:Dynamic = null;
 			if(group == null) groupObj = LuaUtils.getTargetInstance();
 			else groupObj = LuaUtils.getObjectDirectly(group);
@@ -1569,7 +1568,7 @@ class FunkinLua {
 				snd.pitch = value;
 				if (doPause && wasResumed) snd.play();
 			}
-			
+
 			if(tag == null || tag.length < 1)
 			{
 				if(FlxG.sound.music != null)

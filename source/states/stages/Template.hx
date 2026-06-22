@@ -13,7 +13,7 @@ class Template extends BaseStage
 		// Characters are not ready yet on this function, so you can't add things above them yet.
 		// Use createPost() if that's what you want to do.
 	}
-	
+
 	override function createPost()
 	{
 		// Use this function to layer things above characters!
@@ -29,7 +29,6 @@ class Template extends BaseStage
 		// Code here
 	}
 
-	
 	override function countdownTick(count:Countdown, num:Int)
 	{
 		switch(count)
@@ -121,7 +120,7 @@ class Template extends BaseStage
 						//precacheImage('myImageTwo') //preloads images/myImageTwo.png
 						//precacheSound('mySoundTwo') //preloads sounds/mySoundTwo.ogg
 						//precacheMusic('myMusicTwo') //preloads music/myMusicTwo.ogg
-					
+
 					// If value 1 is not "blah blah" or "coolswag", it will preload these assets:
 					default:
 						//precacheImage('myImageThree') //preloads images/myImageThree.png

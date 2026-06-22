@@ -80,7 +80,7 @@ class TextFunctions
 				CoolUtil.setTextBorderFromString(obj, (size > 0 ? style : 'none'));
 				if(size > 0)
 					obj.borderSize = size;
-				
+
 				obj.borderColor = CoolUtil.colorFromString(color);
 				return true;
 			}

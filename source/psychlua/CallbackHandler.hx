@@ -30,7 +30,7 @@ class CallbackHandler
 				}
 				else cbf = last.callbacks.get(fname);
 			}
-			
+
 			if(cbf == null) return 0;
 
 			var nparams:Int = Lua.gettop(l);

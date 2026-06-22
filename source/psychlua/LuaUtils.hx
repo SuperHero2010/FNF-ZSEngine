@@ -101,7 +101,7 @@ class LuaUtils
 			}
 			return target;
 		}
-		
+
 		if(allowMaps && isMap(instance))
 		{
 			return instance.get(variable);
@@ -190,7 +190,7 @@ class LuaUtils
 		#end
 		return null;
 	}
-	
+
 	public static function isMap(variable:Dynamic)
 	{
 		/*switch(Type.typeof(variable)){
@@ -250,14 +250,14 @@ class LuaUtils
 		{
 			case 'this' | 'instance' | 'game':
 				return PlayState.instance;
-			
+
 			default:
 				var obj:Dynamic = MusicBeatState.getVariables().get(objectName);
 				if(obj == null) obj = getVarInArray(MusicBeatState.getState(), objectName, allowMaps);
 				return obj;
 		}
 	}
-	
+
 	public static function isOfTypes(value:Any, types:Array<Dynamic>)
 	{
 		for (type in types)
@@ -269,7 +269,7 @@ class LuaUtils
 	public static function isLuaSupported(value:Any):Bool {
 		return (value == null || isOfTypes(value, [Bool, Int, Float, String, Array]) || Type.typeof(value) == ValueType.TObject);
 	}
-	
+
 	public static function getTargetInstance()
 	{
 		if(PlayState.instance != null) return PlayState.instance.isDead ? GameOverSubstate.instance : PlayState.instance;
@@ -289,7 +289,7 @@ class LuaUtils
 			group = PlayState.instance.boyfriendGroup;
 			pos = newPos;
 		}
-		
+
 		newPos = PlayState.instance.members.indexOf(PlayState.instance.dadGroup);
 		if(newPos < pos)
 		{
@@ -298,7 +298,7 @@ class LuaUtils
 		}
 		return group;
 	}
-	
+
 	public static function addAnimByIndices(obj:String, name:String, prefix:String, indices:Any = null, framerate:Float = 24, loop:Bool = false)
 	{
 		var obj:FlxSprite = cast LuaUtils.getObjectDirectly(obj);
@@ -329,7 +329,7 @@ class LuaUtils
 		}
 		return false;
 	}
-	
+
 	public static function loadFrames(spr:FlxSprite, image:String, spriteType:String)
 	{
 		switch(spriteType.toLowerCase().replace(' ', ''))
@@ -496,7 +496,7 @@ class LuaUtils
 		}
 		return NORMAL;
 	}
-	
+
 	public static function typeToString(type:Int):String {
 		#if LUA_ALLOWED
 		switch(type) {

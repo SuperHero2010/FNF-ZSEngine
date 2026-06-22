@@ -71,7 +71,7 @@ class Note extends FlxSprite
 
 	public var tail:Array<Note> = []; // for sustains
 	public var parent:Note;
-	
+
 	public var blockHit:Bool = false; // only works for player
 
 	public var sustainLength:Float = 0;
@@ -331,7 +331,7 @@ class Note extends FlxSprite
 		{
 			var newRGB:RGBPalette = new RGBPalette();
 			var arr:Array<FlxColor> = (!PlayState.isPixelStage) ? ClientPrefs.data.arrowRGB[noteData] : ClientPrefs.data.arrowRGBPixel[noteData];
-			
+
 			if (arr != null && noteData > -1 && noteData <= arr.length)
 			{
 				newRGB.r = arr[0];
@@ -344,7 +344,7 @@ class Note extends FlxSprite
 				newRGB.g = 0xFF00FF00;
 				newRGB.b = 0xFF0000FF;
 			}
-			
+
 			globalRgbShaders[noteData] = newRGB;
 		}
 		return globalRgbShaders[noteData];

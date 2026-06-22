@@ -21,10 +21,10 @@ class Bar extends FlxSpriteGroup
 	public function new(x:Float, y:Float, image:String = 'healthBar', valueFunction:Void->Float = null, boundX:Float = 0, boundY:Float = 1)
 	{
 		super(x, y);
-		
+
 		this.valueFunction = valueFunction;
 		setBounds(boundX, boundY);
-		
+
 		bg = new FlxSprite().loadGraphic(Paths.image(image));
 		bg.antialiasing = ClientPrefs.data.antialiasing;
 		barWidth = Std.int(bg.width - 6);
@@ -60,7 +60,7 @@ class Bar extends FlxSpriteGroup
 		else percent = 0;
 		super.update(elapsed);
 	}
-	
+
 	public function setBounds(min:Float, max:Float)
 	{
 		bounds.min = min;

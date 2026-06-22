@@ -91,13 +91,13 @@ class BasePrompt extends MusicBeatSubstate
 		bg.screenCenter();
 		bg.cameras = cameras;
 		add(bg);
-		
+
 		titleText = new FlxText(0, bg.y + 30, 400, _title, 16);
 		titleText.screenCenter(X);
 		titleText.alignment = CENTER;
 		titleText.cameras = cameras;
 		add(titleText);
-		
+
 		if(onCreate != null)
 			onCreate(this);
 		super.create();

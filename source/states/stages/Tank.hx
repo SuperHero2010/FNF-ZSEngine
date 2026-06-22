@@ -73,7 +73,7 @@ class Tank extends BaseStage
 		// Default GFs
 		if(songName == 'stress') setDefaultGF('pico-speaker');
 		else setDefaultGF('gf-tankmen');
-		
+
 		if (isStoryMode && !seenCutscene)
 		{
 			switch (songName)
@@ -280,7 +280,7 @@ class Tank extends BaseStage
 	function stressIntro()
 	{
 		prepareCutscene();
-		
+
 		cutsceneHandler.endTime = 35.5;
 		gfGroup.alpha = 0.00001;
 		boyfriendGroup.alpha = 0.00001;

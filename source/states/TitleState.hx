@@ -28,7 +28,7 @@ typedef TitleData =
 	var gfy:Float;
 	var backgroundSprite:String;
 	var bpm:Float;
-	
+
 	@:optional var animation:String;
 	@:optional var dance_left:Array<Int>;
 	@:optional var dance_right:Array<Int>;
@@ -48,7 +48,7 @@ class TitleState extends MusicBeatState
 	var blackScreen:FlxSprite;
 	var credTextShit:Alphabet;
 	var ngSpr:FlxSprite;
-	
+
 	var titleTextColors:Array<FlxColor> = [0xFF33FFFF, 0xFF3333CC];
 	var titleTextAlphas:Array<Float> = [1, .64];
 
@@ -137,14 +137,14 @@ class TitleState extends MusicBeatState
 
 		gfDance = new FlxSprite(gfPosition.x, gfPosition.y);
 		gfDance.antialiasing = ClientPrefs.data.antialiasing;
-		
+
 		if(ClientPrefs.data.shaders)
 		{
 			swagShader = new ColorSwap();
 			gfDance.shader = swagShader.shader;
 			logoBl.shader = swagShader.shader;
 		}
-		
+
 		gfDance.frames = Paths.getSparrowAtlas(characterImage);
 		if(!useIdle)
 		{
@@ -158,7 +158,6 @@ class TitleState extends MusicBeatState
 			gfDance.animation.play('idle');
 		}
 
-
 		var animFrames:Array<FlxFrame> = [];
 		titleText = new FlxSprite(enterPosition.x, enterPosition.y);
 		titleText.frames = Paths.getSparrowAtlas('titleEnter');
@@ -167,7 +166,7 @@ class TitleState extends MusicBeatState
 			titleText.animation.findByPrefix(animFrames, "ENTER IDLE");
 			titleText.animation.findByPrefix(animFrames, "ENTER FREEZE");
 		}
-		
+
 		if (newTitle = animFrames.length > 0)
 		{
 			titleText.animation.addByPrefix('idle', "ENTER IDLE", 24);
@@ -218,7 +217,7 @@ class TitleState extends MusicBeatState
 	var gfPosition:FlxPoint = FlxPoint.get(512, 40);
 	var logoPosition:FlxPoint = FlxPoint.get(-150, -100);
 	var enterPosition:FlxPoint = FlxPoint.get(100, 576);
-	
+
 	var useIdle:Bool = false;
 	var musicBPM:Float = 102;
 	var danceLeftFrames:Array<Int> = [15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29];
@@ -238,12 +237,12 @@ class TitleState extends MusicBeatState
 					logoPosition.set(titleJSON.titlex, titleJSON.titley);
 					enterPosition.set(titleJSON.startx, titleJSON.starty);
 					musicBPM = titleJSON.bpm;
-					
+
 					if(titleJSON.animation != null && titleJSON.animation.length > 0) animationName = titleJSON.animation;
 					if(titleJSON.dance_left != null && titleJSON.dance_left.length > 0) danceLeftFrames = titleJSON.dance_left;
 					if(titleJSON.dance_right != null && titleJSON.dance_right.length > 0) danceRightFrames = titleJSON.dance_right;
 					useIdle = (titleJSON.idle == true);
-	
+
 					if (titleJSON.backgroundSprite != null && titleJSON.backgroundSprite.trim().length > 0)
 					{
 						var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image(titleJSON.backgroundSprite));
@@ -316,7 +315,7 @@ class TitleState extends MusicBeatState
 
 	var transitioning:Bool = false;
 	private static var playJingle:Bool = false;
-	
+
 	var newTitle:Bool = false;
 	var titleTimer:Float = 0;
 
@@ -350,7 +349,7 @@ class TitleState extends MusicBeatState
 				pressedEnter = true;
 			#end
 		}
-		
+
 		if (newTitle) {
 			titleTimer += FlxMath.bound(elapsed, 0, 1);
 			if (titleTimer > 2) titleTimer -= 2;
@@ -365,18 +364,18 @@ class TitleState extends MusicBeatState
 				var timer:Float = titleTimer;
 				if (timer >= 1)
 					timer = (-timer) + 2;
-				
+
 				timer = FlxEase.quadInOut(timer);
-				
+
 				titleText.color = FlxColor.interpolate(titleTextColors[0], titleTextColors[1], timer);
 				titleText.alpha = FlxMath.lerp(titleTextAlphas[0], titleTextAlphas[1], timer);
 			}
-			
+
 			if(pressedEnter)
 			{
 				titleText.color = FlxColor.WHITE;
 				titleText.alpha = 1;
-				
+
 				if(titleText != null) titleText.animation.play('press');
 
 				FlxG.camera.flash(ClientPrefs.data.flashing ? FlxColor.WHITE : 0x4CFFFFFF, 1);

@@ -96,7 +96,7 @@ class AchievementsMenuState extends MusicBeatState
 		box.alpha = 0.6;
 		box.scrollFactor.set();
 		add(box);
-		
+
 		nameText = new FlxText(50, box.y + 10, FlxG.width - 100, "", 32);
 		nameText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER);
 		nameText.scrollFactor.set();
@@ -109,7 +109,7 @@ class AchievementsMenuState extends MusicBeatState
 		progressBar.screenCenter(X);
 		progressBar.scrollFactor.set();
 		progressBar.enabled = false;
-		
+
 		progressTxt = new FlxText(50, progressBar.y - 6, FlxG.width - 100, "", 32);
 		progressTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		progressTxt.scrollFactor.set();
@@ -119,10 +119,10 @@ class AchievementsMenuState extends MusicBeatState
 		add(progressTxt);
 		add(descText);
 		add(nameText);
-		
+
 		_changeSelection();
 		super.create();
-		
+
 		FlxG.camera.follow(camFollow, null, 0.15);
 		FlxG.camera.scroll.y = -FlxG.height;
 	}
@@ -157,7 +157,7 @@ class AchievementsMenuState extends MusicBeatState
 			{
 				var oldRow:Int = Math.floor(curSelected / MAX_PER_ROW);
 				var rowSize:Int = Std.int(Math.min(MAX_PER_ROW, options.length - oldRow * MAX_PER_ROW));
-				
+
 				curSelected += add;
 				var curRow:Int = Math.floor(curSelected / MAX_PER_ROW);
 				if(curSelected >= options.length) curRow++;
@@ -196,7 +196,7 @@ class AchievementsMenuState extends MusicBeatState
 					_changeSelection();
 				}
 			}
-			
+
 			if(controls.RESET && (options[curSelected].unlocked || options[curSelected].curProgress > 0))
 			{
 				openSubState(new ResetAchievementSubstate());
@@ -270,14 +270,14 @@ class ResetAchievementSubstate extends MusicBeatSubstate
 		text.screenCenter(X);
 		text.scrollFactor.set();
 		add(text);
-		
+
 		var state:AchievementsMenuState = cast FlxG.state;
 		var text:FlxText = new FlxText(50, text.y + 90, FlxG.width - 100, state.options[state.curSelected].displayName, 40);
 		text.setFormat(Paths.font("vcr.ttf"), 40, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		text.scrollFactor.set();
 		text.borderSize = 2;
 		add(text);
-		
+
 		yesText = new Alphabet(0, text.y + 120, Language.getPhrase('Yes'), true);
 		yesText.screenCenter(X);
 		yesText.x -= 200;

@@ -181,7 +181,7 @@ class PicoBlazinHandler
 				playIdleAnim();
 		}
 	}
-	
+
 	public function noteMissPress(direction:Int)
 	{
 		if (willMissBeLethal())
@@ -319,7 +319,7 @@ class PicoBlazinHandler
 	{
 		return PlayState.instance.health <= 0.0 && !PlayState.instance.practiceMode;
 	}
-	
+
 	function isDarnellPreppingUppercut()
 	{
 		return dad.getAnimationName() == 'uppercutPrep';
@@ -339,7 +339,7 @@ class PicoBlazinHandler
 	{
 		return PlayState.instance.health <= 0.3 * 2;
 	}
-	
+
 	function moveToBack()
 	{
 		var bfPos:Int = FlxG.state.members.indexOf(boyfriendGroup);

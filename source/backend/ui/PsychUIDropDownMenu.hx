@@ -264,7 +264,7 @@ class PsychUIDropDownItem extends FlxSpriteGroup
 			if(overlapped && FlxG.mouse.justPressed)
 				onClick();
 		}
-		
+
 		text.x = bg.x;
 		text.y = bg.y + bg.height/2 - text.height/2;
 	}

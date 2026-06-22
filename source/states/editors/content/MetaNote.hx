@@ -28,7 +28,7 @@ class MetaNote extends Note
 		this.songData[1] = v;
 		this.noteData = v % ChartingState.GRID_COLUMNS_PER_PLAYER;
 		this.mustPress = (v < ChartingState.GRID_COLUMNS_PER_PLAYER);
-		
+
 		if(!PlayState.isPixelStage)
 			loadNoteAnims();
 		else
@@ -86,7 +86,7 @@ class MetaNote extends Note
 		if(_lastZoom < 0) return;
 		setSustainLength(sustainLength, stepCrochet, _lastZoom);
 	}
-	
+
 	var _noteTypeText:FlxText;
 	public function findNoteTypeText(num:Int)
 	{
@@ -169,7 +169,7 @@ class EventMetaNote extends MetaNote
 			trace('Error: $e');
 		}
 		//trace('events: $events');
-		
+
 		loadGraphic(Paths.image('editors/eventIcon'));
 		setGraphicSize(ChartingState.GRID_SIZE);
 		updateHitbox();
@@ -180,7 +180,7 @@ class EventMetaNote extends MetaNote
 		eventText.antialiasing = ClientPrefs.data.antialiasing;
 		updateEventText();
 	}
-	
+
 	override function draw()
 	{
 		if(eventText != null && eventText.exists && eventText.visible)

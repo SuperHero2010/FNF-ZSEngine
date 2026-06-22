@@ -234,7 +234,7 @@ class ZSTranspiler {
                         else if (luaLine.indexOf("else") == 0) {
                             shouldPush = true;
                         }
-                        
+
                         if (shouldPush) {
                             indentationStack.push(originalIndent);
                         }

@@ -25,17 +25,17 @@ class EditorPlayState extends MusicBeatSubstate
 	var inst:FlxSound = new FlxSound();
 	var vocals:FlxSound;
 	var opponentVocals:FlxSound;
-	
+
 	var notes:FlxTypedGroup<Note>;
 	var unspawnNotes:Array<Note> = [];
 	var ratingsData:Array<Rating> = Rating.loadDefault();
-	
+
 	var comboGroup:FlxSpriteGroup;
 	var strumLineNotes:FlxTypedGroup<StrumNote>;
 	var opponentStrums:FlxTypedGroup<StrumNote>;
 	var playerStrums:FlxTypedGroup<StrumNote>;
 	var grpNoteSplashes:FlxTypedGroup<NoteSplash>;
-	
+
 	var combo:Int = 0;
 	var lastRating:FlxSprite;
 	var lastCombo:FlxSprite;
@@ -46,12 +46,12 @@ class EditorPlayState extends MusicBeatSubstate
 		'note_up',
 		'note_right'
 	];
-	
+
 	var songHits:Int = 0;
 	var songMisses:Int = 0;
 	var songLength:Float = 0;
 	var songSpeed:Float = 1;
-	
+
 	var showCombo:Bool = false;
 	var showComboNum:Bool = true;
 	var showRating:Bool = true;
@@ -69,7 +69,7 @@ class EditorPlayState extends MusicBeatSubstate
 	public function new(noteList:Array<Note>, allVocals:Array<FlxSound>)
 	{
 		super();
-		
+
 		/* setting up some important data */
 		this.vocals = allVocals[0];
 		this.opponentVocals = allVocals[1];
@@ -100,7 +100,7 @@ class EditorPlayState extends MusicBeatSubstate
 		bg.color = 0xFF101010;
 		bg.alpha = 0.9;
 		add(bg);
-		
+
 		/**** NOTES ****/
 		comboGroup = new FlxSpriteGroup();
 		add(comboGroup);
@@ -108,25 +108,25 @@ class EditorPlayState extends MusicBeatSubstate
 		add(strumLineNotes);
 		grpNoteSplashes = new FlxTypedGroup<NoteSplash>();
 		add(grpNoteSplashes);
-		
+
 		var splash:NoteSplash = new NoteSplash();
 		grpNoteSplashes.add(splash);
 		splash.alpha = 0.000001; //cant make it invisible or it won't allow precaching
 
 		opponentStrums = new FlxTypedGroup<StrumNote>();
 		playerStrums = new FlxTypedGroup<StrumNote>();
-		
+
 		generateStaticArrows(0);
 		generateStaticArrows(1);
 		/***************/
-		
+
 		scoreTxt = new FlxText(10, FlxG.height - 50, FlxG.width - 20, "", 20);
 		scoreTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		scoreTxt.scrollFactor.set();
 		scoreTxt.borderSize = 1.25;
 		scoreTxt.visible = !ClientPrefs.data.hideHud;
 		add(scoreTxt);
-		
+
 		dataTxt = new FlxText(10, 580, FlxG.width - 20, "Section: 0", 20);
 		dataTxt.setFormat(Paths.font("vcr.ttf"), 20, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		dataTxt.scrollFactor.set();
@@ -139,13 +139,13 @@ class EditorPlayState extends MusicBeatSubstate
 		tipText.scrollFactor.set();
 		add(tipText);
 		FlxG.mouse.visible = false;
-		
+
 		generateSong();
 		_noteList = null;
 
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyPress);
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_UP, onKeyRelease);
-		
+
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence (with Time Left)
 		DiscordClient.changePresence('Playtesting on Chart Editor', PlayState.SONG.song, null, true, songLength);
@@ -166,7 +166,7 @@ class EditorPlayState extends MusicBeatSubstate
 			super.update(elapsed);
 			return;
 		}
-		
+
 		if (startingSong)
 		{
 			timerToStart -= elapsed * 1000;
@@ -230,7 +230,7 @@ class EditorPlayState extends MusicBeatSubstate
 				}
 			});
 		}
-		
+
 		var time:Float = CoolUtil.floorDecimal((Conductor.songPosition - ClientPrefs.data.noteOffset) / 1000, 1);
 		var songLen:Float = CoolUtil.floorDecimal(songLength / 1000, 1);
 		dataTxt.text = 'Time: $time / $songLen' +
@@ -252,7 +252,7 @@ class EditorPlayState extends MusicBeatSubstate
 		super.beatHit();
 		lastBeatHit = curBeat;
 	}
-	
+
 	override function sectionHit()
 	{
 		if (PlayState.SONG.notes[curSection] != null)
@@ -273,7 +273,7 @@ class EditorPlayState extends MusicBeatSubstate
 		flixel.util.FlxDestroyUtil.destroy(inst);
 		super.destroy();
 	}
-	
+
 	function startSong():Void
 	{
 		startingSong = false;
@@ -341,7 +341,7 @@ class EditorPlayState extends MusicBeatSubstate
 		for (note in _noteList)
 		{
 			if(note == null || note.strumTime < startPos) continue;
-			
+
 			while(cachedSectionTimes.length > noteSec + 1 && cachedSectionTimes[noteSec + 1] <= note.strumTime)
 			{
 				noteSec++;
@@ -439,7 +439,7 @@ class EditorPlayState extends MusicBeatSubstate
 		}
 		unspawnNotes.sort(PlayState.sortByTime);
 	}
-	
+
 	private function generateStaticArrows(player:Int):Void
 	{
 		var strumLineX:Float = ClientPrefs.data.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X;
@@ -504,7 +504,7 @@ class EditorPlayState extends MusicBeatSubstate
 		Conductor.songPosition = FlxG.sound.music.time = vocals.time = opponentVocals.time = startPos - Conductor.offset;
 		close();
 	}
-	
+
 	private function cachePopUpScore()
 	{
 		var uiFolder:String = "";
@@ -663,7 +663,7 @@ class EditorPlayState extends MusicBeatSubstate
 			//Prevents crash specifically on debug without needing to try catch shit
 			@:privateAccess if (!FlxG.keys._keyListMap.exists(eventKey)) return;
 			#end
-	
+
 			if(FlxG.keys.checkStatus(eventKey, JUST_PRESSED)) keyPressed(key);
 		}
 	}
@@ -736,7 +736,7 @@ class EditorPlayState extends MusicBeatSubstate
 			spr.resetAnim = 0;
 		}
 	}
-	
+
 	// Hold notes
 	private function keysCheck():Void
 	{
@@ -768,7 +768,7 @@ class EditorPlayState extends MusicBeatSubstate
 
 				if (canHit && n.isSustainNote) {
 					var released:Bool = !holdArray[n.noteData];
-					
+
 					if (!released)
 						goodNoteHit(n);
 				}
@@ -782,7 +782,6 @@ class EditorPlayState extends MusicBeatSubstate
 					keyReleased(i);
 	}
 
-	
 	function opponentNoteHit(note:Note):Void
 	{
 		if (PlayState.SONG.needsVoices && opponentVocals.length <= 0)
@@ -830,7 +829,7 @@ class EditorPlayState extends MusicBeatSubstate
 		if (!note.isSustainNote)
 			invalidateNote(note);
 	}
-	
+
 	function noteMiss(daNote:Note):Void { //You didn't hit the key and let it go offscreen, also used by Hurt Notes
 		//Dupe note remove
 		notes.forEachAlive(function(note:Note) {
@@ -859,7 +858,7 @@ class EditorPlayState extends MusicBeatSubstate
 		if (daNote != null && guitarHeroSustains && daNote.parent != null && daNote.isSustainNote) {
 			if (daNote.missed)
 				return; 
-			
+
 			var parentNote:Note = daNote.parent;
 			if (parentNote.wasGoodHit && parentNote.tail.length > 0) {
 				for (child in parentNote.tail) if (child != daNote) {

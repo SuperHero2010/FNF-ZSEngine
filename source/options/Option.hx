@@ -82,7 +82,7 @@ class Option
 		{
 			if(getValue() == null)
 				setValue(defaultValue);
-	
+
 			switch(type)
 			{
 				case STRING:

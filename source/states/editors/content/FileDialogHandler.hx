@@ -253,7 +253,7 @@ class FileDialogHandler extends FlxBasic
 	function removeEvents()
 	{
 		if(_currentEvent == null) return;
-		
+
 		_fileRef.removeEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEvent);
 		_currentEvent = null;
 	}
@@ -283,7 +283,7 @@ class FileReferenceCustom extends FileReference
 		_trackSavedPath = path;
 		super.saveFileDialog_onSelect(path);
 	}
-	
+
 	public function browseEx(browseType:FileDialogType = OPEN, ?defaultName:String, ?title:String = null, ?typeFilter:Array<FileFilter> = null):Bool
 	{
 		__data = null;

@@ -525,7 +525,7 @@ class PlayState extends MusicBeatState
 		boyfriend = new Character(0, 0, SONG.player1, true);
 		startCharacterPos(boyfriend);
 		boyfriendGroup.add(boyfriend);
-		
+
 		if(stageData.objects != null && stageData.objects.length > 0)
 		{
 			var list:Map<String, FlxSprite> = StageData.addObjectsToState(stageData.objects, !stageData.hide_girlfriend ? gfGroup : null, dadGroup, boyfriendGroup, this);
@@ -824,7 +824,7 @@ class PlayState extends MusicBeatState
 
 		stagesFunc(function(stage:BaseStage) stage.createPost());
 		callOnScripts('onCreatePost');
-		
+
 		var splash:NoteSplash = new NoteSplash();
 		grpNoteSplashes.add(splash);
 		splash.alpha = 0.000001; //cant make it invisible or it won't allow precaching
@@ -1683,7 +1683,7 @@ class PlayState extends MusicBeatState
 			{
 				var playerVocals = Paths.voices(songData.song, (boyfriend.vocalsFile == null || boyfriend.vocalsFile.length < 1) ? 'Player' : boyfriend.vocalsFile);
 				vocals.loadEmbedded(playerVocals != null ? playerVocals : Paths.voices(songData.song));
-				
+
 				var oppVocals = Paths.voices(songData.song, (dad.vocalsFile == null || dad.vocalsFile.length < 1) ? 'Opponent' : dad.vocalsFile);
 				if(oppVocals != null && oppVocals.length > 0) opponentVocals.loadEmbedded(oppVocals);
 			}
@@ -1730,7 +1730,7 @@ class PlayState extends MusicBeatState
 
 			++cnt;
 			sectionNoteCnt = 0;
-			
+
 			// Show progress at start of each section
 			showProgress(false);
 
@@ -1831,7 +1831,7 @@ class PlayState extends MusicBeatState
 		showProgress(isDesktop);
 
 		Sys.println('\n[ --- "${SONG.song.toUpperCase()}" CHART INFO --- ]');
-		
+
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
 
@@ -1991,7 +1991,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	override function closeSubState()
 	{
 		super.closeSubState();
-		
+
 		stagesFunc(function(stage:BaseStage) stage.closeSubState());
 		if (paused)
 		{
@@ -2641,7 +2641,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					}
 				}
 
-
 			case 'Change Character':
 				var charType:Int = 0;
 				switch(value1.toLowerCase().trim()) {
@@ -2786,7 +2785,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		else
 			callOnScripts('onMoveCamera', ['boyfriend']);
 	}
-	
+
 	public function moveCameraToGirlfriend()
 	{
 		camFollow.setPosition(gf.getMidpoint().x, gf.getMidpoint().y);
@@ -2853,7 +2852,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			});
 		}
 	}
-
 
 	public var transitioning = false;
 	public function endSong()
@@ -3550,7 +3548,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 						if(char.animation.exists(holdAnim)) animToPlay = holdAnim;
 						if(char.getAnimationName() == holdAnim || char.getAnimationName() == holdAnim + '-loop') canPlay = false;
 					}
-	
+
 					if(canPlay) char.playAnim(animToPlay, true);
 					char.holdTimer = 0;
 

@@ -37,7 +37,7 @@ class PhillyTrain extends BGSprite
 						PlayState.instance.gf.specialAnim = true;
 					}
 				}
-		
+
 				if (startedMoving)
 				{
 					x -= 400;
@@ -70,7 +70,7 @@ class PhillyTrain extends BGSprite
 			start();
 		}
 	}
-	
+
 	public function start():Void
 	{
 		moving = true;

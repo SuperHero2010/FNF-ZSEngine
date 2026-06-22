@@ -15,7 +15,7 @@ class SchoolEvil extends BaseStage
 		if(_song.gameOverLoop == null || _song.gameOverLoop.trim().length < 1) GameOverSubstate.loopSoundName = 'gameOver-pixel';
 		if(_song.gameOverEnd == null || _song.gameOverEnd.trim().length < 1) GameOverSubstate.endSoundName = 'gameOverEnd-pixel';
 		if(_song.gameOverChar == null || _song.gameOverChar.trim().length < 1) GameOverSubstate.characterName = 'bf-pixel-dead';
-		
+
 		var posX = 400;
 		var posY = 200;
 
@@ -111,7 +111,7 @@ class SchoolEvil extends BaseStage
 		doof.nextDialogueThing = PlayState.instance.startNextDialogue;
 		doof.skipDialogueThing = PlayState.instance.skipDialogue;
 	}
-	
+
 	function schoolIntro():Void
 	{
 		inCutscene = true;

@@ -17,7 +17,7 @@ class MallEvil extends BaseStage
 		var evilSnow:BGSprite = new BGSprite('christmas/evilSnow', -200, 700);
 		add(evilSnow);
 		setDefaultGF('gf-christmas');
-		
+
 		//Winter Horrorland cutscene
 		if (isStoryMode && !seenCutscene)
 		{

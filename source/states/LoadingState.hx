@@ -50,13 +50,13 @@ class LoadingState extends MusicBeatState
 	{
 		this.target = target;
 		this.stopMusic = stopMusic;
-		
+
 		super();
 	}
 
 	inline static public function loadAndSwitchState(target:FlxState, stopMusic = false, intrusive:Bool = true)
 		MusicBeatState.switchState(getNextState(target, stopMusic, intrusive));
-	
+
 	var target:FlxState = null;
 	var stopMusic:Bool = false;
 	var dontUpdate:Bool = false;
@@ -76,7 +76,7 @@ class LoadingState extends MusicBeatState
 	var timePassed:Float;
 	var shakeFl:Float;
 	var shakeMult:Float = 0;
-	
+
 	var isSpinning:Bool = false;
 	var spawnedPessy:Bool = false;
 	var pressedTimes:Int = 0;
@@ -118,7 +118,7 @@ class LoadingState extends MusicBeatState
 					hscript.set('getLoadMax', function() return loadMax);
 					hscript.set('barBack', barBack);
 					hscript.set('bar', bar);
-	
+
 					if(hscript.exists('onCreate'))
 					{
 						hscript.call('onCreate');
@@ -149,12 +149,12 @@ class LoadingState extends MusicBeatState
 		bg.color = 0xFFD16FFF;
 		bg.updateHitbox();
 		addBehindBar(bg);
-	
+
 		loadingText = new FlxText(520, 600, 400, Language.getPhrase('now_loading', 'Now Loading', ['...']), 32);
 		loadingText.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, LEFT, OUTLINE_FAST, FlxColor.BLACK);
 		loadingText.borderSize = 2;
 		addBehindBar(loadingText);
-	
+
 		logo = new FlxSprite(0, 0).loadGraphic(Paths.image('loading_screen/icon'));
 		logo.antialiasing = ClientPrefs.data.antialiasing;
 		logo.scale.set(0.75, 0.75);
@@ -220,7 +220,7 @@ class LoadingState extends MusicBeatState
 			bar.scale.x = barWidth * curPercent;
 			bar.updateHitbox();
 		}
-		
+
 		#if HSCRIPT_ALLOWED
 		if(hscript != null)
 		{
@@ -279,11 +279,11 @@ class LoadingState extends MusicBeatState
 						pessy.x = -pessy.width - 200;
 						pessy.velocity.x *= -1;
 					}
-		
+
 					pessy.visible = true;
 					pessy.animation.play('run', true);
 					#if ACHIEVEMENTS_ALLOWED Achievements.unlock('pessy_easter_egg'); #end
-					
+
 					insert(members.indexOf(loadingText), pessy);
 				});
 			}
@@ -313,7 +313,7 @@ class LoadingState extends MusicBeatState
 		super.destroy();
 	}
 	#end
-	
+
 	var finishedLoading:Bool = false;
 	function onLoad()
 	{
@@ -379,7 +379,7 @@ class LoadingState extends MusicBeatState
 
 		if(intrusive)
 			return new LoadingState(target, stopMusic);
-		
+
 		if (stopMusic && FlxG.sound.music != null)
 			FlxG.sound.music.stop();
 
@@ -460,7 +460,7 @@ class LoadingState extends MusicBeatState
 			// LOAD NOTE IMAGE
 			var noteSkin:String = Note.defaultNoteSkin;
 			if(PlayState.SONG.arrowSkin != null && PlayState.SONG.arrowSkin.length > 1) noteSkin = PlayState.SONG.arrowSkin;
-	
+
 			var customSkin:String = noteSkin + Note.getNoteSkinPostfix();
 			if(Paths.fileExists('images/$customSkin.png', IMAGE)) noteSkin = customSkin;
 			imagesToPrepare.push(noteSkin);
@@ -539,7 +539,7 @@ class LoadingState extends MusicBeatState
 						}
 					}
 				}
-				
+
 				if (stageData.objects != null)
 				{
 					for (sprite in stageData.objects)
@@ -742,7 +742,7 @@ class LoadingState extends MusicBeatState
 				{
 					var st:String = '$i';
 					if(i == 0) st = '';
-	
+
 					if(Paths.fileExists('images/$img/spritemap$st.png', IMAGE))
 					{
 						//trace('found Sprite PNG');
@@ -752,7 +752,7 @@ class LoadingState extends MusicBeatState
 				}
 			}
 			#end
-	
+
 			if (prefixVocals != null && character.vocals_file != null && character.vocals_file.length > 0)
 			{
 				songsToPrepare.push(prefixVocals + "-" + character.vocals_file);
@@ -831,7 +831,7 @@ class LoadingState extends MusicBeatState
 
 		return null;
 	}
-	
+
 	#if cpp
 	@:functionCode('
 		return std::thread::hardware_concurrency();
@@ -841,5 +841,5 @@ class LoadingState extends MusicBeatState
     	{
         	return -1;
     	}
-    	#end
+    #end
 }

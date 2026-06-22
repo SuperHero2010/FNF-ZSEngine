@@ -100,7 +100,7 @@ class Achievements {
 		FlxG.save.data.achievementsUnlocked = achievementsUnlocked;
 		FlxG.save.data.achievementsVariables = variables;
 	}
-	
+
 	public static function getScore(name:String):Float
 		return _scoreFunc(name, GET);
 
@@ -235,7 +235,7 @@ class Achievements {
 			try {
 				var rawJson:String = File.getContent(path).trim();
 				if(rawJson != null && rawJson.length > 0) retVal = tjson.TJSON.parse(rawJson); //Json.parse('{"achievements": $rawJson}').achievements;
-				
+
 				if(addMods && retVal != null)
 				{
 					for (i in 0...retVal.length)

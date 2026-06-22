@@ -82,7 +82,7 @@ class NoteOffsetState extends MusicBeatState
 		rating.antialiasing = ClientPrefs.data.antialiasing;
 		rating.setGraphicSize(Std.int(rating.width * 0.7));
 		rating.updateHitbox();
-		
+
 		add(rating);
 
 		comboNums = new FlxSpriteGroup();
@@ -122,7 +122,7 @@ class NoteOffsetState extends MusicBeatState
 		beatText.acceleration.y = 250;
 		beatText.visible = false;
 		add(beatText);
-		
+
 		timeTxt = new FlxText(0, 600, FlxG.width, "", 32);
 		timeTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		timeTxt.scrollFactor.set();
@@ -132,7 +132,7 @@ class NoteOffsetState extends MusicBeatState
 
 		barPercent = ClientPrefs.data.noteOffset;
 		updateNoteDelay();
-		
+
 		timeBar = new Bar(0, timeTxt.y + (timeTxt.height / 3), 'healthBar', function() return barPercent, delayMin, delayMax);
 		timeBar.scrollFactor.set();
 		timeBar.screenCenter(X);
@@ -156,14 +156,14 @@ class NoteOffsetState extends MusicBeatState
 		changeModeText.scrollFactor.set();
 		changeModeText.cameras = [camHUD];
 		add(changeModeText);
-		
+
 		controllerPointer = new FlxShapeCircle(0, 0, 20, {thickness: 0}, FlxColor.WHITE);
 		controllerPointer.offset.set(20, 20);
 		controllerPointer.screenCenter();
 		controllerPointer.alpha = 0.6;
 		controllerPointer.cameras = [camHUD];
 		add(controllerPointer);
-		
+
 		updateMode();
 		_lastControllerMode = true;
 
@@ -223,7 +223,7 @@ class NoteOffsetState extends MusicBeatState
 						FlxG.keys.justPressed.RIGHT,
 						FlxG.keys.justPressed.UP,
 						FlxG.keys.justPressed.DOWN,
-					
+
 						FlxG.keys.justPressed.A,
 						FlxG.keys.justPressed.D,
 						FlxG.keys.justPressed.W,
@@ -237,7 +237,7 @@ class NoteOffsetState extends MusicBeatState
 						FlxG.gamepads.anyJustPressed(DPAD_RIGHT),
 						FlxG.gamepads.anyJustPressed(DPAD_UP),
 						FlxG.gamepads.anyJustPressed(DPAD_DOWN),
-					
+
 						FlxG.gamepads.anyJustPressed(RIGHT_STICK_DIGITAL_LEFT),
 						FlxG.gamepads.anyJustPressed(RIGHT_STICK_DIGITAL_RIGHT),
 						FlxG.gamepads.anyJustPressed(RIGHT_STICK_DIGITAL_UP),
@@ -275,7 +275,7 @@ class NoteOffsetState extends MusicBeatState
 					repositionCombo();
 				}
 			}
-			
+
 			// controller things
 			var analogX:Float = 0;
 			var analogY:Float = 0;
@@ -437,7 +437,7 @@ class NoteOffsetState extends MusicBeatState
 			boyfriend.dance();
 			gf.dance();
 		}
-		
+
 		if(curBeat % 4 == 2)
 		{
 			FlxG.camera.zoom = 1.15;
@@ -518,7 +518,7 @@ class NoteOffsetState extends MusicBeatState
 		rating.visible = onComboMenu;
 		comboNums.visible = onComboMenu;
 		dumbTexts.visible = onComboMenu;
-		
+
 		timeBar.visible = !onComboMenu;
 		timeTxt.visible = !onComboMenu;
 		beatText.visible = !onComboMenu;

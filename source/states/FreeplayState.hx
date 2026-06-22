@@ -57,7 +57,7 @@ class FreeplayState extends MusicBeatState
 	{
 		//Paths.clearStoredMemory();
 		//Paths.clearUnusedMemory();
-		
+
 		persistentUpdate = true;
 		PlayState.isStoryMode = false;
 		WeekData.reloadWeekFiles(false);
@@ -156,12 +156,11 @@ class FreeplayState extends MusicBeatState
 
 		add(scoreText);
 
-
 		missingTextBG = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		missingTextBG.alpha = 0.6;
 		missingTextBG.visible = false;
 		add(missingTextBG);
-		
+
 		missingText = new FlxText(50, 0, FlxG.width - 100, '', 24);
 		missingText.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		missingText.scrollFactor.set();
@@ -186,10 +185,10 @@ class FreeplayState extends MusicBeatState
 		bottomText.setFormat(Paths.font("vcr.ttf"), size, FlxColor.WHITE, CENTER);
 		bottomText.scrollFactor.set();
 		add(bottomText);
-		
+
 		player = new MusicPlayer(this);
 		add(player);
-		
+
 		changeSelection();
 		updateTexts();
 		super.create();
@@ -238,7 +237,7 @@ class FreeplayState extends MusicBeatState
 		var ratingSplit:Array<String> = Std.string(CoolUtil.floorDecimal(lerpRating * 100, 2)).split('.');
 		if(ratingSplit.length < 2) //No decimals, add an empty space
 			ratingSplit.push('');
-		
+
 		while(ratingSplit[1].length < 2) //Less than 2 decimals in it, add decimals then
 			ratingSplit[1] += '0';
 
@@ -249,7 +248,7 @@ class FreeplayState extends MusicBeatState
 		{
 			scoreText.text = Language.getPhrase('personal_best', 'PERSONAL BEST: {1} ({2}%)', [lerpScore, ratingSplit.join('.')]);
 			positionHighscore();
-			
+
 			if(songs.length > 1)
 			{
 				if(FlxG.keys.justPressed.HOME)
@@ -359,7 +358,7 @@ class FreeplayState extends MusicBeatState
 						var playerVocals:String = getVocalFromCharacter(PlayState.SONG.player1);
 						var loadedVocals = Paths.voices(PlayState.SONG.song, (playerVocals != null && playerVocals.length > 0) ? playerVocals : 'Player');
 						if(loadedVocals == null) loadedVocals = Paths.voices(PlayState.SONG.song);
-						
+
 						if(loadedVocals != null && loadedVocals.length > 0)
 						{
 							vocals.loadEmbedded(loadedVocals);
@@ -375,14 +374,14 @@ class FreeplayState extends MusicBeatState
 					{
 						vocals = FlxDestroyUtil.destroy(vocals);
 					}
-					
+
 					opponentVocals = new FlxSound();
 					try
 					{
 						//trace('please work...');
 						var oppVocals:String = getVocalFromCharacter(PlayState.SONG.player2);
 						var loadedVocals = Paths.voices(PlayState.SONG.song, (oppVocals != null && oppVocals.length > 0) ? oppVocals : 'Opponent');
-						
+
 						if(loadedVocals != null && loadedVocals.length > 0)
 						{
 							opponentVocals.loadEmbedded(loadedVocals);
@@ -475,7 +474,7 @@ class FreeplayState extends MusicBeatState
 		updateTexts(elapsed);
 		super.update(elapsed);
 	}
-	
+
 	function getVocalFromCharacter(char:String)
 	{
 		try
@@ -551,11 +550,11 @@ class FreeplayState extends MusicBeatState
 				icon.alpha = 1;
 			}
 		}
-		
+
 		Mods.currentModDirectory = songs[curSelected].folder;
 		PlayState.storyWeek = songs[curSelected].week;
 		Difficulty.loadFromWeek();
-		
+
 		var savedDiff:String = songs[curSelected].lastDifficulty;
 		var lastDiff:Int = Difficulty.list.indexOf(lastDifficultyName);
 		if(savedDiff != null && !Difficulty.list.contains(savedDiff) && Difficulty.list.contains(savedDiff))
