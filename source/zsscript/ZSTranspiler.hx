@@ -373,6 +373,14 @@ class ZSTranspiler {
             trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
 
+            if (trimmedLine.indexOf("(") == -1 && trimmedLine.indexOf("<") == -1 && trimmedLine.indexOf(":") == -1) {
+                var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) (.+)$/;
+                if (funcCallDirectPattern.match(trimmedLine)) {
+                    var funcName = funcCallDirectPattern.matched(1);
+                    var args = funcCallDirectPattern.matched(2);
+                    trimmedLine = funcName + "(" + args + ")";
+                }
+            }
             var luaLine = trimmedLine;
             for (pattern in ZSPatterns.patterns) {
                 var regex = new EReg(pattern.pattern, "g");
