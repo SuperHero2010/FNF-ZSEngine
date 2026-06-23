@@ -381,6 +381,7 @@ class ZSTranspiler {
                     trimmedLine = funcName + "(" + args + ")";
                 }
             }
+
             var luaLine = trimmedLine;
             for (pattern in ZSPatterns.patterns) {
                 var regex = new EReg(pattern.pattern, "g");
