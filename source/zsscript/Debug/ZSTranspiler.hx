@@ -280,20 +280,29 @@ class ZSTranspiler {
             }
 
             if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
+                var isAssignment = (trimmedLine.indexOf(" = ") > -1 || trimmedLine.indexOf("=") > -1 || trimmedLine.indexOf("= ") > -1 || trimmedLine.indexOf(" =") > -1 ||
+                                    trimmedLine.indexOf(" to ") > -1 || trimmedLine.indexOf("read <") == 0 || trimmedLine.indexOf("local <") == 0 || trimmedLine.indexOf("global <") == 0 || trimmedLine.indexOf("change <") == 0);
                 var hasLocal = trimmedLine.indexOf("local <") == 0;
                 var hasGlobal = trimmedLine.indexOf("global <") == 0;
                 var hasChange = trimmedLine.indexOf("change <") == 0;
                 var hasRead = trimmedLine.indexOf("read <") == 0;
+                var funcCallPattern = ~/^[a-zA-Z_][a-zA-Z0-9_]*<[^>]*>/;
 
-                if (!hasLocal && !hasGlobal && !hasChange && !hasRead) {
-                    var hasListAccess = trimmedLine.indexOf(">[" ) > -1 || trimmedLine.indexOf("> [") > -1;
-                    var hasTableAccess = trimmedLine.indexOf(">." ) > -1 || trimmedLine.indexOf("> .") > -1;
+                if (!isAssignment) {}
+                else {
+                    if (funcCallPattern.match(trimmedLine)) {}
+                    else {
+                        if (!hasLocal && !hasGlobal && !hasChange && !hasRead) {
+                            var hasListAccess = trimmedLine.indexOf(">[" ) > -1 || trimmedLine.indexOf("> [") > -1;
+                            var hasTableAccess = trimmedLine.indexOf(">." ) > -1 || trimmedLine.indexOf("> .") > -1;
 
-                    if (!hasListAccess && !hasTableAccess) {
-                        errors.push('Error at line $currentLine: Noun "<...>" must be used with local, global, change, or read');
-                        errors.push('  Found: "$trimmedLine"');
-                        errors.push('  Use local <name> = value, change <name> to value, or read <name>');
-                        return null;
+                            if (!hasListAccess && !hasTableAccess) {
+                                errors.push('Error at line $currentLine: Noun "<...>" must be used with local, global, change, or read');
+                                errors.push('  Found: "$trimmedLine"');
+                                errors.push('  Use local <name> = value, change <name> to value, or read <name>');
+                                return null;
+                            }
+                        }
                     }
                 }
             }
@@ -325,8 +334,7 @@ class ZSTranspiler {
                             trimmedLine = "function " + beforeColon + "()";
                         }
                     }
-                    else if (beforeColon == "print" || beforeColon == "print(debug)") {
-                    }
+                    else if (beforeColon == "print" || beforeColon == "print(debug)") {}
                     else if (afterColon.indexOf("(") > -1 || afterColon.indexOf("<") > -1) {
                         var spaceIdx = afterColon.indexOf(" ");
                         if (spaceIdx > 0) {
@@ -358,35 +366,55 @@ class ZSTranspiler {
                 }
             }
 
-            if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
-                var funcCallPattern = ~/([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>/g;
-                var match = funcCallPattern.match(trimmedLine);
-                if (match) {
-                    var funcName = funcCallPattern.matched(1);
-                    var allArgs = [];
-                    var pos = 0;
-                    var tempLine = trimmedLine;
-                    while (true) {
-                        var start = tempLine.indexOf("<", pos);
-                        if (start == -1) break;
-                        var end = tempLine.indexOf(">", start);
-                        if (end == -1) break;
-                        allArgs.push(tempLine.substring(start + 1, end));
-                        pos = end + 1;
-                    }
-                    trimmedLine = funcName + "(" + allArgs.join(", ") + ")";
-                }
-            }
-
             trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
 
-            if (trimmedLine.indexOf("(") == -1 && trimmedLine.indexOf("<") == -1 && trimmedLine.indexOf(":") == -1) {
-                var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) (.+)$/;
-                if (funcCallDirectPattern.match(trimmedLine)) {
-                    var funcName = funcCallDirectPattern.matched(1);
-                    var args = funcCallDirectPattern.matched(2);
-                    trimmedLine = funcName + "(" + args + ")";
+            if (trimmedLine.indexOf(":") == -1 && trimmedLine.indexOf("function") == -1) {
+                var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
+                if (funcCallMixedPattern.match(trimmedLine)) {
+                    var funcName = funcCallMixedPattern.matched(1);
+                    var nounArgs = funcCallMixedPattern.matched(2);
+                    var directArgs = funcCallMixedPattern.matched(4);
+                    var allNounArgs = [nounArgs];
+                    var rest = trimmedLine.substring(trimmedLine.indexOf(">") + 1);
+                    while (rest.indexOf("<") > -1) {
+                        var start = rest.indexOf("<");
+                        var end = rest.indexOf(">", start);
+                        if (end == -1) break;
+                        allNounArgs.push(rest.substring(start + 1, end));
+                        rest = rest.substring(end + 1);
+                    }
+                    var combinedArgs = allNounArgs.join(", ");
+                    if (directArgs != "") {
+                        trimmedLine = funcName + "(" + combinedArgs + ", " + directArgs + ")";
+                    } else {
+                        trimmedLine = funcName + "(" + combinedArgs + ")";
+                    }
+                }
+                else {
+                    var funcCallNounPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>$/;
+                    if (funcCallNounPattern.match(trimmedLine)) {
+                        var funcName = funcCallNounPattern.matched(1);
+                        var allNounArgs = [];
+                        var temp = trimmedLine;
+                        while (temp.indexOf("<") > -1) {
+                            var start = temp.indexOf("<");
+                            var end = temp.indexOf(">", start);
+                            if (end == -1) break;
+                            allNounArgs.push(temp.substring(start + 1, end));
+                            temp = temp.substring(end + 1);
+                        }
+                        trimmedLine = funcName + "(" + allNounArgs.join(", ") + ")";
+                    }
+                }
+
+                if (trimmedLine.indexOf("<") == -1) {
+                    var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) (.+)$/;
+                    if (funcCallDirectPattern.match(trimmedLine)) {
+                        var funcName = funcCallDirectPattern.matched(1);
+                        var args = funcCallDirectPattern.matched(2);
+                        trimmedLine = funcName + "(" + args + ")";
+                    }
                 }
             }
 

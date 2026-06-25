@@ -3,9 +3,11 @@ class DebugTranspiler {
         var testScript = 
 "! ZS-LUA
 
+local <Boppebo> = “Boppebo”
+
 onCreate:
-    local <set> = {1, 2, 3, 4, 5}
-    global <set_math> = {(2 + 4), (1 + 6)}";
+    loadSong<Boppebo>, 1
+    print: “Song: ” + <Boppebo>";
 
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");
