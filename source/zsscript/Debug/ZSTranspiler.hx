@@ -192,6 +192,10 @@ class ZSTranspiler {
 
             if (!inBlockComment) {
                 var codeToCheck = trimmedLine;
+                if (codeToCheck.indexOf('nil') > -1) {
+                    errors.push('Error at line $currentLine: \'nil\' is prohibited in ZS');
+                    return null;
+                }
                 if (codeToCheck.indexOf('"') > -1) {
                     errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
                     errors.push('  → Use curly quotes “ and ” instead');
@@ -280,22 +284,45 @@ class ZSTranspiler {
             }
 
             if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
-                var isAssignment = (trimmedLine.indexOf(" = ") > -1 || trimmedLine.indexOf("=") > -1 || trimmedLine.indexOf("= ") > -1 || trimmedLine.indexOf(" =") > -1 ||
-                                    trimmedLine.indexOf(" to ") > -1 || trimmedLine.indexOf("read <") == 0 || trimmedLine.indexOf("local <") == 0 || trimmedLine.indexOf("global <") == 0 || trimmedLine.indexOf("change <") == 0);
-                var hasLocal = trimmedLine.indexOf("local <") == 0;
-                var hasGlobal = trimmedLine.indexOf("global <") == 0;
-                var hasChange = trimmedLine.indexOf("change <") == 0;
-                var hasRead = trimmedLine.indexOf("read <") == 0;
-                var funcCallPattern = ~/^[a-zA-Z_][a-zA-Z0-9_]*<[^>]*>/;
+                var commandKeywords = [
+                    "print", "register", "apply", "import", "add", "create", "start", "close",
+                    "exit", "restart", "load", "trigger", "call", "instance", "remove", "scale",
+                    "update", "play", "cancel", "stop", "pause", "resume", "center", "shake",
+                    "fade", "flash", "mouse", "key", "keyboard", "any", "gamepad", "tween",
+                    "run", "flush", "erase", "precache", "if", "else", "for", "while", "repeat", "until"
+                ];
 
-                if (!isAssignment) {}
+                var isCommand = false;
+                for (kw in commandKeywords) {
+                    if (trimmedLine.indexOf(kw + " ") == 0 || trimmedLine.indexOf(kw + "<") == 0 || trimmedLine.indexOf(kw + "“") == 0) {
+                        isCommand = true;
+                        break;
+                    }
+                }
+
+                if (isCommand) {}
                 else {
-                    if (funcCallPattern.match(trimmedLine)) {}
-                    else {
-                        if (!hasLocal && !hasGlobal && !hasChange && !hasRead) {
-                            var hasListAccess = trimmedLine.indexOf(">[" ) > -1 || trimmedLine.indexOf("> [") > -1;
-                            var hasTableAccess = trimmedLine.indexOf(">." ) > -1 || trimmedLine.indexOf("> .") > -1;
+                    var isFuncCall = ~/^[a-zA-Z_][a-zA-Z0-9_]*<[^>]*>/.match(trimmedLine);
 
+                    var isAssignment = (
+                        trimmedLine.indexOf(" = ") > -1 ||
+                        trimmedLine.indexOf("=") > -1 ||
+                        trimmedLine.indexOf(" to ") > -1
+                    );
+
+                    var nounPos = trimmedLine.indexOf("<");
+                    var hasDeclarationBeforeNoun = (
+                        trimmedLine.lastIndexOf("local ", nounPos) > -1 ||
+                        trimmedLine.lastIndexOf("global ", nounPos) > -1 ||
+                        trimmedLine.lastIndexOf("change ", nounPos) > -1 ||
+                        trimmedLine.lastIndexOf("read ", nounPos) > -1
+                    );
+
+                    if (isFuncCall) {}
+                    else if (isAssignment || hasDeclarationBeforeNoun) {
+                        if (!hasDeclarationBeforeNoun) {
+                            var hasListAccess = trimmedLine.indexOf(">[") > -1 || trimmedLine.indexOf("> [") > -1;
+                            var hasTableAccess = trimmedLine.indexOf(">.") > -1 || trimmedLine.indexOf("> .") > -1;
                             if (!hasListAccess && !hasTableAccess) {
                                 errors.push('Error at line $currentLine: Noun "<...>" must be used with local, global, change, or read');
                                 errors.push('  Found: "$trimmedLine"');
@@ -369,6 +396,15 @@ class ZSTranspiler {
             trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
 
+            trace('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
+            var luaLine = trimmedLine;
+            var allPatterns = ZSPatterns.getPatterns();
+            for (pattern in allPatterns) {
+                var regex = new EReg(pattern.pattern, "g");
+                luaLine = regex.replace(luaLine, pattern.replacement);
+            }
+            trace('AFTER ZSPatterns: luaLine="$luaLine"');
+
             if (trimmedLine.indexOf(":") == -1 && trimmedLine.indexOf("function") == -1) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
                 if (funcCallMixedPattern.match(trimmedLine)) {
@@ -417,14 +453,6 @@ class ZSTranspiler {
                     }
                 }
             }
-
-            trace('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
-            var luaLine = trimmedLine;
-            for (pattern in ZSPatterns.patterns) {
-                var regex = new EReg(pattern.pattern, "g");
-                luaLine = regex.replace(luaLine, pattern.replacement);
-            }
-            trace('AFTER ZSPatterns: luaLine="$luaLine"');
 
             luaLine = luaLine.split("≠").join("~=");
             luaLine = luaLine.split("≤").join("<=");

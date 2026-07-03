@@ -300,10 +300,17 @@ class MergeChartState extends MusicBeatState
 
 						if (newNotes.length > 0) {
 							for (i in 0...newNotes.length) {
-								var note = newNotes[i];
+								var section = newNotes[i];
 								if (i > 0 || notesArrayContent.length > 0) output.writeString(",");
-								output.writeString("\n    ");
-								output.writeString(Json.stringify(note));
+								output.writeString("\n    [\n");
+								output.writeString('        gfSection: ${Reflect.field(section, "gfSection")},\n');
+								output.writeString('        altAnim: ${Reflect.field(section, "altAnim")},\n');
+								output.writeString('        sectionNotes: ${Json.stringify(Reflect.field(section, "sectionNotes"))},\n');
+								output.writeString('        bpm: ${Reflect.field(section, "bpm")},\n');
+								output.writeString('        sectionBeats: ${Reflect.field(section, "sectionBeats")},\n');
+								output.writeString('        changeBPM: ${Reflect.field(section, "changeBPM")},\n');
+								output.writeString('        mustHitSection: ${Reflect.field(section, "mustHitSection")}\n');
+								output.writeString('    ]');
 							}
 						}
 
@@ -858,10 +865,16 @@ class MergeChartState extends MusicBeatState
 				if (inSection) {
 					if (sectionNotesStr.length > 0) {
 						try {
-							Reflect.setField(currentSection, "sectionNotes", Json.parse(sectionNotesStr));
+							var parsedNotes = Json.parse(sectionNotesStr);
+							trace('Successfully parsed sectionNotes: $sectionNotesStr -> $parsedNotes');
+							Reflect.setField(currentSection, "sectionNotes", parsedNotes);
 						} catch(e:Dynamic) {
+							trace('Error parsing sectionNotes: "$sectionNotesStr", error: $e');
 							Reflect.setField(currentSection, "sectionNotes", []);
 						}
+					} else {
+						trace('sectionNotesStr is empty, setting to []');
+						Reflect.setField(currentSection, "sectionNotes", []);
 					}
 					notesArray.push(currentSection);
 					currentSection = null;
@@ -885,6 +898,7 @@ class MergeChartState extends MusicBeatState
 				if (inSection) {
 					if (line.startsWith('sectionNotes:')) {
 						sectionNotesStr = line.substring(13);
+						sectionNotesStr = StringTools.trim(sectionNotesStr);
 						if (sectionNotesStr.endsWith(',')) sectionNotesStr = sectionNotesStr.substring(0, sectionNotesStr.length - 1);
 					} else if (line.indexOf(':') > 0) {
 						var parts = line.split(':');
@@ -1033,12 +1047,7 @@ class MergeChartState extends MusicBeatState
 		if (chart.notes != null) {
 			var notes:Array<Dynamic> = cast chart.notes;
 			for (section in notes) {
-				if (section.sectionNotes != null) {
-					var sectionNotes:Array<Dynamic> = cast section.sectionNotes;
-					for (note in sectionNotes) {
-						newNotes.push(note);
-					}
-				}
+				newNotes.push(section);
 			}
 		}
 
