@@ -333,19 +333,20 @@ class MergeChartState extends MusicBeatState
 					var chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
 					var chartAfterNotes = chartContent.substring(chartNotesEnd + 1);
 
-					var mergedNotesArray = mainNotesArray.trim();
-					var chartNotesTrimmed = chartNotesArray.trim();
+					var mergedNotesArray = StringTools.trim(mainNotesArray);
+					var chartNotesTrimmed = StringTools.trim(chartNotesArray);
 
-					if (mergedNotesArray.endsWith(",")) {
+					if (StringTools.endsWith(mergedNotesArray, ",")) {
 						mergedNotesArray = mergedNotesArray.substring(0, mergedNotesArray.length - 1);
 					}
 
 					if (mergedNotesArray.length > 0 && chartNotesTrimmed.length > 0) {
-						if (!mergedNotesArray.endsWith("\n")) {
+						if (!StringTools.endsWith(mergedNotesArray, "\n")) {
 							mergedNotesArray += "\n";
 						}
-						if (chartNotesTrimmed.startsWith(",")) {
-							chartNotesTrimmed = chartNotesTrimmed.substring(1).trim();
+						if (StringTools.startsWith(chartNotesTrimmed, ",")) {
+							chartNotesTrimmed = chartNotesTrimmed.substring(1);
+							chartNotesTrimmed = StringTools.trim(chartNotesTrimmed);
 						}
 						mergedNotesArray += ",\n" + chartNotesTrimmed;
 					} else if (chartNotesTrimmed.length > 0) {
@@ -353,38 +354,99 @@ class MergeChartState extends MusicBeatState
 					}
 
 					var mainEventsStart = mainContent.indexOf('events: [\n');
-					var mainEventsEnd = mainContent.lastIndexOf(']', mainContent.lastIndexOf(']') - 1);
 					var mainBeforeEvents = "";
 					var mainEventsArray = "";
 					var mainAfterEvents = "";
 
 					if (mainEventsStart != -1) {
-						mainBeforeEvents = mainContent.substring(0, mainEventsStart + 9);
-						mainEventsArray = mainContent.substring(mainEventsStart + 9, mainEventsEnd);
-						mainAfterEvents = mainContent.substring(mainEventsEnd + 1);
+						var bracketCount = 0;
+						var inString = false;
+						var escapeNext = false;
+						var mainEventsEnd = -1;
+						for (j in mainEventsStart...mainContent.length) {
+							var char = mainContent.charAt(j);
+							if (escapeNext) {
+								escapeNext = false;
+								continue;
+							}
+							if (char == '\\') {
+								escapeNext = true;
+								continue;
+							}
+							if (char == '"') {
+								inString = !inString;
+								continue;
+							}
+							if (!inString) {
+								if (char == '[') bracketCount++;
+								else if (char == ']') {
+									bracketCount--;
+									if (bracketCount == 0) {
+										mainEventsEnd = j;
+										break;
+									}
+								}
+							}
+						}
+						if (mainEventsEnd != -1) {
+							mainBeforeEvents = mainContent.substring(0, mainEventsStart + 9);
+							mainEventsArray = mainContent.substring(mainEventsStart + 9, mainEventsEnd);
+							mainAfterEvents = mainContent.substring(mainEventsEnd + 1);
+						}
 					}
 
 					var chartEventsStart = chartContent.indexOf('events: [\n');
-					var chartEventsEnd = chartContent.lastIndexOf(']', chartContent.lastIndexOf(']') - 1);
 					var chartEventsArray = "";
 
 					if (chartEventsStart != -1) {
-						chartEventsArray = chartContent.substring(chartEventsStart + 9, chartEventsEnd);
+						var bracketCount = 0;
+						var inString = false;
+						var escapeNext = false;
+						var chartEventsEnd = -1;
+						for (j in chartEventsStart...chartContent.length) {
+							var char = chartContent.charAt(j);
+							if (escapeNext) {
+								escapeNext = false;
+								continue;
+							}
+							if (char == '\\') {
+								escapeNext = true;
+								continue;
+							}
+							if (char == '"') {
+								inString = !inString;
+								continue;
+							}
+							if (!inString) {
+								if (char == '[') bracketCount++;
+								else if (char == ']') {
+									bracketCount--;
+									if (bracketCount == 0) {
+										chartEventsEnd = j;
+										break;
+									}
+								}
+							}
+						}
+						if (chartEventsEnd != -1) {
+							chartEventsArray = chartContent.substring(chartEventsStart + 9, chartEventsEnd);
+						}
 					}
 
-					var mergedEventsArray = mainEventsArray.trim();
-					var chartEventsTrimmed = chartEventsArray.trim();
+					var mergedEventsArray = StringTools.trim(mainEventsArray);
+					var chartEventsTrimmed = StringTools.trim(chartEventsArray);
 
-					if (mergedEventsArray.endsWith(",")) {
+					if (StringTools.endsWith(mergedEventsArray, ",")) {
 						mergedEventsArray = mergedEventsArray.substring(0, mergedEventsArray.length - 1);
 					}
 
 					if (mergedEventsArray.length > 0 && chartEventsTrimmed.length > 0) {
-						if (!mergedEventsArray.endsWith("\n")) {
+						if (!StringTools.endsWith(mergedEventsArray, "\n")) {
 							mergedEventsArray += "\n";
 						}
-						if (chartEventsTrimmed.startsWith(",")) {
-							chartEventsTrimmed = chartEventsTrimmed.substring(1).trim();
+						if (StringTools.startsWith(chartEventsTrimmed, ",")) {
+							chartEventsTrimmed = chartEventsTrimmed.substring(1);
+							chartEventsTrimmed = StringTools.trim(chartEventsTrimmed);
 						}
 						mergedEventsArray += ",\n" + chartEventsTrimmed;
 					} else if (chartEventsTrimmed.length > 0) {
@@ -399,7 +461,11 @@ class MergeChartState extends MusicBeatState
 						mergedContent += mainAfterEvents.substring(mainAfterEvents.indexOf("]") + 1);
 					} else {
 						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]\n";
-						mergedContent += chartAfterNotes;
+						var afterNotes = chartContent.substring(chartNotesEnd + 1);
+						var eventsStartInChart = afterNotes.indexOf("events:");
+						if (eventsStartInChart != -1) {
+							mergedContent += afterNotes.substring(eventsStartInChart + 8);
+						}
 					}
 
 					var output = sys.io.File.write(tempPath, false);
