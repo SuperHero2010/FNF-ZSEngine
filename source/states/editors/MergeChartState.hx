@@ -326,12 +326,12 @@ class MergeChartState extends MusicBeatState
 					var mainNotesEnd = mainContent.lastIndexOf(']');
 					var mainBeforeNotes = mainContent.substring(0, mainNotesStart + 9);
 					var mainNotesArray = mainContent.substring(mainNotesStart + 9, mainNotesEnd);
-					var mainAfterNotes = mainContent.substring(mainNotesEnd + 1);
+					var mainAfterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
 
 					var chartNotesStart = chartContent.indexOf('notes: [\n');
 					var chartNotesEnd = chartContent.lastIndexOf(']');
 					var chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
-					var chartAfterNotes = chartContent.substring(chartNotesEnd + 1);
+					var chartAfterNotes = chartContent.substring(chartNotesEnd + 1, chartContent.length);
 
 					var mergedNotesArray = StringTools.trim(mainNotesArray);
 					var chartNotesTrimmed = StringTools.trim(chartNotesArray);
@@ -391,7 +391,7 @@ class MergeChartState extends MusicBeatState
 						if (mainEventsEnd != -1) {
 							mainBeforeEvents = mainContent.substring(0, mainEventsStart + 9);
 							mainEventsArray = mainContent.substring(mainEventsStart + 9, mainEventsEnd);
-							mainAfterEvents = mainContent.substring(mainEventsEnd + 1);
+							mainAfterEvents = mainContent.substring(mainEventsEnd + 1, mainContent.length);
 						}
 					}
 
