@@ -312,79 +312,105 @@ class MergeChartState extends MusicBeatState
 				else if (convertToTxt) {
 					updateUI('Appending to TXT format...\n');
 
-					var newNotes = extractNewNotesFromChart(nextChart);
-					var newEvents = extractNewEventsFromChart(nextChart);
+					var nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
+					var chartTxtPath = tempPath + '-chart' + i + '.txt';
 
-					trace('=== TXT Append Debug ===');
-					trace('newNotes.length: ' + newNotes.length);
-					trace('newEvents.length: ' + newEvents.length);
+					var outputFile = sys.io.File.write(chartTxtPath, false);
+					outputFile.writeString(nextTxtContent);
+					outputFile.close();
 
-					if (newNotes.length > 0) {
-						trace('first newNote fields: ' + Reflect.fields(newNotes[0]));
-						if (Reflect.hasField(newNotes[0], 'sectionNotes')) {
-							var secNotes = Reflect.field(newNotes[0], 'sectionNotes');
-							trace('first newNote.sectionNotes: ' + (secNotes != null ? 'exists, length=' + secNotes.length : 'null'));
-						}
+					var mainContent = baseChart2;
+					var chartContent = File.getContent(chartTxtPath);
+
+					var mainNotesStart = mainContent.indexOf('notes: [\n');
+					var mainNotesEnd = mainContent.lastIndexOf(']');
+					var mainBeforeNotes = mainContent.substring(0, mainNotesStart + 9);
+					var mainNotesArray = mainContent.substring(mainNotesStart + 9, mainNotesEnd);
+					var mainAfterNotes = mainContent.substring(mainNotesEnd + 1);
+
+					var chartNotesStart = chartContent.indexOf('notes: [\n');
+					var chartNotesEnd = chartContent.lastIndexOf(']');
+					var chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
+					var chartAfterNotes = chartContent.substring(chartNotesEnd + 1);
+
+					var mergedNotesArray = mainNotesArray.trim();
+					var chartNotesTrimmed = chartNotesArray.trim();
+
+					if (mergedNotesArray.endsWith(",")) {
+						mergedNotesArray = mergedNotesArray.substring(0, mergedNotesArray.length - 1);
 					}
 
-					var input = sys.io.File.read(tempPath, false);
-					var content = input.readAll().toString();
-					input.close();
-
-					var notesArrayStart = content.indexOf('notes: [');
-					var eventsArrayStart = content.indexOf('events:');
-
-					if (notesArrayStart > 0 && eventsArrayStart > notesArrayStart) {
-						var beforeNotes = content.substring(0, notesArrayStart + 8);
-						var notesContent = content.substring(notesArrayStart + 8, eventsArrayStart);
-						var afterEvents = content.substring(eventsArrayStart);
-
-						var notesEndBracket = notesContent.lastIndexOf(']');
-						var notesArrayContent = notesContent.substring(0, notesEndBracket);
-
-						var eventsArrayBracket = afterEvents.indexOf('[');
-						var eventsEndBracket = afterEvents.lastIndexOf(']');
-						var eventsArrayContent = afterEvents.substring(eventsArrayBracket + 1, eventsEndBracket);
-
-						var output = sys.io.File.write(tempPath, false);
-						output.writeString(beforeNotes);
-						output.writeString(notesArrayContent);
-
-						if (newNotes.length > 0) {
-							for (i in 0...newNotes.length) {
-								var section = newNotes[i];
-								if (i > 0 || notesArrayContent.length > 0) output.writeString(",");
-								output.writeString("\n    [\n");
-								output.writeString('        gfSection: ${Reflect.field(section, "gfSection")},\n');
-								output.writeString('        altAnim: ${Reflect.field(section, "altAnim")},\n');
-								output.writeString('        sectionNotes: ${Json.stringify(Reflect.field(section, "sectionNotes"))},\n');
-								output.writeString('        bpm: ${Reflect.field(section, "bpm")},\n');
-								output.writeString('        sectionBeats: ${Reflect.field(section, "sectionBeats")},\n');
-								output.writeString('        changeBPM: ${Reflect.field(section, "changeBPM")},\n');
-								output.writeString('        mustHitSection: ${Reflect.field(section, "mustHitSection")}\n');
-								output.writeString('    ]');
-							}
+					if (mergedNotesArray.length > 0 && chartNotesTrimmed.length > 0) {
+						if (!mergedNotesArray.endsWith("\n")) {
+							mergedNotesArray += "\n";
 						}
-
-						output.writeString("]\n");
-						output.writeString(afterEvents.substring(0, eventsArrayBracket + 1));
-						output.writeString(eventsArrayContent);
-
-						if (newEvents.length > 0) {
-							for (i in 0...newEvents.length) {
-								var event = newEvents[i];
-								if (i > 0 || eventsArrayContent.length > 0) output.writeString(",");
-								output.writeString("\n    ");
-								output.writeString(Json.stringify(event));
-							}
+						if (chartNotesTrimmed.startsWith(",")) {
+							chartNotesTrimmed = chartNotesTrimmed.substring(1).trim();
 						}
-
-						output.writeString("\n]");
-						output.writeString(afterEvents.substring(eventsEndBracket + 1));
-						output.close();
-
-						updateUI('Appended ${newNotes.length} notes and ${newEvents.length} events\n');
+						mergedNotesArray += ",\n" + chartNotesTrimmed;
+					} else if (chartNotesTrimmed.length > 0) {
+						mergedNotesArray = chartNotesTrimmed;
 					}
+
+					var mainEventsStart = mainContent.indexOf('events: [\n');
+					var mainEventsEnd = mainContent.lastIndexOf(']', mainContent.lastIndexOf(']') - 1);
+					var mainBeforeEvents = "";
+					var mainEventsArray = "";
+					var mainAfterEvents = "";
+
+					if (mainEventsStart != -1) {
+						mainBeforeEvents = mainContent.substring(0, mainEventsStart + 9);
+						mainEventsArray = mainContent.substring(mainEventsStart + 9, mainEventsEnd);
+						mainAfterEvents = mainContent.substring(mainEventsEnd + 1);
+					}
+
+					var chartEventsStart = chartContent.indexOf('events: [\n');
+					var chartEventsEnd = chartContent.lastIndexOf(']', chartContent.lastIndexOf(']') - 1);
+					var chartEventsArray = "";
+
+					if (chartEventsStart != -1) {
+						chartEventsArray = chartContent.substring(chartEventsStart + 9, chartEventsEnd);
+					}
+
+					var mergedEventsArray = mainEventsArray.trim();
+					var chartEventsTrimmed = chartEventsArray.trim();
+
+					if (mergedEventsArray.endsWith(",")) {
+						mergedEventsArray = mergedEventsArray.substring(0, mergedEventsArray.length - 1);
+					}
+
+					if (mergedEventsArray.length > 0 && chartEventsTrimmed.length > 0) {
+						if (!mergedEventsArray.endsWith("\n")) {
+							mergedEventsArray += "\n";
+						}
+						if (chartEventsTrimmed.startsWith(",")) {
+							chartEventsTrimmed = chartEventsTrimmed.substring(1).trim();
+						}
+						mergedEventsArray += ",\n" + chartEventsTrimmed;
+					} else if (chartEventsTrimmed.length > 0) {
+						mergedEventsArray = chartEventsTrimmed;
+					}
+
+					var mergedContent = mainBeforeNotes + mergedNotesArray + "\n    ]";
+
+					if (mainEventsStart != -1) {
+						mergedContent += mainAfterEvents.substring(0, mainAfterEvents.indexOf("events:"));
+						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]";
+						mergedContent += mainAfterEvents.substring(mainAfterEvents.indexOf("]") + 1);
+					} else {
+						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]\n";
+						mergedContent += chartAfterNotes;
+					}
+
+					var output = sys.io.File.write(tempPath, false);
+					output.writeString(mergedContent);
+					output.close();
+
+					if (FileSystem.exists(chartTxtPath)) {
+						FileSystem.deleteFile(chartTxtPath);
+					}
+
+					updateUI('Appended notes and events from chart ${i + 1}\n');
 				}
 				else {
 					updateUI('Fast array concatenation...\n');
