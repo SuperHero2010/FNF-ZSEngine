@@ -128,9 +128,31 @@ class MergeChartState extends MusicBeatState
 		add(rewriteCheckbox);
 
 		convertToTxtCheckbox = new PsychUICheckBox(20, backButton.y - 120, "Convert to TXT", 200, function() {
-			mergeChartSave.data.convertToTxt = convertToTxtCheckbox.checked;
+			var newState = convertToTxtCheckbox.checked;
+			mergeChartSave.data.convertToTxt = newState;
 			mergeChartSave.flush();
-			convertToTxt = convertToTxtCheckbox.checked;
+			convertToTxt = newState;
+
+			var otherCheckboxes = [indentationCheckbox, tempCheckbox, rewriteCheckbox];
+			for (chk in otherCheckboxes) {
+				if (chk != null) {
+					chk.active = !newState;
+					if (newState) {
+						chk.checked = false;
+						if (chk == indentationCheckbox) {
+							mergeChartSave.data.indentation = false;
+							indentation = false;
+						} else if (chk == tempCheckbox) {
+							mergeChartSave.data.temp = false;
+							temp = false;
+						} else if (chk == rewriteCheckbox) {
+							mergeChartSave.data.rewrite = false;
+							rewrite = false;
+						}
+						mergeChartSave.flush();
+					}
+				}
+			}
 		});
 		convertToTxtCheckbox.checked = (mergeChartSave.data.convertToTxt == true);
 		convertToTxt = convertToTxtCheckbox.checked;
@@ -194,7 +216,25 @@ class MergeChartState extends MusicBeatState
 			else if (convertToTxt) {
 				updateUI('Converting to TXT format...\n');
 				tempPath = 'temp_merged.txt';
+
+				trace('=== TXT Conversion Debug ===');
+				trace('baseChart.notes: ' + (baseChart.notes != null ? 'exists' : 'null'));
+				if (baseChart.notes != null) {
+					trace('baseChart.notes.length: ' + baseChart.notes.length);
+					if (baseChart.notes.length > 0) {
+						var firstSection = baseChart.notes[0];
+						trace('firstSection fields: ' + Reflect.fields(firstSection));
+						if (Reflect.hasField(firstSection, 'sectionNotes')) {
+							var secNotes = Reflect.field(firstSection, 'sectionNotes');
+							trace('firstSection.sectionNotes: ' + (secNotes != null ? 'exists, length=' + secNotes.length : 'null'));
+						}
+					}
+				}
+
 				var txtContent = convertToTxtFormat(baseChart, hasWrapper);
+				trace('TXT content length: ' + txtContent.length);
+				trace('TXT first 500 chars: ' + txtContent.substr(0, 500));
+
 				var outputFile = sys.io.File.write(tempPath, false);
 				outputFile.writeString(txtContent);
 				outputFile.close();
@@ -274,6 +314,18 @@ class MergeChartState extends MusicBeatState
 
 					var newNotes = extractNewNotesFromChart(nextChart);
 					var newEvents = extractNewEventsFromChart(nextChart);
+
+					trace('=== TXT Append Debug ===');
+					trace('newNotes.length: ' + newNotes.length);
+					trace('newEvents.length: ' + newEvents.length);
+
+					if (newNotes.length > 0) {
+						trace('first newNote fields: ' + Reflect.fields(newNotes[0]));
+						if (Reflect.hasField(newNotes[0], 'sectionNotes')) {
+							var secNotes = Reflect.field(newNotes[0], 'sectionNotes');
+							trace('first newNote.sectionNotes: ' + (secNotes != null ? 'exists, length=' + secNotes.length : 'null'));
+						}
+					}
 
 					var input = sys.io.File.read(tempPath, false);
 					var content = input.readAll().toString();
@@ -369,6 +421,9 @@ class MergeChartState extends MusicBeatState
 				updateUI('Loading TXT temp file...\n');
 				try {
 					var txtContent = File.getContent(tempPath);
+					trace('=== TXT Load Debug ===');
+					trace('txtContent length: ' + txtContent.length);
+					trace('txtContent first 500 chars: ' + txtContent.substr(0, 500));
 					var finalObj = convertToJsonFormat(txtContent);
 					if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
 						finalChart = finalObj.song;
@@ -1420,37 +1475,39 @@ class MergeChartState extends MusicBeatState
 	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false, txt:Bool = false):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
-		var tempPath:String;
+		var tempJsonPath = "temp_final_merged.json";
+		var tempTxtPath = "temp_final_merged.txt";
 
 		if (!txt) {
-			tempPath = "temp_final_merged.json";
-			saveChartStreaming(chart, tempPath, hasWrapper, indentation, "final");
+			saveChartStreaming(chart, tempJsonPath, hasWrapper, indentation, "final");
 		}
 		else {
-			tempPath = "temp_final_merged.txt";
 			var txtContent = convertToTxtFormat(chart, hasWrapper);
-			var outputFile = sys.io.File.write(tempPath, false);
+			var outputFile = sys.io.File.write(tempTxtPath, false);
 			outputFile.writeString(txtContent);
-			tempPath = "temp_final_merged.json";
-			var jsonContent = convertToJsonFormat(txtContent);
-			saveChartStreaming(jsonContent, tempPath, hasWrapper, indentation, "final");
 			outputFile.close();
+			var jsonContent = convertToJsonFormat(txtContent);
+			saveChartStreaming(jsonContent, tempJsonPath, hasWrapper, indentation, "final");
 		}
 
-		fileDialog.saveFile(tempPath, defaultName,
+		fileDialog.saveFile(tempJsonPath, defaultName,
 			function(path:String)
 			{
 				showMergingProgress(false, "Merge complete!\n", true);
 				trace("Chart saved to: " + path);
+				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
+				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 			},
 			function()
 			{
-				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
+				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 				showMergingProgress(false, "Save cancelled\n", true);
 			},
 			function(e:String)
 			{
-				if (FileSystem.exists(tempPath)) FileSystem.deleteFile(tempPath);
+				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
+				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 				showMergingProgress(false, "Error saving chart: " + e + "\n", true);
 			}
 		);
