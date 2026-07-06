@@ -529,27 +529,19 @@ class MergeChartState extends MusicBeatState
 						mergedEventsArray = chartEventsTrimmed;
 					}
 
-					var mergedContent = mainBeforeNotes + mergedNotesArray + "\n    ]";
+					var mergedContent = "";
 
-					if (mainEventsStart != -1) {
-						// Find the position where events section starts
-						var eventsSectionStart = mainContent.indexOf('events:');
-						if (eventsSectionStart != -1) {
-							mergedContent += mainContent.substring(mainNotesEnd + 1, eventsSectionStart);
-							mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]";
-							var eventsEndPos = mainContent.lastIndexOf(']');
-							mergedContent += mainContent.substring(eventsEndPos + 1, mainContent.length);
-						}
-					} else {
-						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]\n";
-						if (chartNotesEnd != -1) {
-							var afterNotes = chartContent.substring(chartNotesEnd + 1, chartContent.length);
-							var eventsStartInChart = afterNotes.indexOf("events:");
-							if (eventsStartInChart != -1) {
-								mergedContent += afterNotes.substring(eventsStartInChart + 8);
-							}
-						}
+					var headerEnd = mainNotesStart;
+					if (headerEnd != -1) {
+						mergedContent = mainContent.substring(0, headerEnd);
 					}
+
+					mergedContent += "notes: [\n";
+					mergedContent += mergedNotesArray;
+					mergedContent += "\n    ]";
+
+					mergedContent += "\nevents: [" + mergedEventsArray + "\n]";
+					mergedContent += "\nevents: [" + mergedEventsArray + "\n]";
 
 					var output = sys.io.File.write(tempPath, false);
 					output.writeString(mergedContent);

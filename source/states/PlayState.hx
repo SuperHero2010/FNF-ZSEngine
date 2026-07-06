@@ -569,8 +569,8 @@ class PlayState extends MusicBeatState
 				if (file.toLowerCase().endsWith('.lua')) {
 					if (luaDebugger) {
 						LuaDebugger.logLua(folder + file, 'Loading script', "INFO");
-						LuaDebugger.testLuaScript(folder + file);
-						new FunkinLua(folder + file);
+						var luaScript = new FunkinLua(folder + file);
+						LuaDebugger.enableDebugMode(luaScript);
 					}
 					else new FunkinLua(folder + file);
 				}
@@ -580,7 +580,8 @@ class PlayState extends MusicBeatState
 					if (haxeDebugger) {
 						HaxeDebugger.logScript(folder + file, 'Loading script', "INFO");
 						HaxeDebugger.testHxScript(folder + file);
-						initHScript(folder + file);
+						var hscript = initHScript(folder + file);
+						HaxeDebugger.enableTraceCapture(hscript, folder + file);
 					}
 					else initHScript(folder + file);
 				}
@@ -774,9 +775,8 @@ class PlayState extends MusicBeatState
 				#if LUA_ALLOWED
 				if (file.toLowerCase().endsWith('.lua')) {
 					if (luaDebugger) {
-						LuaDebugger.logLua(folder + file, 'Loading script', "INFO");
-						LuaDebugger.testLuaScript(folder + file);
-						new FunkinLua(folder + file);
+						var luaScript = new FunkinLua(folder + file);
+						LuaDebugger.enableDebugMode(luaScript);
 					}
 					else new FunkinLua(folder + file);
 				}
@@ -784,9 +784,8 @@ class PlayState extends MusicBeatState
 				#if HSCRIPT_ALLOWED
 				if (file.toLowerCase().endsWith('.hx')) {
 					if (haxeDebugger) {
-						HaxeDebugger.logScript(folder + file, 'Loading script', "INFO");
-						HaxeDebugger.testHxScript(folder + file);
-						initHScript(folder + file);
+						var hscript = initHScript(folder + file);
+						HaxeDebugger.enableTraceCapture(hscript, folder + file);
 					}
 					else initHScript(folder + file);
 				}
@@ -979,9 +978,9 @@ class PlayState extends MusicBeatState
 			}
 			if(doPush) {
 				if (luaDebugger) {
-					LuaDebugger.logLua(luaFile, 'Loading character lua script', "INFO");
-					LuaDebugger.testLuaScript(luaFile);
-					new FunkinLua(luaFile);
+					LuaDebugger.logLua(luaFile, 'Loading character script', "INFO");
+					var luaScript = new FunkinLua(luaFile);
+					LuaDebugger.enableDebugMode(luaScript);
 				}
 				else new FunkinLua(luaFile);
 			}
@@ -1014,9 +1013,9 @@ class PlayState extends MusicBeatState
 
 			if(doPush) {
 				if (haxeDebugger) {
-					HaxeDebugger.logScript(scriptFile, 'Loading character haxe script', "INFO");
-					HaxeDebugger.testHxScript(scriptFile);
-					initHScript(scriptFile);
+					HaxeDebugger.logScript(scriptFile, 'Loading character script', "INFO");
+					var hscript = initHScript(scriptFile);
+					HaxeDebugger.enableTraceCapture(hscript, scriptFile);
 				}
 				else initHScript(scriptFile);
 			}
@@ -1472,7 +1471,7 @@ class PlayState extends MusicBeatState
 		var str:String = Language.getPhrase('rating_$ratingName', ratingName);
 		if(totalPlayed != 0)
 		{
-			var percent:Float = CoolUtil.floorDecimal(ratingPercent * 100, 4);
+			var percent:Float = CoolUtil.floorDecimal(ratingPercent * 100, 2);
 			str += ' (${percent}%) - ' + Language.getPhrase(ratingFC);
 		}
 
@@ -1483,7 +1482,14 @@ class PlayState extends MusicBeatState
 		var targetHealth:Float = health * 50;
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
-		else hpShowStr = numFormat(targetHealth, 4 - Std.string(Math.floor(targetHealth)).length, true) + (targetHealth >= 0.001 ? ' %' : '');
+		else {
+			var roundedHealth = Math.round(targetHealth);
+			if (Math.abs(targetHealth - roundedHealth) < 0.001) {
+				hpShowStr = Std.string(roundedHealth) + ' %';
+			} else {
+				hpShowStr = numFormat(targetHealth, 3, true) + ' %';
+			}
+		}
 
 		var tempScore:String;
 		if(!instakillOnMiss) {
@@ -3791,14 +3797,12 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if(OpenFlAssets.exists(luaToLoad))
 		#end
 		{
-			if (luaDebugger) {
-				LuaDebugger.logLua(luaToLoad, 'Loading script', "INFO");
-				LuaDebugger.testLuaScript(luaToLoad);
-			}
+			if (luaDebugger) LuaDebugger.logLua(luaToLoad, 'Loading script', "INFO");
 			for (script in luaArray)
 				if(script.scriptName == luaToLoad) return false;
 
-			new FunkinLua(luaToLoad);
+			var luaScript = new FunkinLua(luaToLoad);
+			if (luaDebugger) LuaDebugger.enableDebugMode(luaScript);
 			return true;
 		}
 		return false;
@@ -3818,28 +3822,23 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		if(FileSystem.exists(scriptToLoad))
 		{
-			if (haxeDebugger) {
-				HaxeDebugger.logScript(scriptToLoad, 'Loading script', "INFO");
-				HaxeDebugger.testHxScript(scriptToLoad);
-			}
+			if (haxeDebugger) HaxeDebugger.logScript(scriptToLoad, 'Loading script', "INFO");
 			if (Iris.instances.exists(scriptToLoad)) return false;
 
-			initHScript(scriptToLoad);
+			var hscript = initHScript(scriptToLoad);
+			if (haxeDebugger) HaxeDebugger.enableTraceCapture(hscript, scriptToLoad);
 			return true;
 		}
 		return false;
 	}
 
-	public function initHScript(file:String)
+	public function initHScript(file:String):HScript
 	{
 		if (haxeDebugger) HaxeDebugger.logScript(file, 'Initializing HScript', "INFO");
 		var newScript:HScript = null;
 		try
 		{
 			newScript = new HScript(null, file);
-			#if HSCRIPT_ALLOWED
-			if (haxeDebugger) HaxeDebugger.enableTraceCapture(newScript, file);
-			#end
 			if (newScript.exists('onCreate')) {
 				HaxeDebugger.logScript(file, 'Calling onCreate', "INFO");
 				newScript.call('onCreate');
@@ -3847,6 +3846,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if (haxeDebugger) HaxeDebugger.logScript(file, 'Initialized successfully', "SUCCESS");
 			trace('initialized hscript interp successfully: $file');
 			hscriptArray.push(newScript);
+			return newScript;
 		}
 		catch(e:IrisError)
 		{
@@ -3856,6 +3856,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			var newScript:HScript = cast (Iris.instances.get(file), HScript);
 			if(newScript != null)
 				newScript.destroy();
+			return null;
 		}
 	}
 	#end
