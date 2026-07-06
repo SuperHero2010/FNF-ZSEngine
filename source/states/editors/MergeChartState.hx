@@ -275,6 +275,11 @@ class MergeChartState extends MusicBeatState
 					nextChart = nextObj;
 				SongJson.log = false;
 
+				var nextTxtContent:String = null;
+				if (convertToTxt) {
+					nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
+				}
+
 				if (temp) {
 					if (rewrite) {
 						updateUI('Fast array concatenation...\n');
@@ -312,7 +317,11 @@ class MergeChartState extends MusicBeatState
 				else if (convertToTxt) {
 					updateUI('Appending to TXT format...\n');
 
-					var nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
+					if (nextTxtContent == null) {
+						trace('ERROR: nextTxtContent is null, cannot append');
+						continue;
+					}
+
 					var chartTxtPath = tempPath + '-chart' + i + '.txt';
 
 					var outputFile = sys.io.File.write(chartTxtPath, false);
@@ -323,15 +332,83 @@ class MergeChartState extends MusicBeatState
 					var chartContent = File.getContent(chartTxtPath);
 
 					var mainNotesStart = mainContent.indexOf('notes: [\n');
-					var mainNotesEnd = mainContent.lastIndexOf(']');
-					var mainBeforeNotes = mainContent.substring(0, mainNotesStart + 9);
-					var mainNotesArray = mainContent.substring(mainNotesStart + 9, mainNotesEnd);
-					var mainAfterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
+					var mainBeforeNotes = "";
+					var mainNotesArray = "";
+					var mainAfterNotes = "";
+
+					if (mainNotesStart != -1) {
+						var bracketCount = 0;
+						var inString = false;
+						var escapeNext = false;
+						var mainNotesEnd = -1;
+						for (j in mainNotesStart...mainContent.length) {
+							var char = mainContent.charAt(j);
+							if (escapeNext) {
+								escapeNext = false;
+								continue;
+							}
+							if (char == '\\') {
+								escapeNext = true;
+								continue;
+							}
+							if (char == '"') {
+								inString = !inString;
+								continue;
+							}
+							if (!inString) {
+								if (char == '[') bracketCount++;
+								else if (char == ']') {
+									bracketCount--;
+									if (bracketCount == 0) {
+										mainNotesEnd = j;
+										break;
+									}
+								}
+							}
+						}
+						if (mainNotesEnd != -1) {
+							mainBeforeNotes = mainContent.substring(0, mainNotesStart + 9);
+							mainNotesArray = mainContent.substring(mainNotesStart + 9, mainNotesEnd);
+							mainAfterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
+						}
+					}
 
 					var chartNotesStart = chartContent.indexOf('notes: [\n');
-					var chartNotesEnd = chartContent.lastIndexOf(']');
-					var chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
-					var chartAfterNotes = chartContent.substring(chartNotesEnd + 1, chartContent.length);
+					var chartNotesArray = "";
+					if (chartNotesStart != -1) {
+						var bracketCount = 0;
+						var inString = false;
+						var escapeNext = false;
+						var chartNotesEnd = -1;
+						for (j in chartNotesStart...chartContent.length) {
+							var char = chartContent.charAt(j);
+							if (escapeNext) {
+								escapeNext = false;
+								continue;
+							}
+							if (char == '\\') {
+								escapeNext = true;
+								continue;
+							}
+							if (char == '"') {
+								inString = !inString;
+								continue;
+							}
+							if (!inString) {
+								if (char == '[') bracketCount++;
+								else if (char == ']') {
+									bracketCount--;
+									if (bracketCount == 0) {
+										chartNotesEnd = j;
+										break;
+									}
+								}
+							}
+						}
+						if (chartNotesEnd != -1) {
+							chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
+						}
+					}
 
 					var mergedNotesArray = StringTools.trim(mainNotesArray);
 					var chartNotesTrimmed = StringTools.trim(chartNotesArray);
@@ -397,7 +474,6 @@ class MergeChartState extends MusicBeatState
 
 					var chartEventsStart = chartContent.indexOf('events: [\n');
 					var chartEventsArray = "";
-
 					if (chartEventsStart != -1) {
 						var bracketCount = 0;
 						var inString = false;
@@ -456,9 +532,14 @@ class MergeChartState extends MusicBeatState
 					var mergedContent = mainBeforeNotes + mergedNotesArray + "\n    ]";
 
 					if (mainEventsStart != -1) {
-						mergedContent += mainAfterEvents.substring(0, mainAfterEvents.indexOf("events:"));
-						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]";
-						mergedContent += mainAfterEvents.substring(mainAfterEvents.indexOf("]") + 1);
+						// Find the position where events section starts
+						var eventsSectionStart = mainContent.indexOf('events:');
+						if (eventsSectionStart != -1) {
+							mergedContent += mainContent.substring(mainNotesEnd + 1, eventsSectionStart);
+							mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]";
+							var eventsEndPos = mainContent.lastIndexOf(']');
+							mergedContent += mainContent.substring(eventsEndPos + 1);
+						}
 					} else {
 						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]\n";
 						var afterNotes = chartContent.substring(chartNotesEnd + 1);

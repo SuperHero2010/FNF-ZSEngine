@@ -739,30 +739,42 @@ class FunkinLua {
 		//stupid bietch ass functions
 		Lua_helper.add_callback(lua, "addScore", function(value:Int = 0) {
 			game.songScore += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "addMisses", function(value:Int = 0) {
 			game.songMisses += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "addHits", function(value:Int = 0) {
 			game.songHits += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setScore", function(value:Int = 0) {
 			game.songScore = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setMisses", function(value:Int = 0) {
 			game.songMisses = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setHits", function(value:Int = 0) {
 			game.songHits = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
-		Lua_helper.add_callback(lua, "setHealth", function(value:Float = 1) game.health = value);
-		Lua_helper.add_callback(lua, "addHealth", function(value:Float = 0) game.health += value);
+		Lua_helper.add_callback(lua, "setHealth", function(value:Float = 1) {
+			game.health = value;
+			game.updateScoreText();
+		});
+		Lua_helper.add_callback(lua, "addHealth", function(value:Float = 0) {
+			game.health += value;
+			game.updateScoreText();
+		});
 		Lua_helper.add_callback(lua, "getHealth", function() return game.health);
 
 		//Identical functions
