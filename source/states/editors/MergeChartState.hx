@@ -335,12 +335,12 @@ class MergeChartState extends MusicBeatState
 					var mainBeforeNotes = "";
 					var mainNotesArray = "";
 					var mainAfterNotes = "";
+					var mainNotesEnd = -1;
 
 					if (mainNotesStart != -1) {
 						var bracketCount = 0;
 						var inString = false;
 						var escapeNext = false;
-						var mainNotesEnd = -1;
 						for (j in mainNotesStart...mainContent.length) {
 							var char = mainContent.charAt(j);
 							if (escapeNext) {
@@ -375,11 +375,11 @@ class MergeChartState extends MusicBeatState
 
 					var chartNotesStart = chartContent.indexOf('notes: [\n');
 					var chartNotesArray = "";
+					var chartNotesEnd = -1;
 					if (chartNotesStart != -1) {
 						var bracketCount = 0;
 						var inString = false;
 						var escapeNext = false;
-						var chartNotesEnd = -1;
 						for (j in chartNotesStart...chartContent.length) {
 							var char = chartContent.charAt(j);
 							if (escapeNext) {
@@ -538,14 +538,16 @@ class MergeChartState extends MusicBeatState
 							mergedContent += mainContent.substring(mainNotesEnd + 1, eventsSectionStart);
 							mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]";
 							var eventsEndPos = mainContent.lastIndexOf(']');
-							mergedContent += mainContent.substring(eventsEndPos + 1);
+							mergedContent += mainContent.substring(eventsEndPos + 1, mainContent.length);
 						}
 					} else {
 						mergedContent += "\n    events: [" + mergedEventsArray + "\n    ]\n";
-						var afterNotes = chartContent.substring(chartNotesEnd + 1);
-						var eventsStartInChart = afterNotes.indexOf("events:");
-						if (eventsStartInChart != -1) {
-							mergedContent += afterNotes.substring(eventsStartInChart + 8);
+						if (chartNotesEnd != -1) {
+							var afterNotes = chartContent.substring(chartNotesEnd + 1, chartContent.length);
+							var eventsStartInChart = afterNotes.indexOf("events:");
+							if (eventsStartInChart != -1) {
+								mergedContent += afterNotes.substring(eventsStartInChart + 8);
+							}
 						}
 					}
 
