@@ -532,16 +532,53 @@ class MergeChartState extends MusicBeatState
 					var mergedContent = "";
 
 					var headerEnd = mainNotesStart;
+					var headerLines = [];
+					var mainEventsJson = "[]";
 					if (headerEnd != -1) {
-						mergedContent = mainContent.substring(0, headerEnd);
+						var headerContent = mainContent.substring(0, headerEnd);
+						var lines = headerContent.split('\n');
+						for (line in lines) {
+							if (StringTools.startsWith(line, 'events:')) {
+								mainEventsJson = line.substring(8).trim();
+							} else {
+								headerLines.push(line);
+							}
+						}
+					}
+
+					var mainEvents:Array<Dynamic> = [];
+					var chartEvents:Array<Dynamic> = [];
+					try {
+						mainEvents = Json.parse(mainEventsJson);
+						if (mergedEventsArray.length > 0) {
+							chartEvents = Json.parse('[' + mergedEventsArray + ']');
+						}
+						var mergedEvents:Array<Dynamic> = mainEvents.concat(chartEvents);
+						var mergedEventsJson = Json.stringify(mergedEvents);
+
+						for (line in headerLines) {
+							mergedContent += line + '\n';
+						}
+						mergedContent += 'events: ' + mergedEventsJson + '\n';
+					} catch(e:Dynamic) {
+						for (line in headerLines) {
+							mergedContent += line + '\n';
+						}
+						mergedContent += 'events: ' + mainEventsJson + '\n';
 					}
 
 					mergedContent += "notes: [\n";
 					mergedContent += mergedNotesArray;
-					mergedContent += "\n    ]";
+					mergedContent += "\n    ]\n";
 
-					mergedContent += "\nevents: [" + mergedEventsArray + "\n]";
-					mergedContent += "\nevents: [" + mergedEventsArray + "\n]";
+					if (mainNotesEnd != -1) {
+						var afterNotes = mainContent.substring(mainNotesEnd + 1);
+						var firstNewline = afterNotes.indexOf('\n');
+						if (firstNewline != -1) {
+							var footer = afterNotes.substring(firstNewline + 1);
+							mergedContent += footer;
+						}
+					}
 
 					var output = sys.io.File.write(tempPath, false);
 					output.writeString(mergedContent);
