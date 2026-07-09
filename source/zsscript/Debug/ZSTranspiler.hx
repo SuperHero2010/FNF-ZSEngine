@@ -399,9 +399,19 @@ class ZSTranspiler {
             trace('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
+            trace('=== APPLYING PATTERNS ===');
+            trace('Input line: "' + trimmedLine + '"');
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
-                luaLine = regex.replace(luaLine, pattern.replacement);
+                if (regex.match(trimmedLine)) {
+                    trace('  MATCHED: ' + pattern.pattern);
+                    luaLine = regex.replace(luaLine, pattern.replacement);
+                    trace('  -> "' + luaLine + '"');
+                }
+                else {
+                    trace('  UNMATCHED: ' + pattern.pattern);
+                    trace('  -> "' + luaLine + '"');
+                }
             }
             trace('AFTER ZSPatterns: luaLine="$luaLine"');
 

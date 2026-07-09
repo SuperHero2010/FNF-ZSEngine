@@ -110,7 +110,7 @@ onCreate:
     local <destroy> = true
     remove at 1 with “tag” from “group” with <destroy>
 
-    change obejct camera “tag”
+    change object camera “tag”
     change object camera “tag” to “camera”
 
     change scroll factor of “tag” to 1 and 3
@@ -148,13 +148,13 @@ onCreate:
     play sound “sound” with volume 1
     play sound “sound” with volume 1 name “tag”
     play sound “sound” with volume 1 name “tag” with false
-    play misuc “music”
-    play misuc “music” with volume 1
-    play misuc “music” with volume 1 with false
+    play music “music”
+    play music “music” with volume 1
+    play music “music” with volume 1 with false
 
     local <loop> = false
     play sound “sound” with volume 1 name “tag” with <loop>
-    play misuc “music” with volume 1 with <loop>
+    play music “music” with volume 1 with <loop>
 
     fade in “tag” duration 1
     fade in “tag” duration 1 from 0
@@ -244,7 +244,6 @@ onCreate:
     add animation <tag> name “name” by indices 1 prefix “prefix” rate 60
     add animation <tag> name “name” by indices 1 prefix “prefix” rate 60 with false
 
-    
     local <loop> = false
     add animation <tag> name “name” with frames 16 rate 60 with <loop>
     add animation <tag> name “name” by prefix “prefix” rate 60 with <loop>
@@ -255,11 +254,9 @@ onCreate:
     play animation <tag> name “name”
     play animation <tag> name “name” start 1
 
-   
     play animation <tag> name “name” start 1 with false
     play animation <tag> name “name” start 1 with false and false
 
-    
     local <forced> = false
     local <reverse> = false
 
@@ -292,7 +289,7 @@ onCreate:
     remove text <tag> with true
 
     local <destroy> = true
-    remoce text <tag> with <destroy>
+    remove text <tag> with <destroy>
 
     change text <tag> to content “text”
 
