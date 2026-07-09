@@ -728,28 +728,30 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		var file = sys.io.File.update(tempPath, false);
-		var fileSize = file.tell(SeekEnd);
-		file.seek(0, SeekBegin);
+		var inputFile = sys.io.File.read(tempPath, false);
+		var fileSize = 0;
+		inputFile.seek(0, SeekEnd);
+		fileSize = inputFile.tell();
+		inputFile.seek(0, SeekBegin);
 
-		var notesArrayEnd = findArrayEnd(file, "notes", fileSize);
-		var eventsArrayEnd = findArrayEnd(file, "events", fileSize);
-		file.close();
+		var notesArrayEnd = findArrayEnd(inputFile, "notes", fileSize);
+		var eventsArrayEnd = findArrayEnd(inputFile, "events", fileSize);
+		inputFile.close();
 
 		if (notesArrayEnd == -1) {
 			trace('Could not find notes array end');
 			return;
 		}
 
-		var source = sys.io.File.update(tempPath, false);
+		var source = sys.io.File.read(tempPath, false);
 		var target = sys.io.File.write(tempPath + ".tmp");
 		var chunkSize = 8192;
 
 		source.seek(0, SeekBegin);
-		copyChunk(source, target, notesArrayEnd);
+		copyChunk(source, target, Std.int(notesArrayEnd));
 
 		if (newNotesContent.length > 0) {
-			source.seek(notesArrayEnd - 200, SeekBegin);
+			source.seek(Std.int(notesArrayEnd - 200), SeekBegin);
 			var sample = source.read(200).toString();
 			var hasExistingNotes = sample.indexOf('sectionNotes:') != -1 && sample.indexOf('sectionNotes: []') == -1;
 			if (hasExistingNotes) {
@@ -759,9 +761,9 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		source.seek(notesArrayEnd, SeekBegin);
+		source.seek(Std.int(notesArrayEnd), SeekBegin);
 		if (eventsArrayEnd != -1) {
-			copyChunk(source, target, eventsArrayEnd - notesArrayEnd);
+			copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd));
 		} else {
 			while (true) {
 				var chunk = source.read(chunkSize);
@@ -778,7 +780,7 @@ class MergeChartState extends MusicBeatState
 		}
 
 		if (newEventsContent.length > 0) {
-			source.seek(eventsArrayEnd - 200, SeekBegin);
+			source.seek(Std.int(eventsArrayEnd - 200), SeekBegin);
 			var sample = source.read(200).toString();
 			var hasExistingEvents = sample.indexOf('events:') != -1 && sample.indexOf('events: []') == -1;
 			if (hasExistingEvents) {
@@ -788,7 +790,7 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		source.seek(eventsArrayEnd, SeekBegin);
+		source.seek(Std.int(eventsArrayEnd), SeekBegin);
 		while (true) {
 			var chunk = source.read(chunkSize);
 			if (chunk.length == 0) break;
@@ -800,7 +802,7 @@ class MergeChartState extends MusicBeatState
 		replaceFile(tempPath, tempPath + ".tmp");
 	}
 
-	private function findArrayEnd(file:sys.io.FileInput, arrayName:String, fileSize:Int):Int
+	private function findArrayEnd(inputFile:sys.io.FileInput, arrayName:String, fileSize:Int):Int
 	{
 		var chunkSize = 8192;
 		var buffer = "";
@@ -811,10 +813,10 @@ class MergeChartState extends MusicBeatState
 		var escapeNext = false;
 		var arrayEnd = -1;
 
-		file.seek(0, SeekBegin);
+		inputFile.seek(0, SeekBegin);
 
 		while (pos < fileSize) {
-			var chunk = file.read(chunkSize).toString();
+			var chunk = inputFile.read(chunkSize).toString();
 			buffer += chunk;
 			pos += chunk.length;
 
