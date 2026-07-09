@@ -1784,37 +1784,19 @@ class FunkinLua {
 		var variables = MusicBeatState.getVariables();
 		if(target != null)
 		{
-			var isCameraAngleTween:Bool = Std.isOfType(target, FlxCamera)
-				&& tweenValue != null
-				&& Reflect.hasField(tweenValue, 'angle')
-				&& Reflect.fields(tweenValue).length == 1;
-
 			if(tag != null)
 			{
 				var originalTag:String = tag;
 				tag = LuaUtils.formatVariable('tween_$tag');
-				var tween:FlxTween = isCameraAngleTween
-					? LuaUtils.tweenFlxCameraAngle(cast target, Reflect.field(tweenValue, 'angle'), duration, ease, function()
+				variables.set(tag, FlxTween.tween(target, tweenValue, duration, {ease: LuaUtils.getTweenEaseByString(ease),
+					onComplete: function(twn:FlxTween)
 					{
 						variables.remove(tag);
 						if(PlayState.instance != null) PlayState.instance.callOnLuas('onTweenCompleted', [originalTag, vars]);
-					})
-					: FlxTween.tween(target, tweenValue, duration, {ease: LuaUtils.getTweenEaseByString(ease),
-						onComplete: function(twn:FlxTween)
-						{
-							variables.remove(tag);
-							if(PlayState.instance != null) PlayState.instance.callOnLuas('onTweenCompleted', [originalTag, vars]);
-						}
-					});
-				variables.set(tag, tween);
+					}
+				}));
 			}
-			else
-			{
-				if (isCameraAngleTween)
-					LuaUtils.tweenFlxCameraAngle(cast target, Reflect.field(tweenValue, 'angle'), duration, ease);
-				else
-					FlxTween.tween(target, tweenValue, duration, {ease: LuaUtils.getTweenEaseByString(ease)});
-			}
+			else FlxTween.tween(target, tweenValue, duration, {ease: LuaUtils.getTweenEaseByString(ease)});
 			return tag;
 		}
 		else luaTrace('$funcName: Couldnt find object: $vars', false, false, FlxColor.RED);

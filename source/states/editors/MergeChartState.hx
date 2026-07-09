@@ -136,34 +136,6 @@ class MergeChartState extends MusicBeatState
 		convertToTxt = convertToTxtCheckbox.checked;
 		add(convertToTxtCheckbox);
 
-		if (convertToTxt) {
-			var newState = convertToTxtCheckbox.checked;
-			mergeChartSave.data.convertToTxt = newState;
-			mergeChartSave.flush();
-			convertToTxt = newState;
-
-			var otherCheckboxes = [indentationCheckbox, tempCheckbox, rewriteCheckbox];
-			for (chk in otherCheckboxes) {
-				if (chk != null) {
-					chk.active = !newState;
-					if (newState) {
-						chk.checked = false;
-						if (chk == indentationCheckbox) {
-							mergeChartSave.data.indentation = false;
-							indentation = false;
-						} else if (chk == tempCheckbox) {
-							mergeChartSave.data.temp = false;
-							temp = false;
-						} else if (chk == rewriteCheckbox) {
-							mergeChartSave.data.rewrite = false;
-							rewrite = false;
-						}
-						mergeChartSave.flush();
-					}
-				}
-			}
-		}
-
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
 		fileDialog.onComplete = onFileSelected;
@@ -176,6 +148,28 @@ class MergeChartState extends MusicBeatState
 		rewrite = mergeChartSave.data.rewrite;
 		if (mergeChartSave.data.convertToTxt == null) mergeChartSave.data.convertToTxt = false;
 		convertToTxt = mergeChartSave.data.convertToTxt;
+
+		var otherCheckboxes = [indentationCheckbox, tempCheckbox, rewriteCheckbox];
+		for (chk in otherCheckboxes) {
+			if (chk != null) {
+				chk.active = !convertToTxt;
+				if (convertToTxt) {
+					chk.checked = false;
+					if (chk == indentationCheckbox) {
+						mergeChartSave.data.indentation = false;
+						indentation = false;
+					} else if (chk == tempCheckbox) {
+						mergeChartSave.data.temp = false;
+						temp = false;
+					} else if (chk == rewriteCheckbox) {
+						mergeChartSave.data.rewrite = false;
+						rewrite = false;
+					}
+					mergeChartSave.flush();
+				}
+				else break;
+			}
+		}
 	}
 
 	private function callLater(callback:Void->Void, delay:Float):Void
@@ -222,28 +216,8 @@ class MergeChartState extends MusicBeatState
 			else if (convertToTxt) {
 				updateUI('Converting to TXT format...\n');
 				tempPath = 'temp_merged.txt';
-
-				trace('=== TXT Conversion Debug ===');
-				trace('baseChart.notes: ' + (baseChart.notes != null ? 'exists' : 'null'));
-				if (baseChart.notes != null) {
-					trace('baseChart.notes.length: ' + baseChart.notes.length);
-					if (baseChart.notes.length > 0) {
-						var firstSection = baseChart.notes[0];
-						trace('firstSection fields: ' + Reflect.fields(firstSection));
-						if (Reflect.hasField(firstSection, 'sectionNotes')) {
-							var secNotes = Reflect.field(firstSection, 'sectionNotes');
-							trace('firstSection.sectionNotes: ' + (secNotes != null ? 'exists, length=' + secNotes.length : 'null'));
-						}
-					}
-				}
-
 				var txtContent = convertToTxtFormat(baseChart, hasWrapper);
-				trace('TXT content length: ' + txtContent.length);
-				trace('TXT first 500 chars: ' + txtContent.substr(0, 500));
-
-				var outputFile = sys.io.File.write(tempPath, false);
-				outputFile.writeString(txtContent);
-				outputFile.close();
+				sys.io.File.saveContent(tempPath, txtContent);
 			}
 
 			var totalCharts:Int = chartPaths.length;
@@ -312,7 +286,9 @@ class MergeChartState extends MusicBeatState
 
 						if (!(totalCharts == 2 && i == 1)) {
 							updateUI('Saving temp file...\n');
-							saveChartStreaming(baseChart2, tempPath, hasWrapper, false, 'chart ${i + 1}', false);
+							var output = sys.io.File.write(tempPath, false);
+							output.writeString(baseChart2);
+							output.close();
 						}
 					}
 					else {
@@ -321,279 +297,9 @@ class MergeChartState extends MusicBeatState
 					}
 				}
 				else if (convertToTxt) {
-					updateUI('Appending to TXT format...\n');
-
-					if (nextTxtContent == null) {
-						trace('ERROR: nextTxtContent is null, cannot append');
-						continue;
-					}
-
-					var chartTxtPath = tempPath + '-chart' + i + '.txt';
-
-					var outputFile = sys.io.File.write(chartTxtPath, false);
-					outputFile.writeString(nextTxtContent);
-					outputFile.close();
-
-					var mainContent = baseChart2;
-					var chartContent = File.getContent(chartTxtPath);
-
-					var mainNotesStart = mainContent.indexOf('notes: [\n');
-					var mainBeforeNotes = "";
-					var mainNotesArray = "";
-					var mainAfterNotes = "";
-					var mainNotesEnd = -1;
-
-					if (mainNotesStart != -1) {
-						var bracketCount = 0;
-						var inString = false;
-						var escapeNext = false;
-						for (j in mainNotesStart...mainContent.length) {
-							var char = mainContent.charAt(j);
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
-							if (char == '\\') {
-								escapeNext = true;
-								continue;
-							}
-							if (char == '"') {
-								inString = !inString;
-								continue;
-							}
-							if (!inString) {
-								if (char == '[') bracketCount++;
-								else if (char == ']') {
-									bracketCount--;
-									if (bracketCount == 0) {
-										mainNotesEnd = j;
-										break;
-									}
-								}
-							}
-						}
-						if (mainNotesEnd != -1) {
-							mainBeforeNotes = mainContent.substring(0, mainNotesStart + 9);
-							mainNotesArray = mainContent.substring(mainNotesStart + 9, mainNotesEnd);
-							mainAfterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
-						}
-					}
-
-					var chartNotesStart = chartContent.indexOf('notes: [\n');
-					var chartNotesArray = "";
-					var chartNotesEnd = -1;
-					if (chartNotesStart != -1) {
-						var bracketCount = 0;
-						var inString = false;
-						var escapeNext = false;
-						for (j in chartNotesStart...chartContent.length) {
-							var char = chartContent.charAt(j);
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
-							if (char == '\\') {
-								escapeNext = true;
-								continue;
-							}
-							if (char == '"') {
-								inString = !inString;
-								continue;
-							}
-							if (!inString) {
-								if (char == '[') bracketCount++;
-								else if (char == ']') {
-									bracketCount--;
-									if (bracketCount == 0) {
-										chartNotesEnd = j;
-										break;
-									}
-								}
-							}
-						}
-						if (chartNotesEnd != -1) {
-							chartNotesArray = chartContent.substring(chartNotesStart + 9, chartNotesEnd);
-						}
-					}
-
-					var mergedNotesArray = StringTools.trim(mainNotesArray);
-					var chartNotesTrimmed = StringTools.trim(chartNotesArray);
-
-					if (StringTools.endsWith(mergedNotesArray, ",")) {
-						mergedNotesArray = mergedNotesArray.substring(0, mergedNotesArray.length - 1);
-					}
-
-					if (mergedNotesArray.length > 0 && chartNotesTrimmed.length > 0) {
-						if (!StringTools.endsWith(mergedNotesArray, "\n")) {
-							mergedNotesArray += "\n";
-						}
-						if (StringTools.startsWith(chartNotesTrimmed, ",")) {
-							chartNotesTrimmed = chartNotesTrimmed.substring(1);
-							chartNotesTrimmed = StringTools.trim(chartNotesTrimmed);
-						}
-						mergedNotesArray += ",\n" + chartNotesTrimmed;
-					} else if (chartNotesTrimmed.length > 0) {
-						mergedNotesArray = chartNotesTrimmed;
-					}
-
-					var mainEventsStart = mainContent.indexOf('events: [\n');
-					var mainBeforeEvents = "";
-					var mainEventsArray = "";
-					var mainAfterEvents = "";
-
-					if (mainEventsStart != -1) {
-						var bracketCount = 0;
-						var inString = false;
-						var escapeNext = false;
-						var mainEventsEnd = -1;
-						for (j in mainEventsStart...mainContent.length) {
-							var char = mainContent.charAt(j);
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
-							if (char == '\\') {
-								escapeNext = true;
-								continue;
-							}
-							if (char == '"') {
-								inString = !inString;
-								continue;
-							}
-							if (!inString) {
-								if (char == '[') bracketCount++;
-								else if (char == ']') {
-									bracketCount--;
-									if (bracketCount == 0) {
-										mainEventsEnd = j;
-										break;
-									}
-								}
-							}
-						}
-						if (mainEventsEnd != -1) {
-							mainBeforeEvents = mainContent.substring(0, mainEventsStart + 9);
-							mainEventsArray = mainContent.substring(mainEventsStart + 9, mainEventsEnd);
-							mainAfterEvents = mainContent.substring(mainEventsEnd + 1, mainContent.length);
-						}
-					}
-
-					var chartEventsStart = chartContent.indexOf('events: [\n');
-					var chartEventsArray = "";
-					if (chartEventsStart != -1) {
-						var bracketCount = 0;
-						var inString = false;
-						var escapeNext = false;
-						var chartEventsEnd = -1;
-						for (j in chartEventsStart...chartContent.length) {
-							var char = chartContent.charAt(j);
-							if (escapeNext) {
-								escapeNext = false;
-								continue;
-							}
-							if (char == '\\') {
-								escapeNext = true;
-								continue;
-							}
-							if (char == '"') {
-								inString = !inString;
-								continue;
-							}
-							if (!inString) {
-								if (char == '[') bracketCount++;
-								else if (char == ']') {
-									bracketCount--;
-									if (bracketCount == 0) {
-										chartEventsEnd = j;
-										break;
-									}
-								}
-							}
-						}
-						if (chartEventsEnd != -1) {
-							chartEventsArray = chartContent.substring(chartEventsStart + 9, chartEventsEnd);
-						}
-					}
-
-					var mergedEventsArray = StringTools.trim(mainEventsArray);
-					var chartEventsTrimmed = StringTools.trim(chartEventsArray);
-
-					if (StringTools.endsWith(mergedEventsArray, ",")) {
-						mergedEventsArray = mergedEventsArray.substring(0, mergedEventsArray.length - 1);
-					}
-
-					if (mergedEventsArray.length > 0 && chartEventsTrimmed.length > 0) {
-						if (!StringTools.endsWith(mergedEventsArray, "\n")) {
-							mergedEventsArray += "\n";
-						}
-						if (StringTools.startsWith(chartEventsTrimmed, ",")) {
-							chartEventsTrimmed = chartEventsTrimmed.substring(1);
-							chartEventsTrimmed = StringTools.trim(chartEventsTrimmed);
-						}
-						mergedEventsArray += ",\n" + chartEventsTrimmed;
-					} else if (chartEventsTrimmed.length > 0) {
-						mergedEventsArray = chartEventsTrimmed;
-					}
-
-					var mergedContent = "";
-
-					var headerEnd = mainNotesStart;
-					var headerLines = [];
-					var mainEventsJson = "[]";
-					if (headerEnd != -1) {
-						var headerContent = mainContent.substring(0, headerEnd);
-						var lines = headerContent.split('\n');
-						for (line in lines) {
-							if (StringTools.startsWith(line, 'events:')) {
-								mainEventsJson = line.substring(8).trim();
-							} else {
-								headerLines.push(line);
-							}
-						}
-					}
-
-					var mainEvents:Array<Dynamic> = [];
-					var chartEvents:Array<Dynamic> = [];
-					try {
-						mainEvents = Json.parse(mainEventsJson);
-						if (mergedEventsArray.length > 0) {
-							chartEvents = Json.parse('[' + mergedEventsArray + ']');
-						}
-						var mergedEvents:Array<Dynamic> = mainEvents.concat(chartEvents);
-						var mergedEventsJson = Json.stringify(mergedEvents);
-
-						for (line in headerLines) {
-							mergedContent += line + '\n';
-						}
-						mergedContent += 'events: ' + mergedEventsJson + '\n';
-					} catch(e:Dynamic) {
-						for (line in headerLines) {
-							mergedContent += line + '\n';
-						}
-						mergedContent += 'events: ' + mainEventsJson + '\n';
-					}
-
-					mergedContent += "notes: [\n";
-					mergedContent += mergedNotesArray;
-					mergedContent += "\n    ]\n";
-
-					if (mainNotesEnd != -1) {
-						var afterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
-						var firstNewline = afterNotes.indexOf('\n');
-						if (firstNewline != -1) {
-							var footer = afterNotes.substring(firstNewline + 1);
-							mergedContent += footer;
-						}
-					}
-
-					var output = sys.io.File.write(tempPath, false);
-					output.writeString(mergedContent);
-					output.close();
-
-					if (FileSystem.exists(chartTxtPath)) {
-						FileSystem.deleteFile(chartTxtPath);
-					}
-
+					updateUI('Appending chart ${i + 1} to TXT...\n');
+					var nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
+					appendTxtToTempFile(tempPath, nextTxtContent);
 					updateUI('Appended notes and events from chart ${i + 1}\n');
 				}
 				else {
@@ -631,9 +337,6 @@ class MergeChartState extends MusicBeatState
 				updateUI('Loading TXT temp file...\n');
 				try {
 					var txtContent = File.getContent(tempPath);
-					trace('=== TXT Load Debug ===');
-					trace('txtContent length: ' + txtContent.length);
-					trace('txtContent first 500 chars: ' + txtContent.substr(0, 500));
 					var finalObj = convertToJsonFormat(txtContent);
 					if (finalObj.song != null && Std.isOfType(finalObj.song, Dynamic))
 						finalChart = finalObj.song;
@@ -998,6 +701,211 @@ class MergeChartState extends MusicBeatState
 
 			showMergingProgress(true, 'Appended ${newNotes.length} notes and ${newEvents.length} events\n');
 		}
+	}
+
+	private function appendTxtToTempFile(tempPath:String, nextTxtContent:String):Void
+	{
+		var content = sys.io.File.getContent(tempPath);
+
+		var baseSections = parseTxtSections(content);
+		var nextSections = parseTxtSections(nextTxtContent);
+		var baseEvents = parseTxtEvents(content);
+		var nextEvents = parseTxtEvents(nextTxtContent);
+
+		var mergedSections = [];
+		var maxSections = Std.int(Math.max(baseSections.length, nextSections.length));
+
+		for (i in 0...maxSections) {
+			var baseSection = i < baseSections.length ? baseSections[i] : createEmptySection();
+			var nextSection = i < nextSections.length ? nextSections[i] : createEmptySection();
+
+			var mergedNotes = [];
+			if (baseSection.sectionNotes != null) mergedNotes = mergedNotes.concat(baseSection.sectionNotes);
+			if (nextSection.sectionNotes != null) mergedNotes = mergedNotes.concat(nextSection.sectionNotes);
+
+			baseSection.sectionNotes = mergedNotes;
+			mergedSections.push(baseSection);
+		}
+
+		var mergedEvents = [];
+		if (baseEvents != null) mergedEvents = mergedEvents.concat(baseEvents);
+		if (nextEvents != null) mergedEvents = mergedEvents.concat(nextEvents);
+
+		var mergedContent = rebuildTxtContent(content, mergedSections, mergedEvents);
+
+		sys.io.File.saveContent(tempPath, mergedContent);
+	}
+
+	private function parseTxtEvents(txtContent:String):Array<Dynamic>
+	{
+		var eventsStart = txtContent.indexOf('events: [\n');
+		if (eventsStart == -1) return [];
+
+		var eventsEnd = txtContent.indexOf('\n]\n', eventsStart);
+		if (eventsEnd == -1) return [];
+
+		var eventsContent = txtContent.substring(eventsStart + 9, eventsEnd);
+		var eventsArray:Array<Dynamic> = [];
+
+		var lines = eventsContent.split('\n');
+		for (line in lines) {
+			line = StringTools.trim(line);
+			if (line.length == 0 || line == '[' || line == ']') continue;
+			if (line.startsWith('[') && line.endsWith(']')) {
+				try {
+					var event = haxe.Json.parse(line);
+					eventsArray.push(event);
+				} catch(e:Dynamic) {}
+			}
+		}
+
+		return eventsArray;
+	}
+
+	private function parseTxtSections(txtContent:String):Array<Dynamic>
+	{
+		var sections = [];
+		var notesStart = txtContent.indexOf('notes: [\n');
+		if (notesStart == -1) return sections;
+
+		var notesEnd = txtContent.indexOf('\n]\n', notesStart);
+		if (notesEnd == -1) return sections;
+
+		var notesContent = txtContent.substring(notesStart + 9, notesEnd);
+
+		var inSection = false;
+		var currentSection = "";
+		var bracketCount = 0;
+		var i = 0;
+
+		while (i < notesContent.length) {
+			var char = notesContent.charAt(i);
+
+			if (char == '[' && !inSection) {
+				inSection = true;
+				currentSection = "";
+				bracketCount = 1;
+				i++;
+				continue;
+			}
+
+			if (inSection) {
+				if (char == '[') bracketCount++;
+				else if (char == ']') bracketCount--;
+
+				if (bracketCount == 0) {
+					inSection = false;
+					var section = parseTxtSection(currentSection);
+					sections.push(section);
+					currentSection = "";
+					i++;
+					continue;
+				}
+
+				currentSection += char;
+				i++;
+			} else {
+				i++;
+			}
+		}
+
+		return sections;
+	}
+
+	private function parseTxtSection(sectionText:String):Dynamic
+	{
+		var section:Dynamic = {};
+		var lines = sectionText.split('\n');
+		for (line in lines) {
+			line = StringTools.trim(line);
+			if (line.indexOf(':') == -1) continue;
+			var parts = line.split(':');
+			if (parts.length < 2) continue;
+			var key = StringTools.trim(parts[0]);
+			var value = StringTools.trim(parts[1]);
+			if (value.endsWith(',')) value = value.substring(0, value.length - 1);
+
+			if (key == 'sectionNotes') {
+				try {
+					var notesArray = haxe.Json.parse(value);
+					Reflect.setField(section, key, notesArray);
+				} catch(e:Dynamic) {
+					Reflect.setField(section, key, []);
+				}
+			} else if (value == 'true') {
+				Reflect.setField(section, key, true);
+			} else if (value == 'false') {
+				Reflect.setField(section, key, false);
+			} else if (value.startsWith('"')) {
+				Reflect.setField(section, key, value.substring(1, value.length - 1));
+			} else {
+				var num = Std.parseFloat(value);
+				if (!Math.isNaN(num)) Reflect.setField(section, key, num);
+			}
+		}
+		return section;
+	}
+
+	private function createEmptySection():Dynamic
+	{
+		return {
+			gfSection: false,
+			altAnim: false,
+			sectionNotes: [],
+			bpm: 150,
+			sectionBeats: 4,
+			changeBPM: false,
+			mustHitSection: true
+		};
+	}
+
+	private function rebuildTxtContent(originalContent:String, sections:Array<Dynamic>, events:Array<Dynamic>):String
+	{
+		var notesContent = "notes: [\n";
+		for (i in 0...sections.length) {
+			var section = sections[i];
+			notesContent += '    [\n';
+			notesContent += '        gfSection: ' + (section.gfSection ? 'true' : 'false') + ',\n';
+			notesContent += '        altAnim: ' + (section.altAnim ? 'true' : 'false') + ',\n';
+			notesContent += '        sectionNotes: ' + haxe.Json.stringify(section.sectionNotes) + ',\n';
+			notesContent += '        bpm: ' + section.bpm + ',\n';
+			notesContent += '        sectionBeats: ' + section.sectionBeats + ',\n';
+			notesContent += '        changeBPM: ' + (section.changeBPM ? 'true' : 'false') + ',\n';
+			notesContent += '        mustHitSection: ' + (section.mustHitSection ? 'true' : 'false') + '\n';
+			notesContent += '    ]';
+			if (i < sections.length - 1) notesContent += ',\n';
+			else notesContent += '\n';
+		}
+		notesContent += ']\n';
+
+		var eventsContent = "events: [\n";
+		for (i in 0...events.length) {
+			eventsContent += '    ' + haxe.Json.stringify(events[i]);
+			if (i < events.length - 1) eventsContent += ',\n';
+			else eventsContent += '\n';
+		}
+		eventsContent += ']\n';
+
+		var notesStart = originalContent.indexOf('notes: [\n');
+		var notesEnd = originalContent.indexOf('\n]\n', notesStart);
+		var eventsStart = originalContent.indexOf('events: [\n');
+		var eventsEnd = originalContent.indexOf('\n]\n', eventsStart);
+
+		var beforeNotes = originalContent.substring(0, notesStart);
+		var afterNotes = "";
+
+		if (eventsStart != -1) {
+			afterNotes = originalContent.substring(eventsEnd + 3);
+		} else {
+			afterNotes = originalContent.substring(notesEnd + 3);
+			while (afterNotes.length > 0 && (afterNotes.charAt(0) == '\n' || afterNotes.charAt(0) == '\r')) {
+				afterNotes = afterNotes.substring(1);
+			}
+			afterNotes = eventsContent + afterNotes;
+			return beforeNotes + notesContent + afterNotes;
+		}
+
+		return beforeNotes + notesContent + eventsContent + afterNotes;
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
@@ -1689,18 +1597,17 @@ class MergeChartState extends MusicBeatState
 		var tempTxtPath = "temp_final_merged.txt";
 
 		if (!txt) {
-			saveChartStreaming(chart, tempJsonPath, hasWrapper, indentation, "final");
+			var jsonString = Json.stringify(chart);
+			sys.io.File.saveContent(tempJsonPath, jsonString);
 		}
 		else {
 			var txtContent = convertToTxtFormat(chart, hasWrapper);
-			var outputFile = sys.io.File.write(tempTxtPath, false);
-			outputFile.writeString(txtContent);
-			outputFile.close();
-			var jsonContent = convertToJsonFormat(txtContent);
-			saveChartStreaming(jsonContent, tempJsonPath, hasWrapper, indentation, "final");
+			sys.io.File.saveContent(tempTxtPath, txtContent);
 		}
 
-		fileDialog.saveFile(tempJsonPath, defaultName,
+		var finalTempPath = txt ? tempTxtPath : tempJsonPath;
+
+		fileDialog.saveFile(finalTempPath, defaultName,
 			function(path:String)
 			{
 				showMergingProgress(false, "Merge complete!\n", true);

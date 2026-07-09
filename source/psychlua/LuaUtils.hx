@@ -5,7 +5,6 @@ import objects.Character;
 import backend.StageData;
 import backend.animation.PsychAnimationController;
 
-import flixel.FlxCamera;
 import openfl.display.BlendMode;
 import Type.ValueType;
 
@@ -40,50 +39,6 @@ class LuaUtils
 			loopDelay: options.loopDelay,
 			ease: getTweenEaseByString(options.ease)
 		} : null;
-	}
-
-	static function setFlxCameraProperty(cam:FlxCamera, variable:String, value:Dynamic):Bool
-	{
-		switch (variable)
-		{
-			case 'angle':
-				cam.angle = value;
-				return true;
-			case 'zoom':
-				cam.zoom = value;
-				return true;
-			case 'alpha':
-				cam.alpha = value;
-				return true;
-			case 'x':
-				cam.x = value;
-				return true;
-			case 'y':
-				cam.y = value;
-				return true;
-			case 'scrollX':
-				cam.scroll.x = value;
-				return true;
-			case 'scrollY':
-				cam.scroll.y = value;
-				return true;
-		}
-		return false;
-	}
-
-	static function getFlxCameraProperty(cam:FlxCamera, variable:String):Dynamic
-	{
-		switch (variable)
-		{
-			case 'angle': return cam.angle;
-			case 'zoom': return cam.zoom;
-			case 'alpha': return cam.alpha;
-			case 'x': return cam.x;
-			case 'y': return cam.y;
-			case 'scrollX': return cam.scroll.x;
-			case 'scrollY': return cam.scroll.y;
-		}
-		return null;
 	}
 
 	public static function setVarInArray(instance:Dynamic, variable:String, value:Dynamic, allowMaps:Bool = false):Any
@@ -122,10 +77,6 @@ class LuaUtils
 			MusicBeatState.getVariables().set(variable, value);
 			return value;
 		}
-
-		if (Std.isOfType(instance, FlxCamera) && setFlxCameraProperty(cast instance, variable, value))
-			return value;
-
 		Reflect.setProperty(instance, variable, value);
 		return value;
 	}
@@ -165,13 +116,6 @@ class LuaUtils
 
 		if (variable == 'frameName' && Std.isOfType(instance, PsychAnimationController))
 			return cast(instance, PsychAnimationController).getLuaFrameName();
-
-		if (Std.isOfType(instance, FlxCamera))
-		{
-			var camValue:Dynamic = getFlxCameraProperty(cast instance, variable);
-			if (camValue != null || variable == 'angle' || variable == 'alpha' || variable == 'zoom')
-				return camValue;
-		}
 
 		return Reflect.getProperty(instance, variable);
 	}
@@ -272,7 +216,7 @@ class LuaUtils
 			variable = split[split.length-1];
 		}
 		if(allowMaps && isMap(leArray)) leArray.set(variable, value);
-		else setVarInArray(leArray, variable, value, allowMaps);
+		else Reflect.setProperty(leArray, variable, value);
 		return value;
 	}
 	public static function getGroupStuff(leArray:Dynamic, variable:String, ?allowMaps:Bool = false) {
@@ -287,7 +231,7 @@ class LuaUtils
 		}
 
 		if(allowMaps && isMap(leArray)) return leArray.get(variable);
-		return getVarInArray(leArray, variable, allowMaps);
+		return Reflect.getProperty(leArray, variable);
 	}
 
 	public static function getPropertyLoop(split:Array<String>, ?getProperty:Bool=true, ?allowMaps:Bool = false):Dynamic
@@ -307,22 +251,7 @@ class LuaUtils
 			case 'this' | 'instance' | 'game':
 				return PlayState.instance;
 
-			case 'camGame' | 'camHUD' | 'camOther':
-				if (PlayState.instance != null)
-					return Reflect.getProperty(PlayState.instance, objectName);
-				return null;
-
 			default:
-				if (PlayState.instance != null)
-				{
-					switch(objectName.toLowerCase())
-					{
-						case 'camgame': return PlayState.instance.camGame;
-						case 'camhud' | 'hud': return PlayState.instance.camHUD;
-						case 'camother' | 'other': return PlayState.instance.camOther;
-					}
-				}
-
 				var obj:Dynamic = MusicBeatState.getVariables().get(objectName);
 				if(obj == null) obj = getVarInArray(MusicBeatState.getState(), objectName, allowMaps);
 				return obj;
@@ -469,22 +398,6 @@ class LuaUtils
 		var sexyProp:Dynamic = LuaUtils.getObjectDirectly(variables[0]);
 		if(variables.length > 1) sexyProp = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(variables), variables[variables.length-1]);
 		return sexyProp;
-	}
-
-	public static function tweenFlxCameraAngle(cam:FlxCamera, endAngle:Float, duration:Float, ease:String, ?onComplete:Void->Void):FlxTween
-	{
-		var startAngle:Float = cam.angle;
-		var progress = {t: 0.0};
-		return FlxTween.tween(progress, {t: 1.0}, duration, {
-			ease: getTweenEaseByString(ease),
-			onUpdate: function(twn:FlxTween) {
-				cam.angle = startAngle + (endAngle - startAngle) * twn.scale;
-			},
-			onComplete: function(twn:FlxTween) {
-				cam.angle = endAngle;
-				if (onComplete != null) onComplete();
-			}
-		});
 	}
 
 	public static function getBuildTarget():String
