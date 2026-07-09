@@ -3500,7 +3500,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				if (guitarHeroSustains && note.isSustainNote) drainHealth = false;
 				if (drainHealth) {
 					health -= drain * drainMultiplier;
-					updateScoreText();
 				}
 			}
 
@@ -3510,6 +3509,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if (drain < 0.0001) drain = 0.0001;
 			else if (drain > 1) drain = 1;
 		}
+		updateScoreText();
 	}
 
 	public function goodNoteHit(note:Note):Void
@@ -3587,8 +3587,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if (guitarHeroSustains && note.isSustainNote) gainHealth = false;
 			if (gainHealth) {
 				health += hitHealth * healthGain;
-				updateScoreText();
 			}
+			updateScoreText();
 		}
 		else //Notes that count as a miss if you hit them (Hurt notes for example)
 		{

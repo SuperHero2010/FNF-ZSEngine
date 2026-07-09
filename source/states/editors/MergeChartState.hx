@@ -128,6 +128,15 @@ class MergeChartState extends MusicBeatState
 		add(rewriteCheckbox);
 
 		convertToTxtCheckbox = new PsychUICheckBox(20, backButton.y - 120, "Convert to TXT", 200, function() {
+			mergeChartSave.data.convertToTxt = convertToTxtCheckbox.checked;
+			mergeChartSave.flush();
+			convertToTxt = convertToTxtCheckbox.checked;
+		});
+		convertToTxtCheckbox.checked = (mergeChartSave.data.convertToTxt == true);
+		convertToTxt = convertToTxtCheckbox.checked;
+		add(convertToTxtCheckbox);
+
+		if (convertToTxt) {
 			var newState = convertToTxtCheckbox.checked;
 			mergeChartSave.data.convertToTxt = newState;
 			mergeChartSave.flush();
@@ -153,10 +162,7 @@ class MergeChartState extends MusicBeatState
 					}
 				}
 			}
-		});
-		convertToTxtCheckbox.checked = (mergeChartSave.data.convertToTxt == true);
-		convertToTxt = convertToTxtCheckbox.checked;
-		add(convertToTxtCheckbox);
+		}
 
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
