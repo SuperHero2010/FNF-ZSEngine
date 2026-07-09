@@ -3,7 +3,6 @@ package psychlua;
 import backend.WeekData;
 import objects.Character;
 import backend.StageData;
-import backend.animation.PsychAnimationController;
 
 import openfl.display.BlendMode;
 import Type.ValueType;
@@ -113,10 +112,6 @@ class LuaUtils
 			if(retVal != null)
 				return retVal;
 		}
-
-		if (variable == 'frameName' && Std.isOfType(instance, PsychAnimationController))
-			return cast(instance, PsychAnimationController).getLuaFrameName();
-
 		return Reflect.getProperty(instance, variable);
 	}
 
