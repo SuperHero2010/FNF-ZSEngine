@@ -709,207 +709,185 @@ class MergeChartState extends MusicBeatState
 
 	private function appendTxtToTempFile(tempPath:String, nextTxtContent:String):Void
 	{
-		var content = sys.io.File.getContent(tempPath);
+		var notesStart = nextTxtContent.indexOf('notes: [\n');
+		var notesEnd = nextTxtContent.indexOf('\n]\n', notesStart);
+		var eventsStart = nextTxtContent.indexOf('events: [\n');
+		var eventsEnd = nextTxtContent.indexOf('\n]\n', eventsStart);
 
-		var baseSections = extractTxtSections(content);
-		var nextSections = extractTxtSections(nextTxtContent);
-		var baseEvents = extractTxtEvents(content);
-		var nextEvents = extractTxtEvents(nextTxtContent);
+		var newNotesContent = "";
+		var newEventsContent = "";
 
-		var mergedSections = [];
-		var maxLen = Std.int(Math.max(baseSections.length, nextSections.length));
-
-		for (i in 0...maxLen) {
-			var baseSec = i < baseSections.length ? baseSections[i] : createEmptySection();
-			var nextSec = i < nextSections.length ? nextSections[i] : createEmptySection();
-
-			if (baseSec.sectionNotes == null) baseSec.sectionNotes = [];
-			if (nextSec.sectionNotes != null) {
-				baseSec.sectionNotes = baseSec.sectionNotes.concat(nextSec.sectionNotes);
-			}
-			mergedSections.push(baseSec);
+		if (notesStart != -1 && notesEnd != -1) {
+			newNotesContent = nextTxtContent.substring(notesStart + 9, notesEnd);
+		}
+		if (eventsStart != -1 && eventsEnd != -1) {
+			newEventsContent = nextTxtContent.substring(eventsStart + 9, eventsEnd);
 		}
 
-		var mergedEvents = baseEvents.concat(nextEvents);
+		if (newNotesContent.length == 0 && newEventsContent.length == 0) {
+			return;
+		}
 
-		var newContent = rebuildTxtContent(content, mergedSections, mergedEvents);
-		sys.io.File.saveContent(tempPath, newContent);
+		var file = sys.io.File.update(tempPath, false);
+		var fileSize = file.tell(SeekEnd);
+		file.seek(0, SeekBegin);
+
+		var notesArrayEnd = findArrayEnd(file, "notes", fileSize);
+		var eventsArrayEnd = findArrayEnd(file, "events", fileSize);
+		file.close();
+
+		if (notesArrayEnd == -1) {
+			trace('Could not find notes array end');
+			return;
+		}
+
+		var source = sys.io.File.update(tempPath, false);
+		var target = sys.io.File.write(tempPath + ".tmp");
+		var chunkSize = 8192;
+
+		source.seek(0, SeekBegin);
+		copyChunk(source, target, notesArrayEnd);
+
+		if (newNotesContent.length > 0) {
+			source.seek(notesArrayEnd - 200, SeekBegin);
+			var sample = source.read(200).toString();
+			var hasExistingNotes = sample.indexOf('sectionNotes:') != -1 && sample.indexOf('sectionNotes: []') == -1;
+			if (hasExistingNotes) {
+				target.writeString(",\n" + newNotesContent);
+			} else {
+				target.writeString("\n" + newNotesContent);
+			}
+		}
+
+		source.seek(notesArrayEnd, SeekBegin);
+		if (eventsArrayEnd != -1) {
+			copyChunk(source, target, eventsArrayEnd - notesArrayEnd);
+		} else {
+			while (true) {
+				var chunk = source.read(chunkSize);
+				if (chunk.length == 0) break;
+				target.write(chunk);
+			}
+			if (newEventsContent.length > 0) {
+				target.writeString("\n\nevents: [\n" + newEventsContent + "\n]");
+			}
+			source.close();
+			target.close();
+			replaceFile(tempPath, tempPath + ".tmp");
+			return;
+		}
+
+		if (newEventsContent.length > 0) {
+			source.seek(eventsArrayEnd - 200, SeekBegin);
+			var sample = source.read(200).toString();
+			var hasExistingEvents = sample.indexOf('events:') != -1 && sample.indexOf('events: []') == -1;
+			if (hasExistingEvents) {
+				target.writeString(",\n" + newEventsContent);
+			} else {
+				target.writeString("\n" + newEventsContent);
+			}
+		}
+
+		source.seek(eventsArrayEnd, SeekBegin);
+		while (true) {
+			var chunk = source.read(chunkSize);
+			if (chunk.length == 0) break;
+			target.write(chunk);
+		}
+
+		source.close();
+		target.close();
+		replaceFile(tempPath, tempPath + ".tmp");
 	}
 
-	private function extractTxtSections(content:String):Array<Dynamic>
+	private function findArrayEnd(file:sys.io.FileInput, arrayName:String, fileSize:Int):Int
 	{
-		var sections = [];
-		var notesStart = content.indexOf('notes: [\n');
-		if (notesStart == -1) return sections;
-
-		var notesEnd = content.indexOf('\n]\n', notesStart);
-		if (notesEnd == -1) return sections;
-
-		var notesContent = content.substring(notesStart + 9, notesEnd);
-
-		var sectionStart = -1;
+		var chunkSize = 8192;
+		var buffer = "";
+		var pos = 0;
+		var foundStart = false;
 		var bracketCount = 0;
 		var inString = false;
 		var escapeNext = false;
+		var arrayEnd = -1;
 
-		for (i in 0...notesContent.length) {
-			var char = notesContent.charAt(i);
+		file.seek(0, SeekBegin);
 
-			if (escapeNext) {
-				escapeNext = false;
-				continue;
-			}
-			if (char == '\\') {
-				escapeNext = true;
-				continue;
-			}
-			if (char == '"') {
-				inString = !inString;
-				continue;
-			}
-			if (inString) continue;
+		while (pos < fileSize) {
+			var chunk = file.read(chunkSize).toString();
+			buffer += chunk;
+			pos += chunk.length;
 
-			if (char == '[') {
-				if (bracketCount == 0) {
-					sectionStart = i;
-				}
-				bracketCount++;
-			} else if (char == ']') {
-				bracketCount--;
-				if (bracketCount == 0 && sectionStart != -1) {
-					var sectionText = notesContent.substring(sectionStart + 1, i);
-					var section = parseTxtSection(sectionText);
-					sections.push(section);
-					sectionStart = -1;
-				}
-			}
-		}
-
-		return sections;
-	}
-
-	private function extractTxtEvents(content:String):Array<Dynamic>
-	{
-		var events = [];
-		var eventsStart = content.indexOf('events: [\n');
-		if (eventsStart == -1) return events;
-
-		var eventsEnd = content.indexOf('\n]\n', eventsStart);
-		if (eventsEnd == -1) return events;
-
-		var eventsContent = content.substring(eventsStart + 9, eventsEnd);
-
-		var lines = eventsContent.split('\n');
-		for (line in lines) {
-			line = StringTools.trim(line);
-			if (line.length == 0) continue;
-			if (line.startsWith('[') && line.endsWith(']')) {
-				try {
-					var event = haxe.Json.parse(line);
-					events.push(event);
-				} catch(e:Dynamic) {}
-			}
-		}
-
-		return events;
-	}
-
-	private function parseTxtSection(sectionText:String):Dynamic
-	{
-		var section:Dynamic = {};
-		var lines = sectionText.split('\n');
-
-		for (line in lines) {
-			line = StringTools.trim(line);
-			if (line.indexOf(':') == -1) continue;
-
-			var colonPos = line.indexOf(':');
-			var key = StringTools.trim(line.substring(0, colonPos));
-			var value = StringTools.trim(line.substring(colonPos + 1));
-			if (value.endsWith(',')) value = value.substring(0, value.length - 1);
-
-			switch (key) {
-				case 'sectionNotes':
-					try {
-						Reflect.setField(section, key, haxe.Json.parse(value));
-					} catch(e:Dynamic) {
-						Reflect.setField(section, key, []);
+			if (!foundStart) {
+				var startPos = buffer.indexOf('"' + arrayName + '"');
+				if (startPos != -1) {
+					for (i in startPos...buffer.length) {
+						var char = buffer.charAt(i);
+						if (escapeNext) {
+							escapeNext = false;
+							continue;
+						}
+						if (char == '\\') {
+							escapeNext = true;
+							continue;
+						}
+						if (char == '"') {
+							inString = !inString;
+							continue;
+						}
+						if (!inString && char == '[') {
+							foundStart = true;
+							bracketCount = 1;
+							break;
+						}
 					}
-				case 'gfSection', 'altAnim', 'changeBPM', 'mustHitSection':
-					Reflect.setField(section, key, value == 'true');
-				case 'bpm', 'sectionBeats':
-					Reflect.setField(section, key, Std.parseFloat(value));
-				default:
-					if (value.startsWith('"')) {
-						Reflect.setField(section, key, value.substring(1, value.length - 1));
-					}
-			}
-		}
-
-		return section;
-	}
-
-	private function createEmptySection():Dynamic
-	{
-		return {
-			gfSection: false,
-			altAnim: false,
-			sectionNotes: [],
-			bpm: 150,
-			sectionBeats: 4,
-			changeBPM: false,
-			mustHitSection: true
-		};
-	}
-
-	private function rebuildTxtContent(originalContent:String, sections:Array<Dynamic>, events:Array<Dynamic>):String
-	{
-		var notesContent = "notes: [\n";
-		for (i in 0...sections.length) {
-			var s = sections[i];
-			notesContent += '    [\n';
-			notesContent += '        gfSection: ' + (s.gfSection ? 'true' : 'false') + ',\n';
-			notesContent += '        altAnim: ' + (s.altAnim ? 'true' : 'false') + ',\n';
-			notesContent += '        sectionNotes: ' + haxe.Json.stringify(s.sectionNotes) + ',\n';
-			notesContent += '        bpm: ' + s.bpm + ',\n';
-			notesContent += '        sectionBeats: ' + s.sectionBeats + ',\n';
-			notesContent += '        changeBPM: ' + (s.changeBPM ? 'true' : 'false') + ',\n';
-			notesContent += '        mustHitSection: ' + (s.mustHitSection ? 'true' : 'false') + '\n';
-			notesContent += '    ]';
-			if (i < sections.length - 1) notesContent += ',\n';
-			else notesContent += '\n';
-		}
-		notesContent += ']\n';
-
-		var eventsContent = "events: [\n";
-		for (i in 0...events.length) {
-			eventsContent += '    ' + haxe.Json.stringify(events[i]);
-			if (i < events.length - 1) eventsContent += ',\n';
-			else eventsContent += '\n';
-		}
-		eventsContent += ']\n';
-
-		var notesStart = originalContent.indexOf('notes: [\n');
-		var notesEnd = originalContent.indexOf('\n]\n', notesStart);
-		var eventsStart = originalContent.indexOf('events: [\n');
-		var eventsEnd = originalContent.indexOf('\n]\n', eventsStart);
-
-		if (notesStart != -1 && notesEnd != -1) {
-			var before = originalContent.substring(0, notesStart);
-			var after = "";
-			if (eventsStart != -1 && eventsEnd != -1) {
-				after = originalContent.substring(eventsEnd + 3);
-			} else {
-				after = originalContent.substring(notesEnd + 3);
-				while (after.length > 0 && (after.charAt(0) == '\n' || after.charAt(0) == '\r')) {
-					after = after.substring(1);
 				}
-				return before + notesContent + eventsContent + after;
 			}
-			return before + notesContent + eventsContent + after;
+
+			if (foundStart) {
+				var startIdx = 0;
+				if (buffer.length > chunkSize * 2) {
+					startIdx = buffer.length - chunkSize * 2;
+				}
+				for (i in startIdx...buffer.length) {
+					var char = buffer.charAt(i);
+					if (escapeNext) {
+						escapeNext = false;
+						continue;
+					}
+					if (char == '\\') {
+						escapeNext = true;
+						continue;
+					}
+					if (char == '"') {
+						inString = !inString;
+						continue;
+					}
+					if (!inString) {
+						if (char == '[') bracketCount++;
+						else if (char == ']') {
+							bracketCount--;
+							if (bracketCount == 0) {
+								arrayEnd = (pos - buffer.length) + i;
+								return arrayEnd;
+							}
+						}
+					}
+				}
+			}
+
+			if (buffer.length > chunkSize * 10) {
+				buffer = buffer.substr(-chunkSize * 5);
+			}
 		}
 
-		return originalContent;
+		return -1;
+	}
+
+	private function replaceFile(original:String, temp:String):Void
+	{
+		if (FileSystem.exists(original)) FileSystem.deleteFile(original);
+		FileSystem.rename(temp, original);
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
