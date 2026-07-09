@@ -709,10 +709,17 @@ class MergeChartState extends MusicBeatState
 
 	private function appendTxtToTempFile(tempPath:String, nextTxtContent:String):Void
 	{
+		trace('appendTxtToTempFile: START');
+		trace('tempPath: ' + tempPath);
+		trace('nextTxtContent length: ' + nextTxtContent.length);
+
 		var notesStart = nextTxtContent.indexOf('notes: [\n');
 		var notesEnd = nextTxtContent.indexOf('\n]\n', notesStart);
 		var eventsStart = nextTxtContent.indexOf('events: [\n');
 		var eventsEnd = nextTxtContent.indexOf('\n]\n', eventsStart);
+
+		trace('notesStart: ' + notesStart + ', notesEnd: ' + notesEnd);
+		trace('eventsStart: ' + eventsStart + ', eventsEnd: ' + eventsEnd);
 
 		var newNotesContent = "";
 		var newEventsContent = "";
@@ -724,82 +731,116 @@ class MergeChartState extends MusicBeatState
 			newEventsContent = nextTxtContent.substring(eventsStart + 9, eventsEnd);
 		}
 
+		trace('newNotesContent length: ' + newNotesContent.length);
+		trace('newEventsContent length: ' + newEventsContent.length);
+
 		if (newNotesContent.length == 0 && newEventsContent.length == 0) {
+			trace('No new content to append');
 			return;
 		}
 
-		var inputFile = sys.io.File.read(tempPath, false);
-		var fileSize = 0;
-		inputFile.seek(0, SeekEnd);
-		fileSize = inputFile.tell();
-		inputFile.seek(0, SeekBegin);
-
-		var notesArrayEnd = findArrayEnd(inputFile, "notes", fileSize);
-		var eventsArrayEnd = findArrayEnd(inputFile, "events", fileSize);
-		inputFile.close();
-
-		if (notesArrayEnd == -1) {
-			trace('Could not find notes array end');
-			return;
-		}
-
-		var source = sys.io.File.read(tempPath, false);
-		var target = sys.io.File.write(tempPath + ".tmp");
-		var chunkSize = 8192;
-
-		source.seek(0, SeekBegin);
-		copyChunk(source, target, Std.int(notesArrayEnd), "Copying notes array");
-
-		if (newNotesContent.length > 0) {
-			source.seek(Std.int(notesArrayEnd - 200), SeekBegin);
-			var sample = source.read(200).toString();
-			var hasExistingNotes = sample.indexOf('sectionNotes:') != -1 && sample.indexOf('sectionNotes: []') == -1;
-			if (hasExistingNotes) {
-				target.writeString(",\n" + newNotesContent);
-			} else {
-				target.writeString("\n" + newNotesContent);
+		try {
+			if (!FileSystem.exists(tempPath)) {
+				trace('ERROR: File does not exist: ' + tempPath);
+				return;
 			}
-		}
 
-		source.seek(Std.int(notesArrayEnd), SeekBegin);
-		if (eventsArrayEnd != -1) {
-			copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd), "Copying events array");
-		} else {
+			var fileInfo = FileSystem.stat(tempPath);
+			trace('File size: ' + fileInfo.size + ' bytes');
+
+			var inputFile = sys.io.File.read(tempPath, false);
+			var fileSize = 0;
+			inputFile.seek(0, SeekEnd);
+			fileSize = inputFile.tell();
+			inputFile.seek(0, SeekBegin);
+			trace('File size from tell: ' + fileSize);
+
+			var notesArrayEnd = findArrayEnd(inputFile, "notes", fileSize);
+			var eventsArrayEnd = findArrayEnd(inputFile, "events", fileSize);
+			inputFile.close();
+
+			trace('notesArrayEnd: ' + notesArrayEnd);
+			trace('eventsArrayEnd: ' + eventsArrayEnd);
+
+			if (notesArrayEnd == -1) {
+				trace('Could not find notes array end');
+				return;
+			}
+
+			var source = sys.io.File.read(tempPath, false);
+			var target = sys.io.File.write(tempPath + ".tmp");
+			var chunkSize = 8192;
+
+			source.seek(0, SeekBegin);
+			trace('Copying up to notes array end: ' + notesArrayEnd);
+			copyChunk(source, target, Std.int(notesArrayEnd), "Copying notes array");
+
+			if (newNotesContent.length > 0) {
+				trace('Inserting new notes content');
+				source.seek(Std.int(notesArrayEnd - 200), SeekBegin);
+				var sample = source.read(200).toString();
+				var hasExistingNotes = sample.indexOf('sectionNotes:') != -1 && sample.indexOf('sectionNotes: []') == -1;
+				trace('hasExistingNotes: ' + hasExistingNotes);
+				if (hasExistingNotes) {
+					target.writeString(",\n" + newNotesContent);
+				} else {
+					target.writeString("\n" + newNotesContent);
+				}
+			}
+
+			source.seek(Std.int(notesArrayEnd), SeekBegin);
+			if (eventsArrayEnd != -1) {
+				trace('Copying from notes end to events end: ' + (eventsArrayEnd - notesArrayEnd));
+				copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd), "Copying events array");
+			} else {
+				trace('No events section found, copying rest');
+				while (true) {
+					var chunk = source.read(chunkSize);
+					if (chunk.length == 0) break;
+					target.write(chunk);
+				}
+				if (newEventsContent.length > 0) {
+					trace('Appending new events');
+					target.writeString("\n\nevents: [\n" + newEventsContent + "\n]");
+				}
+				source.close();
+				target.close();
+				trace('Replacing file');
+				replaceFile(tempPath, tempPath + ".tmp");
+				trace('appendTxtToTempFile: COMPLETE');
+				return;
+			}
+
+			if (newEventsContent.length > 0) {
+				trace('Inserting new events content');
+				source.seek(Std.int(eventsArrayEnd - 200), SeekBegin);
+				var sample = source.read(200).toString();
+				var hasExistingEvents = sample.indexOf('events:') != -1 && sample.indexOf('events: []') == -1;
+				trace('hasExistingEvents: ' + hasExistingEvents);
+				if (hasExistingEvents) {
+					target.writeString(",\n" + newEventsContent);
+				} else {
+					target.writeString("\n" + newEventsContent);
+				}
+			}
+
+			source.seek(Std.int(eventsArrayEnd), SeekBegin);
+			trace('Copying remaining content');
 			while (true) {
 				var chunk = source.read(chunkSize);
 				if (chunk.length == 0) break;
 				target.write(chunk);
 			}
-			if (newEventsContent.length > 0) {
-				target.writeString("\n\nevents: [\n" + newEventsContent + "\n]");
-			}
+
 			source.close();
 			target.close();
+			trace('Replacing file');
 			replaceFile(tempPath, tempPath + ".tmp");
-			return;
+			trace('appendTxtToTempFile: COMPLETE');
+		} catch(e:Dynamic) {
+			trace('ERROR in appendTxtToTempFile: ' + e);
+			trace('Stack: ' + haxe.CallStack.toString(haxe.CallStack.exceptionStack()));
 		}
-
-		if (newEventsContent.length > 0) {
-			source.seek(Std.int(eventsArrayEnd - 200), SeekBegin);
-			var sample = source.read(200).toString();
-			var hasExistingEvents = sample.indexOf('events:') != -1 && sample.indexOf('events: []') == -1;
-			if (hasExistingEvents) {
-				target.writeString(",\n" + newEventsContent);
-			} else {
-				target.writeString("\n" + newEventsContent);
-			}
-		}
-
-		source.seek(Std.int(eventsArrayEnd), SeekBegin);
-		while (true) {
-			var chunk = source.read(chunkSize);
-			if (chunk.length == 0) break;
-			target.write(chunk);
-		}
-
-		source.close();
-		target.close();
-		replaceFile(tempPath, tempPath + ".tmp");
 	}
 
 	private function findArrayEnd(inputFile:sys.io.FileInput, arrayName:String, fileSize:Int):Int
