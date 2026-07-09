@@ -572,7 +572,7 @@ class MergeChartState extends MusicBeatState
 					mergedContent += "\n    ]\n";
 
 					if (mainNotesEnd != -1) {
-						var afterNotes = mainContent.substring(mainNotesEnd + 1);
+						var afterNotes = mainContent.substring(mainNotesEnd + 1, mainContent.length);
 						var firstNewline = afterNotes.indexOf('\n');
 						if (firstNewline != -1) {
 							var footer = afterNotes.substring(firstNewline + 1);
