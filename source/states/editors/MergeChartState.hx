@@ -748,7 +748,7 @@ class MergeChartState extends MusicBeatState
 		var chunkSize = 8192;
 
 		source.seek(0, SeekBegin);
-		copyChunk(source, target, Std.int(notesArrayEnd));
+		copyChunk(source, target, Std.int(notesArrayEnd), "Copying notes array");
 
 		if (newNotesContent.length > 0) {
 			source.seek(Std.int(notesArrayEnd - 200), SeekBegin);
@@ -763,7 +763,7 @@ class MergeChartState extends MusicBeatState
 
 		source.seek(Std.int(notesArrayEnd), SeekBegin);
 		if (eventsArrayEnd != -1) {
-			copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd));
+			copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd), "Copying events array");
 		} else {
 			while (true) {
 				var chunk = source.read(chunkSize);
