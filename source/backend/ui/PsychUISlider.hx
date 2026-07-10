@@ -16,7 +16,7 @@ class PsychUISlider extends FlxSpriteGroup
 	public var min(default, set):Float = -999;
 	public var max(default, set):Float = 999;
 	public var decimals(default, set):Int = 2;
-	public var snapStep:Float = 1;
+	public var step:Float = 1;
 
 	public function new(x:Float = 0, y:Float = 0, callback:Float->Void, def:Float = 0, min:Float = -999, max:Float = 999, wid:Float = 200, mainColor:FlxColor = FlxColor.WHITE, handleColor:FlxColor = 0xFFAAAAAA)
 	{
@@ -62,6 +62,7 @@ class PsychUISlider extends FlxSpriteGroup
 	public var movingHandle:Bool = false;
 	public var forceNextUpdate:Bool = false;
 	public var broadcastSliderEvent:Bool = true;
+
 	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
@@ -75,39 +76,39 @@ class PsychUISlider extends FlxSpriteGroup
 				movingHandle = true;
 
 				var mouseX = FlxG.mouse.getPositionInCameraView(camera).x;
-				var barLeft = bar.x;
-				var barRight = bar.x + bar.width;
-
-				var clampedX = Math.max(barLeft, Math.min(barRight, mouseX));
-
-				var newValue = FlxMath.remapToRange(clampedX, barLeft, barRight, min, max);
-				newValue = FlxMath.roundDecimal(newValue, decimals);
-
 				var handleCenter = handle.x + handle.width/2;
-				if (mouseX < handleCenter - 5)
-				{
-					newValue = FlxMath.roundDecimal(value - snapStep, decimals);
-				}
-				else if (mouseX > handleCenter + 5)
-				{
-					newValue = FlxMath.roundDecimal(value + snapStep, decimals);
-				}
+				var handleWidth = handle.width;
 
-				newValue = Math.max(min, Math.min(max, newValue));
-				if (newValue != value)
+				if (FlxG.mouse.overlaps(bar, camera) && !FlxG.mouse.overlaps(handle, camera))
 				{
-					value = newValue;
-					valueText.text = Std.string(value);
-					_updateHandleX();
-					if (onChange != null)
+					var newValue = value;
+					if (mouseX < handleCenter - handleWidth/2)
 					{
-						onChange(value);
-						if (broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+						newValue = value - step;
+					}
+					else if (mouseX > handleCenter + handleWidth/2)
+					{
+						newValue = value + step;
+					}
+
+					newValue = FlxMath.roundDecimal(newValue, decimals);
+					newValue = Math.max(min, Math.min(max, newValue));
+
+					if (newValue != value)
+					{
+						value = newValue;
+						valueText.text = Std.string(value);
+						_updateHandleX();
+						if (onChange != null)
+						{
+							onChange(value);
+							if (broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+						}
 					}
 				}
 			}
 
-			if(movingHandle && (FlxG.mouse.justMoved || FlxG.mouse.pressed))
+			if(movingHandle && (FlxG.mouse.pressed || FlxG.mouse.justMoved))
 			{
 				var mouseX = FlxG.mouse.getPositionInCameraView(camera).x;
 				var barLeft = bar.x;
