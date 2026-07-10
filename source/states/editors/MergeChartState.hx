@@ -22,6 +22,9 @@ import sys.FileSystem;
 import sys.io.File;
 import sys.thread.Thread;
 
+import polymod.format.ParseRules.PlainTextParseFormat;
+import polymod.format.BaseParseFormat;
+
 class MergeChartState extends MusicBeatState
 {
 	private var chartBoxes:Array<ChartBox> = [];
@@ -728,151 +731,49 @@ class MergeChartState extends MusicBeatState
 		if (notesStart != -1 && notesEnd != -1) {
 			newNotesContent = nextTxtContent.substring(notesStart + 9, notesEnd);
 			trace('newNotesContent length: ' + newNotesContent.length);
-			trace('newNotesContent first 200 chars: ' + newNotesContent.substr(0, 200));
+			trace('newNotesContent first 100 chars: ' + newNotesContent.substr(0, 100));
 		}
 		if (eventsStart != -1 && eventsEnd != -1) {
 			newEventsContent = nextTxtContent.substring(eventsStart + 9, eventsEnd);
 			trace('newEventsContent length: ' + newEventsContent.length);
-			trace('newEventsContent first 200 chars: ' + newEventsContent.substr(0, 200));
+			trace('newEventsContent first 100 chars: ' + newEventsContent.substr(0, 100));
 		}
 
 		if (newNotesContent.length == 0 && newEventsContent.length == 0) {
-			trace('No new content');
+			trace('No new content to append');
 			return;
 		}
 
-		var source = sys.io.File.read(tempPath, false);
-		var fileSize = 0;
-		source.seek(0, SeekEnd);
-		fileSize = source.tell();
-		source.seek(0, SeekBegin);
+		trace('Reading existing file: ' + tempPath);
+		var baseContent = sys.io.File.getContent(tempPath);
+		trace('Base file size: ' + baseContent.length);
 
-		var notesArrayEnd = findArrayEnd(source, "notes");
-		var eventsArrayEnd = findArrayEnd(source, "events");
-		source.close();
-
-		if (notesArrayEnd == -1) {
-			trace('ERROR: Could not find notes array end');
-			return;
-		}
-
-		var file = sys.io.File.update(tempPath, false);
-		var chunkSize = 8192;
-
-		var insertNotesBytes = newNotesContent.length + 2;
-		var insertEventsBytes = newEventsContent.length + 2;
-		var totalInsertBytes = insertNotesBytes + insertEventsBytes;
-
-		var readPos = fileSize;
-		var writePos = fileSize + totalInsertBytes;
-		var buffer = haxe.io.Bytes.alloc(chunkSize);
-
-		if (eventsArrayEnd != -1) {
-			var pos = fileSize;
-			while (pos > eventsArrayEnd) {
-				var bytesToRead = Math.min(chunkSize, pos - eventsArrayEnd);
-				var readStart = pos - bytesToRead;
-				file.seek(readStart, SeekBegin);
-				var chunk = file.read(bytesToRead);
-				file.seek(readStart + totalInsertBytes, SeekBegin);
-				file.write(chunk);
-				pos = readStart;
-			}
-
-			file.seek(eventsArrayEnd, SeekBegin);
-			if (newEventsContent.length > 0) {
-				file.writeString(",\n" + newEventsContent);
-			}
-		} else {
-			file.seek(fileSize, SeekBegin);
-			if (newEventsContent.length > 0) {
-				file.writeString("\n\nevents: [\n" + newEventsContent + "\n]");
-			}
-			totalInsertBytes = insertNotesBytes;
-		}
-
-		var shiftAmount = insertNotesBytes;
-		var pos = fileSize + insertEventsBytes;
-		while (pos > notesArrayEnd) {
-			var bytesToRead = Math.min(chunkSize, pos - notesArrayEnd);
-			var readStart = pos - bytesToRead;
-			file.seek(readStart, SeekBegin);
-			var chunk = file.read(bytesToRead);
-			file.seek(readStart + shiftAmount, SeekBegin);
-			file.write(chunk);
-			pos = readStart;
-		}
-
-		file.seek(notesArrayEnd, SeekBegin);
 		if (newNotesContent.length > 0) {
-			file.writeString(",\n" + newNotesContent);
+			trace('Merging notes with polymod...');
+			try {
+				var result = PlainTextParseFormat.merge(baseContent, newNotesContent, "notes");
+				trace('Polymod merge notes result length: ' + result.length);
+				baseContent = result;
+			} catch(e:Dynamic) {
+				trace('Polymod merge for notes failed: ' + e);
+			}
 		}
 
-		file.close();
+		if (newEventsContent.length > 0) {
+			trace('Appending events with polymod...');
+			try {
+				var result = PlainTextParseFormat.append(baseContent, newEventsContent, "events");
+				trace('Polymod append events result length: ' + result.length);
+				baseContent = result;
+			} catch(e:Dynamic) {
+				trace('Polymod append for events failed: ' + e);
+			}
+		}
+
+		trace('Writing to file: ' + tempPath);
+		sys.io.File.saveContent(tempPath, baseContent);
+
 		trace('=== appendTxtToTempFile COMPLETE ===');
-	}
-
-	private function findArrayEnd(source:sys.io.FileInput, arrayName:String):Int
-	{
-		var chunkSize = 8192;
-		var buffer = "";
-		var pos = 0;
-		var foundStart = false;
-		var bracketCount = 0;
-		var inString = false;
-		var escapeNext = false;
-		var arrayEnd = -1;
-
-		source.seek(0, SeekBegin);
-
-		while (true) {
-			var chunk = source.read(chunkSize).toString();
-			if (chunk.length == 0) break;
-			buffer += chunk;
-			pos += chunk.length;
-
-			if (!foundStart) {
-				var startPos = buffer.indexOf('"' + arrayName + '"');
-				if (startPos != -1) {
-					for (i in startPos...buffer.length) {
-						var char = buffer.charAt(i);
-						if (escapeNext) { escapeNext = false; continue; }
-						if (char == '\\') { escapeNext = true; continue; }
-						if (char == '"') { inString = !inString; continue; }
-						if (!inString && char == '[') {
-							foundStart = true;
-							bracketCount = 1;
-							break;
-						}
-					}
-				}
-			}
-
-			if (foundStart) {
-				for (i in 0...buffer.length) {
-					var char = buffer.charAt(i);
-					if (escapeNext) { escapeNext = false; continue; }
-					if (char == '\\') { escapeNext = true; continue; }
-					if (char == '"') { inString = !inString; continue; }
-					if (!inString) {
-						if (char == '[') bracketCount++;
-						else if (char == ']') {
-							bracketCount--;
-							if (bracketCount == 0) {
-								arrayEnd = (pos - buffer.length) + i;
-								return arrayEnd;
-							}
-						}
-					}
-				}
-			}
-
-			if (buffer.length > chunkSize * 10) {
-				buffer = buffer.substr(-chunkSize * 5);
-			}
-		}
-
-		return -1;
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
