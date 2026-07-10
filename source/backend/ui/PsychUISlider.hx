@@ -16,6 +16,8 @@ class PsychUISlider extends FlxSpriteGroup
 	public var min(default, set):Float = -999;
 	public var max(default, set):Float = 999;
 	public var decimals(default, set):Int = 2;
+	public var snapStep:Float = 1;
+
 	public function new(x:Float = 0, y:Float = 0, callback:Float->Void, def:Float = 0, min:Float = -999, max:Float = 999, wid:Float = 200, mainColor:FlxColor = FlxColor.WHITE, handleColor:FlxColor = 0xFFAAAAAA)
 	{
 		super(x, y);
@@ -53,6 +55,7 @@ class PsychUISlider extends FlxSpriteGroup
 		this.max = max;
 		this.value = def;
 		_updatePositions();
+		_updateHandleX();
 		forceNextUpdate = true;
 	}
 
@@ -66,24 +69,74 @@ class PsychUISlider extends FlxSpriteGroup
 		if(FlxG.mouse.justMoved || FlxG.mouse.justPressed || forceNextUpdate)
 		{
 			forceNextUpdate = false;
+
 			if(FlxG.mouse.justPressed && (FlxG.mouse.overlaps(bar, camera) || FlxG.mouse.overlaps(handle, camera)))
+			{
 				movingHandle = true;
 
-			if(movingHandle)
-			{
-				var point:FlxPoint = getScreenPosition(null, camera);
-				var lastValue:Float = FlxMath.roundDecimal(value, decimals);
-				value = Math.max(min, Math.min(max, FlxMath.remapToRange(FlxG.mouse.getPositionInCameraView(camera).x, bar.x, bar.x + bar.width, min, max)));
-				if(this.onChange != null && lastValue != value)
+				var mouseX = FlxG.mouse.getPositionInCameraView(camera).x;
+				var barLeft = bar.x;
+				var barRight = bar.x + bar.width;
+
+				var clampedX = Math.max(barLeft, Math.min(barRight, mouseX));
+
+				var newValue = FlxMath.remapToRange(clampedX, barLeft, barRight, min, max);
+				newValue = FlxMath.roundDecimal(newValue, decimals);
+
+				var handleCenter = handle.x + handle.width/2;
+				if (mouseX < handleCenter - 5)
 				{
-					this.onChange(FlxMath.roundDecimal(value, decimals));
-					if(broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+					newValue = FlxMath.roundDecimal(value - snapStep, decimals);
+				}
+				else if (mouseX > handleCenter + 5)
+				{
+					newValue = FlxMath.roundDecimal(value + snapStep, decimals);
+				}
+
+				newValue = Math.max(min, Math.min(max, newValue));
+				if (newValue != value)
+				{
+					value = newValue;
+					valueText.text = Std.string(value);
+					_updateHandleX();
+					if (onChange != null)
+					{
+						onChange(value);
+						if (broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+					}
+				}
+			}
+
+			if(movingHandle && (FlxG.mouse.justMoved || FlxG.mouse.pressed))
+			{
+				var mouseX = FlxG.mouse.getPositionInCameraView(camera).x;
+				var barLeft = bar.x;
+				var barRight = bar.x + bar.width;
+
+				var clampedX = Math.max(barLeft, Math.min(barRight, mouseX));
+
+				var newValue = FlxMath.remapToRange(clampedX, barLeft, barRight, min, max);
+				newValue = FlxMath.roundDecimal(newValue, decimals);
+				newValue = Math.max(min, Math.min(max, newValue));
+
+				if (newValue != value)
+				{
+					value = newValue;
+					valueText.text = Std.string(value);
+					_updateHandleX();
+					if (onChange != null)
+					{
+						onChange(value);
+						if (broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+					}
 				}
 			}
 		}
 
 		if(FlxG.mouse.released)
+		{
 			movingHandle = false;
+		}
 	}
 
 	function _updatePositions()
@@ -102,7 +155,10 @@ class PsychUISlider extends FlxSpriteGroup
 	}
 
 	function _updateHandleX()
-		handle.x = bar.x - handle.width/2 + FlxMath.remapToRange(FlxMath.roundDecimal(value, decimals), min, max, 0, bar.width);
+	{
+		var percent = (value - min) / (max - min);
+		handle.x = bar.x - handle.width/2 + (percent * bar.width);
+	}
 
 	function set_decimals(v:Int)
 	{
@@ -110,7 +166,7 @@ class PsychUISlider extends FlxSpriteGroup
 		minText.text = Std.string(FlxMath.roundDecimal(min, decimals));
 		maxText.text = Std.string(FlxMath.roundDecimal(max, decimals));
 		valueText.text = Std.string(FlxMath.roundDecimal(value, decimals));
-		if(this.onChange != null) this.onChange(FlxMath.roundDecimal(value, decimals));
+		if(onChange != null) onChange(FlxMath.roundDecimal(value, decimals));
 		_updatePositions();
 		return decimals;
 	}

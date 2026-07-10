@@ -1796,10 +1796,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					if(vortexPlaying)
 					{
 						var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-						if(strumNote != null)
-						{
-							strumNote.playAnim('confirm', true);
-							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
+						try {
+							if(strumNote != null)
+							{
+								strumNote.playAnim('confirm', true);
+								strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
+							}
+						}
+						catch (e:Dynamic) {
+							trace('Error while playing animation: ' + e);
 						}
 					}
 				}
