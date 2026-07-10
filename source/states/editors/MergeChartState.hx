@@ -743,14 +743,13 @@ class MergeChartState extends MusicBeatState
 
 		trace('Opening file: ' + tempPath);
 		var file = sys.io.File.update(tempPath, false);
-		var chunkSize = 8192;
-		var fileSize = file.seek(0, SeekEnd);
-		file.seek(0, SeekBegin);
-		trace('File size: ' + fileSize + ' bytes');
 
 		trace('Finding notes array end...');
-		var notesArrayEnd = findArrayEndInPlace(file, "notes", fileSize);
+		var notesArrayEnd = findArrayEndInPlace(file, "notes");
 		trace('notesArrayEnd: ' + notesArrayEnd);
+		trace('Finding events array end...');
+		var eventsArrayEnd = findArrayEndInPlace(file, "events");
+		trace('eventsArrayEnd: ' + eventsArrayEnd);
 
 		if (notesArrayEnd == -1) {
 			file.close();
@@ -760,61 +759,40 @@ class MergeChartState extends MusicBeatState
 
 		if (newNotesContent.length > 0) {
 			trace('Inserting notes content at position ' + notesArrayEnd);
-
-			file.seek(notesArrayEnd - 100, SeekBegin);
-			var sample = file.read(100).toString();
-			trace('Sample before position: ' + sample);
-			var hasExistingNotes = sample.indexOf('sectionNotes: [') != -1;
-			trace('hasExistingNotes: ' + hasExistingNotes);
-
 			file.seek(notesArrayEnd, SeekBegin);
 			var rest = file.readAll().toString();
-			trace('Rest length after insertion point: ' + rest.length);
-			trace('Rest first 200 chars: ' + rest.substr(0, 200));
 
 			file.seek(notesArrayEnd, SeekBegin);
 
-			if (hasExistingNotes) {
-				file.writeString(",\n" + newNotesContent);
-				trace('Inserted with comma: ,\n' + newNotesContent.substr(0, 100));
+			var prefix = "";
+			if (rest.startsWith("]")) {
+				prefix = ",\n" + newNotesContent;
 			} else {
-				file.writeString("\n" + newNotesContent);
-				trace('Inserted without comma: \n' + newNotesContent.substr(0, 100));
+				prefix = "\n" + newNotesContent;
 			}
+
+			file.writeString(prefix);
 			file.writeString(rest);
 			trace('Notes insertion complete');
 		}
 
-		fileSize = file.seek(0, SeekEnd);
-		trace('File size after notes insertion: ' + fileSize);
-
-		trace('Finding events array end...');
 		file.seek(0, SeekBegin);
-		var eventsArrayEnd = findArrayEndInPlace(file, "events", fileSize);
-		trace('eventsArrayEnd: ' + eventsArrayEnd);
+		eventsArrayEnd = findArrayEndInPlace(file, "events");
 
 		if (eventsArrayEnd != -1 && newEventsContent.length > 0) {
 			trace('Inserting events content at position ' + eventsArrayEnd);
-
-			file.seek(eventsArrayEnd - 100, SeekBegin);
-			var sample = file.read(100).toString();
-			trace('Sample before position: ' + sample);
-			var hasExistingEvents = sample.indexOf('events: [') != -1;
-			trace('hasExistingEvents: ' + hasExistingEvents);
-
 			file.seek(eventsArrayEnd, SeekBegin);
 			var rest = file.readAll().toString();
-			trace('Rest length after insertion point: ' + rest.length);
-
 			file.seek(eventsArrayEnd, SeekBegin);
 
-			if (hasExistingEvents) {
-				file.writeString(",\n" + newEventsContent);
-				trace('Inserted events with comma');
+			var prefix = "";
+			if (rest.startsWith("]")) {
+				prefix = ",\n" + newEventsContent;
 			} else {
-				file.writeString("\n" + newEventsContent);
-				trace('Inserted events without comma');
+				prefix = "\n" + newEventsContent;
 			}
+
+			file.writeString(prefix);
 			file.writeString(rest);
 			trace('Events insertion complete');
 		}
@@ -823,9 +801,8 @@ class MergeChartState extends MusicBeatState
 		trace('=== appendTxtToTempFile COMPLETE ===');
 	}
 
-	private function findArrayEndInPlace(file:sys.io.FileInput, arrayName:String, fileSize:Int):Int
+	private function findArrayEndInPlace(file:sys.io.FileOutput, arrayName:String):Int
 	{
-		trace('findArrayEndInPlace: Looking for "' + arrayName + '"');
 		var chunkSize = 8192;
 		var buffer = "";
 		var pos = 0;
@@ -837,15 +814,15 @@ class MergeChartState extends MusicBeatState
 
 		file.seek(0, SeekBegin);
 
-		while (pos < fileSize) {
+		while (true) {
 			var chunk = file.read(chunkSize).toString();
+			if (chunk.length == 0) break;
 			buffer += chunk;
 			pos += chunk.length;
 
 			if (!foundStart) {
 				var startPos = buffer.indexOf('"' + arrayName + '"');
 				if (startPos != -1) {
-					trace('Found "' + arrayName + '" at position ' + (pos - buffer.length + startPos));
 					for (i in startPos...buffer.length) {
 						var char = buffer.charAt(i);
 						if (escapeNext) {
@@ -863,7 +840,6 @@ class MergeChartState extends MusicBeatState
 						if (!inString && char == '[') {
 							foundStart = true;
 							bracketCount = 1;
-							trace('Found opening bracket for ' + arrayName);
 							break;
 						}
 					}
@@ -871,11 +847,7 @@ class MergeChartState extends MusicBeatState
 			}
 
 			if (foundStart) {
-				var startIdx = 0;
-				if (buffer.length > chunkSize * 2) {
-					startIdx = buffer.length - chunkSize * 2;
-				}
-				for (i in startIdx...buffer.length) {
+				for (i in 0...buffer.length) {
 					var char = buffer.charAt(i);
 					if (escapeNext) {
 						escapeNext = false;
@@ -895,14 +867,11 @@ class MergeChartState extends MusicBeatState
 							bracketCount--;
 							if (bracketCount == 0) {
 								arrayEnd = (pos - buffer.length) + i;
-								trace('Found closing bracket for ' + arrayName + ' at position ' + arrayEnd);
-								trace('Bracket count: ' + bracketCount);
 								return arrayEnd;
 							}
 						}
 					}
 				}
-				trace('Still searching, current bracket count: ' + bracketCount);
 			}
 
 			if (buffer.length > chunkSize * 10) {
@@ -910,7 +879,6 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		trace('ERROR: Could not find closing bracket for ' + arrayName);
 		return -1;
 	}
 
