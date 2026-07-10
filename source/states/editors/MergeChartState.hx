@@ -22,8 +22,10 @@ import sys.FileSystem;
 import sys.io.File;
 import sys.thread.Thread;
 
-import polymod.format.ParseRules.PlainTextParseFormat;
-import polymod.format.BaseParseFormat;
+import openfl.filesystem.FileStream;
+import openfl.filesystem.File;
+import openfl.filesystem.FileMode;
+import openfl.events.Event;
 
 class MergeChartState extends MusicBeatState
 {
@@ -740,42 +742,105 @@ class MergeChartState extends MusicBeatState
 		}
 
 		if (newNotesContent.length == 0 && newEventsContent.length == 0) {
-			trace('No new content to append');
+			trace('No new content');
 			return;
 		}
 
-		trace('Reading existing file: ' + tempPath);
-		var baseContent = sys.io.File.getContent(tempPath);
-		trace('Base file size: ' + baseContent.length);
+		var file = new FileStream();
+		file.addEventListener(Event.COMPLETE, function(e) {
+			trace('File operation complete');
+		});
+		file.openAsync(File.applicationDirectory.resolvePath(tempPath), FileMode.UPDATE);
 
-		var format = new PlainTextParseFormat();
+		var notesArrayEnd = findArrayEndWithFileStream(file, "notes");
+		if (notesArrayEnd == -1) {
+			trace('ERROR: Could not find notes array end');
+			file.close();
+			return;
+		}
 
 		if (newNotesContent.length > 0) {
-			trace('Merging notes with polymod...');
-			try {
-				var result = format.merge(baseContent, newNotesContent, "notes");
-				trace('Polymod merge notes result length: ' + result.length);
-				baseContent = result;
-			} catch(e:Dynamic) {
-				trace('Polymod merge for notes failed: ' + e);
-			}
+			file.position = notesArrayEnd;
+			var rest = file.readUTFBytes(file.bytesAvailable);
+			file.position = notesArrayEnd;
+			file.writeUTFBytes(",\n" + newNotesContent);
+			file.writeUTFBytes(rest);
 		}
 
-		if (newEventsContent.length > 0) {
-			trace('Appending events with polymod...');
-			try {
-				var result = format.append(baseContent, newEventsContent, "events");
-				trace('Polymod append events result length: ' + result.length);
-				baseContent = result;
-			} catch(e:Dynamic) {
-				trace('Polymod append for events failed: ' + e);
-			}
+		var eventsArrayEnd = findArrayEndWithFileStream(file, "events");
+		if (eventsArrayEnd != -1 && newEventsContent.length > 0) {
+			file.position = eventsArrayEnd;
+			var rest = file.readUTFBytes(file.bytesAvailable);
+			file.position = eventsArrayEnd;
+			file.writeUTFBytes(",\n" + newEventsContent);
+			file.writeUTFBytes(rest);
 		}
 
-		trace('Writing to file: ' + tempPath);
-		sys.io.File.saveContent(tempPath, baseContent);
-
+		file.close();
 		trace('=== appendTxtToTempFile COMPLETE ===');
+	}
+
+	private function findArrayEndWithFileStream(file:FileStream, arrayName:String):Int
+	{
+		var chunkSize = 8192;
+		var buffer = "";
+		var pos = 0;
+		var foundStart = false;
+		var bracketCount = 0;
+		var inString = false;
+		var escapeNext = false;
+		var arrayEnd = -1;
+
+		file.position = 0;
+		var fileSize = file.bytesAvailable;
+
+		while (pos < fileSize) {
+			var chunk = file.readUTFBytes(Math.min(chunkSize, fileSize - pos));
+			buffer += chunk;
+			pos += chunk.length;
+
+			if (!foundStart) {
+				var startPos = buffer.indexOf('"' + arrayName + '"');
+				if (startPos != -1) {
+					for (i in startPos...buffer.length) {
+						var char = buffer.charAt(i);
+						if (escapeNext) { escapeNext = false; continue; }
+						if (char == '\\') { escapeNext = true; continue; }
+						if (char == '"') { inString = !inString; continue; }
+						if (!inString && char == '[') {
+							foundStart = true;
+							bracketCount = 1;
+							break;
+						}
+					}
+				}
+			}
+
+			if (foundStart) {
+				for (i in 0...buffer.length) {
+					var char = buffer.charAt(i);
+					if (escapeNext) { escapeNext = false; continue; }
+					if (char == '\\') { escapeNext = true; continue; }
+					if (char == '"') { inString = !inString; continue; }
+					if (!inString) {
+						if (char == '[') bracketCount++;
+						else if (char == ']') {
+							bracketCount--;
+							if (bracketCount == 0) {
+								arrayEnd = (pos - buffer.length) + i;
+								return arrayEnd;
+							}
+						}
+					}
+				}
+			}
+
+			if (buffer.length > chunkSize * 10) {
+				buffer = buffer.substr(-chunkSize * 5);
+			}
+		}
+
+		return -1;
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
