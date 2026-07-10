@@ -160,12 +160,17 @@ class StrumNote extends FlxSprite
 	}
 
 	public function playAnim(anim:String, ?force:Bool = false) {
-		animation.play(anim, force);
-		if(animation.curAnim != null)
-		{
-			centerOffsets();
-			centerOrigin();
+		try {
+			animation.play(anim, force);
+			if(animation.curAnim != null)
+			{
+				centerOffsets();
+				centerOrigin();
+			}
+			if(useRGBShader) rgbShader.enabled = (animation.curAnim != null && animation.curAnim.name != 'static');
 		}
-		if(useRGBShader) rgbShader.enabled = (animation.curAnim != null && animation.curAnim.name != 'static');
+		catch(e:Dynamic) {
+			trace("ERROR: " + e);
+		}
 	}
 }
