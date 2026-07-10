@@ -300,7 +300,7 @@ class PlayState extends MusicBeatState
 	public var cameraSpeed:Float = 1;
 
 	public var songScore:Int = 0;
-	public var botSongScore:Int = songScore;
+	public var botSongScore:Int = 0;
 	public var songHits:Int = 0;
 	public var songMisses:Int = 0;
 	public var scoreTxt:FlxText;
@@ -1475,6 +1475,7 @@ class PlayState extends MusicBeatState
 	var totalNotesStr:String;
 	public dynamic function updateScoreText()
 	{
+		botSongScore = songScore;
 		var str:String = Language.getPhrase('rating_$ratingName', ratingName);
 		if(totalPlayed != 0)
 		{
