@@ -782,9 +782,9 @@ class MergeChartState extends MusicBeatState
 
 	private function findArrayEndWithFileStream(file:FileStream, arrayName:String):Int
 	{
-		var chunkSize = 8192;
+		var chunkSize:Int = 8192;
 		var buffer = "";
-		var pos = 0;
+		var pos:Int = 0;
 		var foundStart = false;
 		var bracketCount = 0;
 		var inString = false;
@@ -792,10 +792,11 @@ class MergeChartState extends MusicBeatState
 		var arrayEnd = -1;
 
 		file.position = 0;
-		var fileSize = file.bytesAvailable;
+		var fileSize:Int = file.bytesAvailable;
 
 		while (pos < fileSize) {
-			var chunk = file.readUTFBytes(Math.min(chunkSize, fileSize - pos));
+			var bytesToRead:Int = Math.min(chunkSize, fileSize - pos);
+			var chunk = file.readUTFBytes(bytesToRead);
 			buffer += chunk;
 			pos += chunk.length;
 
