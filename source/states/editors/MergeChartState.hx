@@ -748,10 +748,12 @@ class MergeChartState extends MusicBeatState
 		var baseContent = sys.io.File.getContent(tempPath);
 		trace('Base file size: ' + baseContent.length);
 
+		var format = new PlainTextParseFormat();
+
 		if (newNotesContent.length > 0) {
 			trace('Merging notes with polymod...');
 			try {
-				var result = PlainTextParseFormat.merge(baseContent, newNotesContent, "notes");
+				var result = format.merge(baseContent, newNotesContent, "notes");
 				trace('Polymod merge notes result length: ' + result.length);
 				baseContent = result;
 			} catch(e:Dynamic) {
@@ -762,7 +764,7 @@ class MergeChartState extends MusicBeatState
 		if (newEventsContent.length > 0) {
 			trace('Appending events with polymod...');
 			try {
-				var result = PlainTextParseFormat.append(baseContent, newEventsContent, "events");
+				var result = format.append(baseContent, newEventsContent, "events");
 				trace('Polymod append events result length: ' + result.length);
 				baseContent = result;
 			} catch(e:Dynamic) {
