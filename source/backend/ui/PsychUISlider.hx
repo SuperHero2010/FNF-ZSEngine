@@ -1,133 +1,152 @@
 package backend.ui;
 
-import flixel.addons.ui.FlxSlider;
-import flixel.FlxSprite;
-import flixel.text.FlxText;
-import flixel.util.FlxColor;
-
-class PsychUISlider extends FlxSlider
+class PsychUISlider extends FlxSpriteGroup
 {
+	public static final CHANGE_EVENT = "slider_change";
+	public var bar:FlxSprite;
+	public var minText:FlxText;
+	public var maxText:FlxText;
+	public var valueText:FlxText;
+	public var handle:FlxSprite;
 	public var label(get, set):String;
 	public var labelText:FlxText;
 
+	public var value(default, set):Float = 0;
+	public var onChange:Float->Void;
+	public var min(default, set):Float = -999;
+	public var max(default, set):Float = 999;
+	public var decimals(default, set):Int = 2;
 	public function new(x:Float = 0, y:Float = 0, callback:Float->Void, def:Float = 0, min:Float = -999, max:Float = 999, wid:Float = 200, mainColor:FlxColor = FlxColor.WHITE, handleColor:FlxColor = 0xFFAAAAAA)
 	{
-		super(null, "", x, y, min, max, Std.int(wid), 15, 3, mainColor, handleColor);
+		super(x, y);
+		this.onChange = callback;
 
-		this.callback = callback;
+		bar = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+		bar.scale.set(wid, 5);
+		bar.updateHitbox();
+		bar.color = mainColor;
+		add(bar);
 
-		this.value = def;
-		this.minValue = min;
-		this.maxValue = max;
-
-		body.color = mainColor;
-		handle.color = handleColor;
-
-		if (nameLabel != null) {
-			nameLabel.visible = false;
-		}
-
-		labelText = new FlxText(x, y, wid, "");
+		minText = new FlxText(0, 0, 80, '', 8);
+		minText.alignment = CENTER;
+		minText.color = mainColor;
+		add(minText);
+		maxText = new FlxText(0, 0, 80, '', 8);
+		maxText.alignment = CENTER;
+		maxText.color = mainColor;
+		add(maxText);
+		valueText = new FlxText(0, 0, 80, '', 8);
+		valueText.alignment = CENTER;
+		valueText.color = handleColor;
+		add(valueText);
+		labelText = new FlxText(0, 0, wid, '', 8);
 		labelText.alignment = CENTER;
-		labelText.color = mainColor;
-		labelText.scrollFactor.set();
 		add(labelText);
 
-		if (minLabel != null) {
-			minLabel.text = Std.string(min);
-		}
-		if (maxLabel != null) {
-			maxLabel.text = Std.string(max);
-		}
+		handle = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
+		handle.scale.set(5, 15);
+		handle.updateHitbox();
+		handle.color = handleColor;
+		add(handle);
 
-		updatePositions();
+		this.min = min;
+		this.max = max;
+		this.value = def;
+		_updatePositions();
+		forceNextUpdate = true;
 	}
 
-	override function update(elapsed:Float):Void
+	public var movingHandle:Bool = false;
+	public var forceNextUpdate:Bool = false;
+	public var broadcastSliderEvent:Bool = true;
+	override function update(elapsed:Float)
 	{
 		super.update(elapsed);
 
-		if (valueLabel != null) {
-			valueLabel.color = handle.color;
-		}
-	}
+		if(FlxG.mouse.justMoved || FlxG.mouse.justPressed || forceNextUpdate)
+		{
+			forceNextUpdate = false;
+			if(FlxG.mouse.justPressed && (FlxG.mouse.overlaps(bar, camera) || FlxG.mouse.overlaps(handle, camera)))
+				movingHandle = true;
 
-	function updatePositions():Void
-	{
-		if (labelText != null) {
-			labelText.x = x;
-			labelText.y = y;
-
-			if (body != null) {
-				body.y = labelText.y + labelText.height + 4;
+			if(movingHandle)
+			{
+				var point:FlxPoint = getScreenPosition(null, camera);
+				var lastValue:Float = FlxMath.roundDecimal(value, decimals);
+				value = Math.max(min, Math.min(max, FlxMath.remapToRange(FlxG.mouse.getPositionInCameraView(camera).x, bar.x, bar.x + bar.width, min, max)));
+				if(this.onChange != null && lastValue != value)
+				{
+					this.onChange(FlxMath.roundDecimal(value, decimals));
+					if(broadcastSliderEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
+				}
 			}
-			if (handle != null) {
-				handle.y = body.y + body.height/2 - handle.height/2;
-			}
 		}
+
+		if(FlxG.mouse.released)
+			movingHandle = false;
 	}
 
-	function set_label(v:String):String
+	function _updatePositions()
 	{
-		if (labelText != null) {
-			labelText.text = v;
-			updatePositions();
-		}
-		return v;
+		minText.x = bar.x - minText.width/2;
+		maxText.x = bar.x + bar.width - maxText.width/2;
+		valueText.x = bar.x + bar.width/2 - valueText.width/2;
+
+		labelText.x = bar.x + bar.width/2 - labelText.width/2;
+		if(label.length > 0) bar.y = labelText.y + 24;
+
+		minText.y = maxText.y = valueText.y = bar.y + 12;
+
+		_updateHandleX();
+		handle.y = bar.y + bar.height/2 - handle.height/2;
 	}
 
-	function get_label():String
-	{
-		if (labelText != null) {
-			return labelText.text;
-		}
-		return "";
-	}
+	function _updateHandleX()
+		handle.x = bar.x - handle.width/2 + FlxMath.remapToRange(FlxMath.roundDecimal(value, decimals), min, max, 0, bar.width);
 
-	override function set_x(value:Float):Float
-	{
-		super.set_x(value);
-		updatePositions();
-		return x = value;
-	}
-
-	override function set_y(value:Float):Float
-	{
-		super.set_y(value);
-		updatePositions();
-		return y = value;
-	}
-
-	override function set_min(v:Float):Float
-	{
-		minValue = v;
-		if (minLabel != null) {
-			minLabel.text = Std.string(v);
-		}
-		return minValue = v;
-	}
-
-	override function set_max(v:Float):Float
-	{
-		maxValue = v;
-		if (maxLabel != null) {
-			maxLabel.text = Std.string(v);
-		}
-		return maxValue = v;
-	}
-
-	override function set_decimals(v:Int):Int
+	function set_decimals(v:Int)
 	{
 		decimals = v;
-		if (minLabel != null) {
-			minLabel.text = Std.string(FlxMath.roundDecimal(minValue, decimals));
-		}
-		if (maxLabel != null) {
-			maxLabel.text = Std.string(FlxMath.roundDecimal(maxValue, decimals));
-		}
-		if (valueLabel != null) {
-			valueLabel.text = Std.string(FlxMath.roundDecimal(value, decimals));
-		}
-		return decimals = v;
+		minText.text = Std.string(FlxMath.roundDecimal(min, decimals));
+		maxText.text = Std.string(FlxMath.roundDecimal(max, decimals));
+		valueText.text = Std.string(FlxMath.roundDecimal(value, decimals));
+		if(this.onChange != null) this.onChange(FlxMath.roundDecimal(value, decimals));
+		_updatePositions();
+		return decimals;
 	}
+
+	function set_min(v:Float)
+	{
+		if(v > max) max = v;
+		min = v;
+		minText.text = Std.string(FlxMath.roundDecimal(min, decimals));
+		_updateHandleX();
+		return min;
+	}
+
+	function set_max(v:Float)
+	{
+		if(v < min) min = v;
+		max = v;
+		maxText.text = Std.string(FlxMath.roundDecimal(max, decimals));
+		_updateHandleX();
+		return max;
+	}
+
+	function set_value(v:Float)
+	{
+		value = Math.max(min, Math.min(max, v));
+		valueText.text = Std.string(FlxMath.roundDecimal(value, decimals));
+		_updateHandleX();
+		return value;
+	}
+
+	function set_label(v:String)
+	{
+		labelText.text = v;
+		_updatePositions();
+		return labelText.text;
+	}
+	function get_label()
+		return labelText.text;
 }
