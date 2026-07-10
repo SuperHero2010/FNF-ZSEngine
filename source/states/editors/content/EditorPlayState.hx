@@ -2,6 +2,7 @@ package states.editors.content;
 
 import backend.Song;
 import backend.Rating;
+import backend.MemoryUtil;
 
 import objects.Note;
 import objects.NoteSplash;
@@ -187,7 +188,7 @@ class EditorPlayState extends MusicBeatSubstate
 
 		if (unspawnNotes[0] != null)
 		{
-			var time:Float = spawnTime * playbackRate;
+			var time:Float = spawnTime;
 			if(songSpeed < 1) time /= songSpeed;
 			if(unspawnNotes[0].multSpeed < 1) time /= unspawnNotes[0].multSpeed;
 
@@ -212,7 +213,7 @@ class EditorPlayState extends MusicBeatSubstate
 				if(!daNote.mustPress) strumGroup = opponentStrums;
 
 				var strum:StrumNote = strumGroup.members[daNote.noteData];
-				daNote.followStrumNote(strum, fakeCrochet, songSpeed / playbackRate);
+				daNote.followStrumNote(strum, fakeCrochet, songSpeed);
 
 				if(!daNote.mustPress && daNote.wasGoodHit && !daNote.hitByOpponent && !daNote.ignoreNote)
 					opponentNoteHit(daNote);
@@ -293,9 +294,53 @@ class EditorPlayState extends MusicBeatSubstate
 		songLength = inst.length;
 	}
 
+	// Faster note parsing variables from H-Slice
+	private var isDesktop:Bool = true;
+	private var loadNoteTime:Float = 0;
+	private var syncTime:Float = 0;
+	private var progressUpdateTime:Float = 0.05;
+	private var sectionNoteCnt:Int = 0;
+	private var parsedNotes:Int = 0;
+	private var sustainTotalCnt:Int = 0;
+	private var sustainNoteCnt:Int = 0;
+	private var loadTime:Float = 0;
+	private var shownProgress:Bool = false;
+
+	function showProgress(force:Bool = false) {
+		if (Main.isConsoleAvailable)
+		{
+			if ((Date.now().getTime() - syncTime > progressUpdateTime) || force)
+			{
+				Sys.stdout().writeString('\x1b[0GLoading ${parsedNotes + sectionNoteCnt} notes');
+				syncTime = Date.now().getTime();
+			}
+		} else if (isDesktop && force) {
+			Sys.println('Loading ${parsedNotes + sectionNoteCnt} notes');
+		}
+	}
+
 	// Borrowed from PlayState
 	function generateSong()
 	{
+		loadTime = Date.now().getTime();
+		loadNoteTime = Date.now().getTime();
+		syncTime = Date.now().getTime();
+
+		// JS Engine optimization: Disable GC for large charts
+		var totalNotes:Int = 0;
+		for (section in SONG.notes)
+			if (section.sectionNotes != null)
+				totalNotes += section.sectionNotes.length;
+
+		#if sys
+		// H-Slice approach: Use MemoryUtil for GC control
+		if (ClientPrefs.data.disableGC) {
+			MemoryUtil.enable();
+			MemoryUtil.collect(true);
+			MemoryUtil.disable();
+		}
+		#end
+
 		// FlxG.log.add(ChartParser.parse());
 		songSpeed = PlayState.SONG.speed;
 		var songSpeedType:String = ClientPrefs.getGameplaySetting('scrolltype');
@@ -306,7 +351,7 @@ class EditorPlayState extends MusicBeatSubstate
 			case "constant":
 				songSpeed = ClientPrefs.getGameplaySetting('scrollspeed');
 		}
-		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed * playbackRate);
+		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed);
 
 		var songData = PlayState.SONG;
 		Conductor.bpm = songData.bpm;
@@ -349,25 +394,6 @@ class EditorPlayState extends MusicBeatSubstate
 					daBpm = PlayState.SONG.notes[noteSec].bpm;
 			}
 
-			var idx: Int = _noteList.indexOf(note);
-			if (idx != 0) {
-				// CLEAR ANY POSSIBLE GHOST NOTES
-				for (evilNote in unspawnNotes) {
-					var matches: Bool = note.noteData == evilNote.noteData && note.mustPress == evilNote.mustPress && note.noteType == evilNote.noteType;
-					if (matches && Math.abs(note.strumTime - evilNote.strumTime) < flixel.math.FlxMath.EPSILON) {
-						if (evilNote.tail.length > 0)
-							for (tail in evilNote.tail)
-							{
-								tail.destroy();
-								unspawnNotes.remove(tail);
-							}
-						evilNote.destroy();
-						unspawnNotes.remove(evilNote);
-						//continue;
-					}
-				}
-			}
-
 			var swagNote:Note = new Note(note.strumTime, note.noteData, oldNote, false, this);
 			swagNote.mustPress = note.mustPress;
 			swagNote.sustainLength = note.sustainLength;
@@ -376,6 +402,8 @@ class EditorPlayState extends MusicBeatSubstate
 
 			swagNote.scrollFactor.set();
 			unspawnNotes.push(swagNote);
+			sectionNoteCnt++;
+			parsedNotes++;
 
 			var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
 			final roundSus:Int = Math.round(swagNote.sustainLength / Conductor.stepCrochet);
@@ -400,7 +428,6 @@ class EditorPlayState extends MusicBeatSubstate
 						if(oldNote.isSustainNote)
 						{
 							oldNote.scale.y *= Note.SUSTAIN_SIZE / oldNote.frameHeight;
-							oldNote.scale.y /= playbackRate;
 							oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 						}
 
@@ -409,7 +436,6 @@ class EditorPlayState extends MusicBeatSubstate
 					}
 					else if(oldNote.isSustainNote)
 					{
-						oldNote.scale.y /= playbackRate;
 						oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 					}
 
@@ -437,6 +463,17 @@ class EditorPlayState extends MusicBeatSubstate
 			}
 			oldNote = swagNote;
 		}
+		showProgress(isDesktop);
+
+		Sys.println('\n[ --- "${SONG.song.toUpperCase()}" CHART INFO --- ]');
+
+		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
+		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
+
+		Sys.println('Loaded ${parsedNotes} notes!
+Sustain notes amount: $sustainTotalCnt
+Taken time: $takenTime sec
+Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		unspawnNotes.sort(PlayState.sortByTime);
 	}
 
