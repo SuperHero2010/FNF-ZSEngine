@@ -795,7 +795,7 @@ class MergeChartState extends MusicBeatState
 		var fileSize:Int = file.bytesAvailable;
 
 		while (pos < fileSize) {
-			var bytesToRead:Int = Math.min(chunkSize, fileSize - pos);
+			var bytesToRead:Int = Std.int(Math.min(chunkSize, fileSize - pos));
 			var chunk = file.readUTFBytes(bytesToRead);
 			buffer += chunk;
 			pos += chunk.length;
