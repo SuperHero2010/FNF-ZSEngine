@@ -2921,7 +2921,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			#if !switch
 			var percent:Float = ratingPercent;
 			if(Math.isNaN(percent)) percent = 0;
-			Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
+			if (!cpuControlled) Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
 			#end
 			playbackRate = 1;
 
@@ -2950,7 +2950,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					// if ()
 					if(!ClientPrefs.getGameplaySetting('practice') && !ClientPrefs.getGameplaySetting('botplay')) {
 						StoryMenuState.weekCompleted.set(WeekData.weeksList[storyWeek], true);
-						Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
+						if (!cpuControlled) Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
 
 						FlxG.save.data.weekCompleted = StoryMenuState.weekCompleted;
 						FlxG.save.flush();
@@ -3501,8 +3501,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			}
 		}
 
-		if (cpuControlled) opponentNotes++;
-		else opponentNotes = 0;
+		if (cpuControlled && !note.isSustainNote) opponentNotes++;
 
 		if(opponentVocals.length <= 0) vocals.volume = 1;
 		strumPlayAnim(true, Std.int(Math.abs(note.noteData)));
@@ -3630,8 +3629,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if(!note.noteSplashData.disabled && !note.isSustainNote) spawnNoteSplashOnNote(note);
 		}
 
-		if (cpuControlled) playerNotes++;
-		else playerNotes = 0;
+		if (cpuControlled && !note.isSustainNote) playerNotes++;
 
 		stagesFunc(function(stage:BaseStage) stage.goodNoteHit(note));
 		var result:Dynamic = callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
