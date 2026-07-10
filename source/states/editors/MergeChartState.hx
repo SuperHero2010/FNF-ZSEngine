@@ -741,67 +741,68 @@ class MergeChartState extends MusicBeatState
 			return;
 		}
 
-		trace('Opening file: ' + tempPath);
-		var file = sys.io.File.update(tempPath, false);
+		var inputFile = sys.io.File.read(tempPath, false);
+		var fileSize = 0;
+		inputFile.seek(0, SeekEnd);
+		fileSize = inputFile.tell();
+		inputFile.seek(0, SeekBegin);
 
-		trace('Finding notes array end...');
-		var notesArrayEnd = findArrayEndInPlace(file, "notes");
-		trace('notesArrayEnd: ' + notesArrayEnd);
-		trace('Finding events array end...');
-		var eventsArrayEnd = findArrayEndInPlace(file, "events");
-		trace('eventsArrayEnd: ' + eventsArrayEnd);
+		var notesArrayEnd = findArrayEnd(inputFile, "notes", fileSize);
+		var eventsArrayEnd = findArrayEnd(inputFile, "events", fileSize);
+		inputFile.close();
 
 		if (notesArrayEnd == -1) {
-			file.close();
 			trace('ERROR: Could not find notes array end');
 			return;
 		}
 
+		var source = sys.io.File.read(tempPath, false);
+		var target = sys.io.File.write(tempPath + ".tmp");
+		var chunkSize = 8192;
+
+		source.seek(0, SeekBegin);
+		copyChunk(source, target, notesArrayEnd, "Copying to notes end");
+
 		if (newNotesContent.length > 0) {
-			trace('Inserting notes content at position ' + notesArrayEnd);
-			file.seek(notesArrayEnd, SeekBegin);
-			var rest = file.readAll().toString();
-
-			file.seek(notesArrayEnd, SeekBegin);
-
-			var prefix = "";
-			if (rest.startsWith("]")) {
-				prefix = ",\n" + newNotesContent;
-			} else {
-				prefix = "\n" + newNotesContent;
-			}
-
-			file.writeString(prefix);
-			file.writeString(rest);
-			trace('Notes insertion complete');
+			target.writeString(",\n" + newNotesContent);
 		}
 
-		file.seek(0, SeekBegin);
-		eventsArrayEnd = findArrayEndInPlace(file, "events");
-
-		if (eventsArrayEnd != -1 && newEventsContent.length > 0) {
-			trace('Inserting events content at position ' + eventsArrayEnd);
-			file.seek(eventsArrayEnd, SeekBegin);
-			var rest = file.readAll().toString();
-			file.seek(eventsArrayEnd, SeekBegin);
-
-			var prefix = "";
-			if (rest.startsWith("]")) {
-				prefix = ",\n" + newEventsContent;
-			} else {
-				prefix = "\n" + newEventsContent;
+		source.seek(notesArrayEnd, SeekBegin);
+		if (eventsArrayEnd != -1) {
+			copyChunk(source, target, Std.int(eventsArrayEnd - notesArrayEnd), "Copying to events end");
+		} else {
+			while (true) {
+				var chunk = source.read(chunkSize);
+				if (chunk.length == 0) break;
+				target.write(chunk);
 			}
-
-			file.writeString(prefix);
-			file.writeString(rest);
-			trace('Events insertion complete');
+			if (newEventsContent.length > 0) {
+				target.writeString("\n\nevents: [\n" + newEventsContent + "\n]");
+			}
+			source.close();
+			target.close();
+			replaceFile(tempPath, tempPath + ".tmp");
+			return;
 		}
 
-		file.close();
+		if (newEventsContent.length > 0) {
+			target.writeString(",\n" + newEventsContent);
+		}
+
+		source.seek(eventsArrayEnd, SeekBegin);
+		while (true) {
+			var chunk = source.read(chunkSize);
+			if (chunk.length == 0) break;
+			target.write(chunk);
+		}
+
+		source.close();
+		target.close();
+		replaceFile(tempPath, tempPath + ".tmp");
 		trace('=== appendTxtToTempFile COMPLETE ===');
 	}
 
-	private function findArrayEndInPlace(file:sys.io.FileOutput, arrayName:String):Int
+	private function findArrayEnd(inputFile:sys.io.FileInput, arrayName:String, fileSize:Int):Int
 	{
 		var chunkSize = 8192;
 		var buffer = "";
@@ -812,11 +813,10 @@ class MergeChartState extends MusicBeatState
 		var escapeNext = false;
 		var arrayEnd = -1;
 
-		file.seek(0, SeekBegin);
+		inputFile.seek(0, SeekBegin);
 
-		while (true) {
-			var chunk = file.read(chunkSize).toString();
-			if (chunk.length == 0) break;
+		while (pos < fileSize) {
+			var chunk = inputFile.read(chunkSize).toString();
 			buffer += chunk;
 			pos += chunk.length;
 
@@ -847,7 +847,11 @@ class MergeChartState extends MusicBeatState
 			}
 
 			if (foundStart) {
-				for (i in 0...buffer.length) {
+				var startIdx = 0;
+				if (buffer.length > chunkSize * 2) {
+					startIdx = buffer.length - chunkSize * 2;
+				}
+				for (i in startIdx...buffer.length) {
 					var char = buffer.charAt(i);
 					if (escapeNext) {
 						escapeNext = false;
@@ -880,6 +884,12 @@ class MergeChartState extends MusicBeatState
 		}
 
 		return -1;
+	}
+
+	private function replaceFile(original:String, temp:String):Void
+	{
+		if (FileSystem.exists(original)) FileSystem.deleteFile(original);
+		FileSystem.rename(temp, original);
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
