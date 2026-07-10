@@ -1669,12 +1669,6 @@ class PlayState extends MusicBeatState
 		loadNoteTime = Date.now().getTime();
 		syncTime = Date.now().getTime();
 
-		// JS Engine optimization: Disable GC for large charts
-		var totalNotes:Int = 0;
-		for (section in SONG.notes)
-			if (section.sectionNotes != null)
-				totalNotes += section.sectionNotes.length;
-
 		#if sys
 		// H-Slice approach: Use MemoryUtil for GC control
 		if (ClientPrefs.data.disableGC) {

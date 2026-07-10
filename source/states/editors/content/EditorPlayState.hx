@@ -326,12 +326,6 @@ class EditorPlayState extends MusicBeatSubstate
 		loadNoteTime = Date.now().getTime();
 		syncTime = Date.now().getTime();
 
-		// JS Engine optimization: Disable GC for large charts
-		var totalNotes:Int = 0;
-		for (section in SONG.notes)
-			if (section.sectionNotes != null)
-				totalNotes += section.sectionNotes.length;
-
 		#if sys
 		// H-Slice approach: Use MemoryUtil for GC control
 		if (ClientPrefs.data.disableGC) {
@@ -465,7 +459,7 @@ class EditorPlayState extends MusicBeatSubstate
 		}
 		showProgress(isDesktop);
 
-		Sys.println('\n[ --- "${SONG.song.toUpperCase()}" CHART INFO --- ]');
+		Sys.println('\n[ --- "${PlayState.SONG.song.toUpperCase()}" CHART INFO --- ]');
 
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
