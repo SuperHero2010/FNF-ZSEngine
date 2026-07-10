@@ -737,56 +737,21 @@ class MergeChartState extends MusicBeatState
 		}
 
 		if (newNotesContent.length == 0 && newEventsContent.length == 0) {
-			trace('No new content to append');
+			trace('No new content');
 			return;
 		}
 
-		var file = sys.io.File.update(tempPath, false);
-
-		var notesArrayEnd = findArrayEndInPlace(file, "notes");
-
-		if (notesArrayEnd == -1) {
-			file.close();
-			trace('ERROR: Could not find notes array end');
-			return;
-		}
-
-		file.seek(notesArrayEnd, SeekBegin);
-		var rest = file.readAll().toString();
-
-		file.seek(notesArrayEnd, SeekBegin);
-
-		if (newNotesContent.length > 0) {
-			file.writeString(",\n" + newNotesContent);
-		}
-		file.writeString(rest);
-
-		var eventsArrayEnd = findArrayEndInPlace(file, "events");
-
-		if (eventsArrayEnd != -1 && newEventsContent.length > 0) {
-			file.seek(eventsArrayEnd, SeekBegin);
-			var restEvents = file.readAll().toString();
-			file.seek(eventsArrayEnd, SeekBegin);
-			file.writeString(",\n" + newEventsContent);
-			file.writeString(restEvents);
-		}
-
-		file.close();
-		trace('=== appendTxtToTempFile COMPLETE ===');
-	}
-
-	private function findArrayEndInPlace(file:sys.io.FileOutput, arrayName:String):Int
-	{
+		var file = sys.io.File.open(tempPath, sys.io.FileMode.ReadWrite);
 		var chunkSize = 8192;
-		var buffer = "";
-		var pos = 0;
-		var foundStart = false;
+
+		file.seek(0, SeekBegin);
+		var notesArrayEnd = -1;
+		var foundNotes = false;
 		var bracketCount = 0;
 		var inString = false;
 		var escapeNext = false;
-		var arrayEnd = -1;
-
-		file.seek(0, SeekBegin);
+		var buffer = "";
+		var pos = 0;
 
 		while (true) {
 			var chunk = file.read(chunkSize).toString();
@@ -794,8 +759,8 @@ class MergeChartState extends MusicBeatState
 			buffer += chunk;
 			pos += chunk.length;
 
-			if (!foundStart) {
-				var startPos = buffer.indexOf('"' + arrayName + '"');
+			if (!foundNotes) {
+				var startPos = buffer.indexOf('"notes"');
 				if (startPos != -1) {
 					for (i in startPos...buffer.length) {
 						var char = buffer.charAt(i);
@@ -803,7 +768,7 @@ class MergeChartState extends MusicBeatState
 						if (char == '\\') { escapeNext = true; continue; }
 						if (char == '"') { inString = !inString; continue; }
 						if (!inString && char == '[') {
-							foundStart = true;
+							foundNotes = true;
 							bracketCount = 1;
 							break;
 						}
@@ -811,7 +776,7 @@ class MergeChartState extends MusicBeatState
 				}
 			}
 
-			if (foundStart) {
+			if (foundNotes) {
 				for (i in 0...buffer.length) {
 					var char = buffer.charAt(i);
 					if (escapeNext) { escapeNext = false; continue; }
@@ -822,12 +787,13 @@ class MergeChartState extends MusicBeatState
 						else if (char == ']') {
 							bracketCount--;
 							if (bracketCount == 0) {
-								arrayEnd = (pos - buffer.length) + i;
-								return arrayEnd;
+								notesArrayEnd = (pos - buffer.length) + i;
+								break;
 							}
 						}
 					}
 				}
+				if (notesArrayEnd != -1) break;
 			}
 
 			if (buffer.length > chunkSize * 10) {
@@ -835,7 +801,112 @@ class MergeChartState extends MusicBeatState
 			}
 		}
 
-		return -1;
+		if (notesArrayEnd == -1) {
+			file.close();
+			trace('ERROR: Could not find notes array end');
+			return;
+		}
+
+		file.seek(0, SeekBegin);
+		var eventsArrayEnd = -1;
+		foundNotes = false;
+		bracketCount = 0;
+		inString = false;
+		escapeNext = false;
+		buffer = "";
+		pos = 0;
+
+		while (true) {
+			var chunk = file.read(chunkSize).toString();
+			if (chunk.length == 0) break;
+			buffer += chunk;
+			pos += chunk.length;
+
+			if (!foundNotes) {
+				var startPos = buffer.indexOf('"events"');
+				if (startPos != -1) {
+					for (i in startPos...buffer.length) {
+						var char = buffer.charAt(i);
+						if (escapeNext) { escapeNext = false; continue; }
+						if (char == '\\') { escapeNext = true; continue; }
+						if (char == '"') { inString = !inString; continue; }
+						if (!inString && char == '[') {
+							foundNotes = true;
+							bracketCount = 1;
+							break;
+						}
+					}
+				}
+			}
+
+			if (foundNotes) {
+				for (i in 0...buffer.length) {
+					var char = buffer.charAt(i);
+					if (escapeNext) { escapeNext = false; continue; }
+					if (char == '\\') { escapeNext = true; continue; }
+					if (char == '"') { inString = !inString; continue; }
+					if (!inString) {
+						if (char == '[') bracketCount++;
+						else if (char == ']') {
+							bracketCount--;
+							if (bracketCount == 0) {
+								eventsArrayEnd = (pos - buffer.length) + i;
+								break;
+							}
+						}
+					}
+				}
+				if (eventsArrayEnd != -1) break;
+			}
+
+			if (buffer.length > chunkSize * 10) {
+				buffer = buffer.substr(-chunkSize * 5);
+			}
+		}
+
+		file.close();
+
+		var writeFile = sys.io.File.open(tempPath, sys.io.FileMode.ReadWrite);
+		var readFile = sys.io.File.open(tempPath, sys.io.FileMode.Read);
+		var tempContent = "";
+
+		writeFile.seek(0, SeekBegin);
+		var content = readFile.readAll().toString();
+		readFile.close();
+
+		var beforeNotes = content.substring(0, notesArrayEnd);
+		var afterNotes = content.substring(notesArrayEnd);
+
+		var newContent = beforeNotes;
+		if (newNotesContent.length > 0) {
+			var existingNotes = content.substring(content.indexOf('notes: [') + 9, notesArrayEnd);
+			if (StringTools.trim(existingNotes).length > 0 && StringTools.trim(existingNotes) != "[]") {
+				newContent += ",\n" + newNotesContent;
+			} else {
+				newContent += "\n" + newNotesContent;
+			}
+		}
+		newContent += afterNotes;
+
+		if (eventsArrayEnd != -1 && newEventsContent.length > 0) {
+			var beforeEvents = newContent.substring(0, eventsArrayEnd);
+			var afterEvents = newContent.substring(eventsArrayEnd);
+			var eventsStartPos = newContent.indexOf('events: [');
+			if (eventsStartPos != -1) {
+				var existingEvents = newContent.substring(eventsStartPos + 9, eventsArrayEnd);
+				if (StringTools.trim(existingEvents).length > 0 && StringTools.trim(existingEvents) != "[]") {
+					newContent = beforeEvents + ",\n" + newEventsContent + afterEvents;
+				} else {
+					newContent = beforeEvents + "\n" + newEventsContent + afterEvents;
+				}
+			}
+		}
+
+		writeFile.seek(0, SeekBegin);
+		writeFile.writeString(newContent);
+		writeFile.close();
+
+		trace('=== appendTxtToTempFile COMPLETE ===');
 	}
 
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
