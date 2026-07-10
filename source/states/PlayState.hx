@@ -202,6 +202,9 @@ class PlayState extends MusicBeatState
 	public var drainMultiplier:Float = 1;
 	public var combo:Int = 0;
 
+	public var playerNotes:Int = 0;
+	public var opponentNotes:Int = 0;
+
 	public var healthBar:Bar;
 	public var timeBar:Bar;
 	var songPercent:Float = 0;
@@ -297,6 +300,7 @@ class PlayState extends MusicBeatState
 	public var cameraSpeed:Float = 1;
 
 	public var songScore:Int = 0;
+	public var botSongScore:Int = songScore;
 	public var songHits:Int = 0;
 	public var songMisses:Int = 0;
 	public var scoreTxt:FlxText;
@@ -1466,6 +1470,9 @@ class PlayState extends MusicBeatState
 		callOnScripts('onUpdateScore', [miss]);
 	}
 
+	var playerNotesStr:String;
+	var opponentNotesStr:String;
+	var totalNotesStr:String;
 	public dynamic function updateScoreText()
 	{
 		var str:String = Language.getPhrase('rating_$ratingName', ratingName);
@@ -1492,14 +1499,24 @@ class PlayState extends MusicBeatState
 		}
 
 		var tempScore:String;
-		if(!instakillOnMiss) {
-			if (!practiceMode) {
-				tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Rating: {3} | HP: {4}', [songScore, songMisses, str, hpShowStr]);
-			} else {
-				tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Practice Mode | HP: {3}', [songScore, songMisses, hpShowStr]);
+		if (!cpuControlled) {
+			if (!instakillOnMiss) {
+				if (!practiceMode) {
+					tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Rating: {3} | HP: {4}', [songScore, songMisses, str, hpShowStr]);
+				}
+				else {
+					tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Practice Mode | HP: {3}', [songScore, songMisses, hpShowStr]);
+				}
 			}
-		} else {
-			tempScore = Language.getPhrase('score_text_instakill', 'Score: {1} | Rating: {2}', [songScore, str]);
+			else {
+				tempScore = Language.getPhrase('score_text_instakill', 'Score: {1} | Rating: {2} | Instant Kill Mode | HP: {3}', [songScore, str, hpShowStr]);
+			}
+		}
+		else {
+			playerNotesStr = Std.string(playerNotes);
+			opponentNotesStr = Std.string(opponentNotes);
+			totalNotesStr = Std.string(playerNotes + opponentNotes);
+			tempScore = Language.getPhrase('bot_score_text', 'Score: {1} | Notes: {2} + {3} = {4} | HP: {5}', [botSongScore, opponentNotesStr, playerNotesStr, totalNotesStr, hpShowStr]);
 		}
 		scoreTxt.text = tempScore;
 	}
@@ -3483,6 +3500,9 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			}
 		}
 
+		if (cpuControlled) opponentNotes++;
+		else opponentNotes = 0;
+
 		if(opponentVocals.length <= 0) vocals.volume = 1;
 		strumPlayAnim(true, Std.int(Math.abs(note.noteData)));
 		note.hitByOpponent = true;
@@ -3608,6 +3628,9 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			noteMiss(note);
 			if(!note.noteSplashData.disabled && !note.isSustainNote) spawnNoteSplashOnNote(note);
 		}
+
+		if (cpuControlled) playerNotes++;
+		else playerNotes = 0;
 
 		stagesFunc(function(stage:BaseStage) stage.goodNoteHit(note));
 		var result:Dynamic = callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
