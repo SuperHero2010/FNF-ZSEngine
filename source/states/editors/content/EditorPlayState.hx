@@ -22,7 +22,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var spawnTime:Float = 2000;
 	var startingSong:Bool = true;
 
-	var playbackRate:Float = 1;
+	static var playbackRate:Float = 1;
 	var inst:FlxSound = new FlxSound();
 	var vocals:FlxSound;
 	var opponentVocals:FlxSound;
@@ -235,7 +235,7 @@ class EditorPlayState extends MusicBeatSubstate
 				else if (canBeHit) {
 					if(daNote.mustPress)
 					{
-						if(cpuControlled && !daNote.blockHit)
+						if(!daNote.blockHit)
 						{
 							if(cpuHitNotes)
 								goodNoteHit(daNote); // Fast hit notes
