@@ -198,6 +198,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformEnabled:Bool = false;
 	var waveformTarget:WaveformTarget = INST;
 
+	public var playbackRate:Float = 1;
+
 	override function create()
 	{
 		if(Difficulty.list.length < 1) Difficulty.resetList();
@@ -2257,7 +2259,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(opponentMuteCheckBox.checked) opponentVocals.volume = 0;
 	}
 
-	var playbackRate:Float = 1;
 	function setPitch(?value:Null<Float>)
 	{
 		#if FLX_PITCH
