@@ -290,6 +290,7 @@ class PlayState extends MusicBeatState
 	public var botplayTxt:FlxText;
 
 	//i added it back. happy now, mr superhero? - Jordan Santiago
+	//Ok. Thanks - SuperHero2010
 	public var cpuHitNotes:Bool = ClientPrefs.data.cpuHitNotes;
 
 	public var iconP1:HealthIcon;
@@ -2270,7 +2271,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 								daNote.active = daNote.visible = false;
 								invalidateNote(daNote);
-							} else if (canBeHit) {
+							}
+							else if (canBeHit) {
 								if(daNote.mustPress)
 								{
 									if(cpuControlled && !daNote.blockHit)
