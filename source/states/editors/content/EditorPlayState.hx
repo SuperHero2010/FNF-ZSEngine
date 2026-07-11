@@ -1,5 +1,7 @@
 package states.editors.content;
 
+import states.editors.ChartingState;
+
 import backend.Song;
 import backend.Rating;
 import backend.MemoryUtil;
@@ -22,7 +24,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var spawnTime:Float = 2000;
 	var startingSong:Bool = true;
 
-	var playbackRate:Float = 1;
+	public var playbackRate:Float = ChartingState.playbackRate;
 	var inst:FlxSound = new FlxSound();
 	var vocals:FlxSound;
 	var opponentVocals:FlxSound;
@@ -81,8 +83,6 @@ class EditorPlayState extends MusicBeatSubstate
 		this._noteList = noteList;
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
-
-		playbackRate = ChartingState.playbackRate;
 	}
 
 	override function create()
