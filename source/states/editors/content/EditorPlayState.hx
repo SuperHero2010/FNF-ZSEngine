@@ -233,17 +233,7 @@ class EditorPlayState extends MusicBeatSubstate
 					invalidateNote(daNote);
 				}
 				else if (canBeHit) {
-					if(daNote.mustPress)
-					{
-						if(!daNote.blockHit)
-						{
-							if(cpuHitNotes)
-								goodNoteHit(daNote); // Fast hit notes
-							else if(daNote.isSustainNote || daNote.strumTime <= Conductor.songPosition)
-								goodNoteHit(daNote); // Normal hit notes
-						}
-					}
-					else if (!daNote.hitByOpponent && !daNote.ignoreNote)
+					if (!daNote.hitByOpponent && !daNote.ignoreNote)
 					{
 						if(cpuHitNotes)
 							opponentNoteHit(daNote); // Fast hit notes
