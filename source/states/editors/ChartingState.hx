@@ -198,6 +198,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformEnabled:Bool = false;
 	var waveformTarget:WaveformTarget = INST;
 
+	public var editorPlaybackRate:Float = 1;
+
 	override function create()
 	{
 		if(Difficulty.list.length < 1) Difficulty.resetList();
@@ -782,18 +784,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if(holdingAlt)
 					{
-						if(playbackRate != 1)
+						if(editorPlaybackRate != 1)
 						{
-							playbackRate = 1;
+							editorPlaybackRate = 1;
 							setPitch();
 						}
 					}
 					else
 					{
-						playbackRate = FlxMath.bound(playbackRate + elapsed * (!goingBack ? 1 : -1), playbackSlider.min, playbackSlider.max);
+						editorPlaybackRate = FlxMath.bound(editorPlaybackRate + elapsed * (!goingBack ? 1 : -1), playbackSlider.min, playbackSlider.max);
 						setPitch();
 					}
-					playbackSlider.value = playbackRate;
+					playbackSlider.value = editorPlaybackRate;
 				}
 
 				if(vortexEnabled && _keysPressedBuffer.contains(true))
@@ -1799,7 +1801,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						if(strumNote != null)
 						{
 							strumNote.playAnim('confirm', true);
-							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
+							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / editorPlaybackRate;
 						}
 					}
 				}
@@ -2257,11 +2259,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(opponentMuteCheckBox.checked) opponentVocals.volume = 0;
 	}
 
-	var playbackRate:Float = 1;
 	function setPitch(?value:Null<Float>)
 	{
 		#if FLX_PITCH
-		if(value == null) value = playbackRate;
+		if(value == null) value = editorPlaybackRate;
 		FlxG.sound.music.pitch = value;
 		vocals.pitch = value;
 		opponentVocals.pitch = value;
@@ -3161,7 +3162,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(txt);
 
 		objY += 25;
-		playbackSlider = new PsychUISlider(50, objY, function(v:Float) setPitch(playbackRate = v), 1, 0.1, 5.0, 200);
+		playbackSlider = new PsychUISlider(50, objY, function(v:Float) setPitch(editorPlaybackRate = v), 1, 0.1, 5.0, 200);
 		playbackSlider.label = 'Playback Rate';
 
 		objY += 60;

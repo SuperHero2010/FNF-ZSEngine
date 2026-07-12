@@ -1,5 +1,7 @@
 package states.editors.content;
 
+import states.editors.ChartingState;
+import backend.ClientPrefs;
 import backend.Song;
 import backend.Rating;
 import backend.MemoryUtil;
@@ -69,6 +71,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var canBeHit:Bool = false;
 	var tooLate:Bool = false;
 	public var cpuHitNotes:Bool = ClientPrefs.data.cpuHitNotes;
+	public var cpuControlled:Bool = false;
 
 	var _noteList:Array<Note>;
 	public function new(noteList:Array<Note>, allVocals:Array<FlxSound>)
@@ -82,7 +85,7 @@ class EditorPlayState extends MusicBeatSubstate
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
 
-		#if FLX_PITCH playbackRate = FlxG.sound.music.pitch; #end
+		playbackRate = ChartingState.editorPlaybackRate;
 	}
 
 	override function create()
@@ -143,6 +146,15 @@ class EditorPlayState extends MusicBeatSubstate
 		add(tipText);
 		FlxG.mouse.visible = false;
 
+		var botplayTxtY:Float = timeBar.y + (ClientPrefs.data.downScroll ? -80 : 55);
+
+		botplayTxt = new FlxText(400, botplayTxtY, FlxG.width - 800, Language.getPhrase("Botplay").toUpperCase(), 32);
+		botplayTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		botplayTxt.scrollFactor.set();
+		botplayTxt.borderSize = 1.25;
+		botplayTxt.visible = cpuControlled;
+		uiGroup.add(botplayTxt);
+
 		generateSong();
 		_noteList = null;
 
@@ -169,6 +181,9 @@ class EditorPlayState extends MusicBeatSubstate
 			super.update(elapsed);
 			return;
 		}
+
+		if (FlxG.keys.justPressed.SIX && !cpuControlled) cpuControlled = true;
+		else if (FlxG.keys.justPressed.SIX && cpuControlled) cpuControlled = false;
 
 		if (startingSong)
 		{
@@ -224,7 +239,7 @@ class EditorPlayState extends MusicBeatSubstate
 
 				if (tooLate) {
 					// Kill extremely late notes and cause misses
-					if (daNote.mustPress && !daNote.ignoreNote && (daNote.tooLate || !daNote.wasGoodHit))
+					if (daNote.mustPress && !cpuControlled && !daNote.ignoreNote && (daNote.tooLate || !daNote.wasGoodHit))
 						noteMiss(daNote);
 					else if (!daNote.mustPress && !daNote.hitByOpponent)
 						opponentNoteHit(daNote);
@@ -233,7 +248,17 @@ class EditorPlayState extends MusicBeatSubstate
 					invalidateNote(daNote);
 				}
 				else if (canBeHit) {
-					if (!daNote.hitByOpponent && !daNote.ignoreNote)
+					if(daNote.mustPress)
+					{
+						if(cpuControlled && !daNote.blockHit)
+						{
+							if(cpuHitNotes)
+								goodNoteHit(daNote); // Fast hit notes
+							else if(daNote.isSustainNote || daNote.strumTime <= Conductor.songPosition)
+								goodNoteHit(daNote); // Normal hit notes
+						}
+					}
+					else if (!daNote.hitByOpponent && !daNote.ignoreNote)
 					{
 						if(cpuHitNotes)
 							opponentNoteHit(daNote); // Fast hit notes
@@ -307,6 +332,7 @@ class EditorPlayState extends MusicBeatSubstate
 		inst.onComplete = finishSong;
 		inst.volume = vocals.volume = opponentVocals.volume = 1;
 		FlxG.sound.list.add(inst);
+		FlxG.sound.music.pitch = playbackRate;
 
 		FlxG.sound.music.pause();
 		inst.play();
@@ -372,9 +398,6 @@ class EditorPlayState extends MusicBeatSubstate
 
 		var songData = PlayState.SONG;
 		Conductor.bpm = songData.bpm;
-
-		vocals = new FlxSound();
-		opponentVocals = new FlxSound();
 
 		#if FLX_PITCH
 		vocals.pitch = playbackRate;
@@ -731,7 +754,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	private function keyPressed(key:Int)
 	{
-		if(key < 0) return;
+		if(cpuControlled || key < 0) return;
 
 		// more accurate hit time for the ratings?
 		var lastTime:Float = Conductor.songPosition;
@@ -790,6 +813,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	private function keyReleased(key:Int)
 	{
+		if (cpuControlled || key < 0) return;
 		var spr:StrumNote = playerStrums.members[key];
 		if(spr != null)
 		{
@@ -862,6 +886,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	function goodNoteHit(note:Note):Void
 	{
 		if(note.wasGoodHit) return;
+		if(cpuControlled && note.ignoreNote) return;
 
 		note.wasGoodHit = true;
 		if (note.hitsoundVolume > 0 && !note.hitsoundDisabled)
@@ -883,8 +908,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			popUpScore(note);
 		}
 
-		var spr:StrumNote = playerStrums.members[note.noteData];
-		if(spr != null) spr.playAnim('confirm', true);
+		if (!cpuControlled) {
+			var spr:StrumNote = playerStrums.members[note.noteData];
+			if(spr != null) spr.playAnim('confirm', true);
+		}
+		else PlayState.strumPlayAnim(false, Std.int(Math.abs(note.noteData)));
 		vocals.volume = 1;
 
 		if (!note.isSustainNote)
