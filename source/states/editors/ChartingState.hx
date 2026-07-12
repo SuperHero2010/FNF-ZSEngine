@@ -198,7 +198,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformEnabled:Bool = false;
 	var waveformTarget:WaveformTarget = INST;
 
-	public var editorPlaybackRate:Float = 1;
+	public static var editorPlaybackRate:Float = 1;
 
 	override function create()
 	{

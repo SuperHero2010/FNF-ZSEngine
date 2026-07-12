@@ -84,7 +84,7 @@ class EditorPlayState extends MusicBeatSubstate
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
 
-		playbackRate = cast ChartingState.editorPlaybackRate;
+		playbackRate = ChartingState.editorPlaybackRate;
 	}
 
 	override function create()
@@ -145,7 +145,7 @@ class EditorPlayState extends MusicBeatSubstate
 		add(tipText);
 		FlxG.mouse.visible = false;
 
-		var botplayTxtY:Float = timeBar.y + (ClientPrefs.data.downScroll ? -80 : 55);
+		var botplayTxtY:Float = PlayState.instance.timeBar.y + (ClientPrefs.data.downScroll ? -80 : 55);
 
 		botplayTxt = new FlxText(400, botplayTxtY, FlxG.width - 800, Language.getPhrase("Botplay").toUpperCase(), 32);
 		botplayTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
