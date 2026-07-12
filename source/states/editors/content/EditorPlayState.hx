@@ -1,7 +1,5 @@
 package states.editors.content;
 
-import states.editors.ChartingState;
-import backend.ClientPrefs;
 import backend.Song;
 import backend.Rating;
 import backend.MemoryUtil;
@@ -26,8 +24,8 @@ class EditorPlayState extends MusicBeatSubstate
 
 	var playbackRate:Float = 1;
 	var inst:FlxSound = new FlxSound();
-	var vocals:FlxSound;
-	var opponentVocals:FlxSound;
+	var vocals:FlxSound = new FlxSound();
+	var opponentVocals:FlxSound = new FlxSound();
 
 	var notes:FlxTypedGroup<Note>;
 	var unspawnNotes:Array<Note> = [];
@@ -38,6 +36,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var opponentStrums:FlxTypedGroup<StrumNote>;
 	var playerStrums:FlxTypedGroup<StrumNote>;
 	var grpNoteSplashes:FlxTypedGroup<NoteSplash>;
+	var botplayTxt:FlxText;
 
 	var combo:Int = 0;
 	var lastRating:FlxSprite;
@@ -85,7 +84,7 @@ class EditorPlayState extends MusicBeatSubstate
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
 
-		playbackRate = ChartingState.editorPlaybackRate;
+		playbackRate = cast ChartingState.editorPlaybackRate;
 	}
 
 	override function create()
@@ -153,7 +152,7 @@ class EditorPlayState extends MusicBeatSubstate
 		botplayTxt.scrollFactor.set();
 		botplayTxt.borderSize = 1.25;
 		botplayTxt.visible = cpuControlled;
-		uiGroup.add(botplayTxt);
+		add(botplayTxt);
 
 		generateSong();
 		_noteList = null;
@@ -332,6 +331,8 @@ class EditorPlayState extends MusicBeatSubstate
 		inst.onComplete = finishSong;
 		inst.volume = vocals.volume = opponentVocals.volume = 1;
 		FlxG.sound.list.add(inst);
+		FlxG.sound.list.add(vocals);
+		FlxG.sound.list.add(opponentVocals);
 		FlxG.sound.music.pitch = playbackRate;
 
 		FlxG.sound.music.pause();
@@ -872,10 +873,15 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if (PlayState.SONG.needsVoices && opponentVocals.length <= 0)
 			vocals.volume = 1;
 
-		var strum:StrumNote = opponentStrums.members[Std.int(Math.abs(note.noteData))];
-		if(strum != null) {
-			strum.playAnim('confirm', true);
-			strum.resetAnim = Conductor.stepCrochet * 1.25 / 1000 / playbackRate;
+		try {
+			strumPlayAnim(true, Std.int(Math.abs(note.noteData)));
+		}
+		catch (e:Dynamic) {
+			var strum:StrumNote = opponentStrums.members[Std.int(Math.abs(note.noteData))];
+			if(strum != null) {
+				strum.playAnim('confirm', true);
+				strum.resetAnim = Conductor.stepCrochet * 1.25 / 1000 / playbackRate;
+			}
 		}
 		note.hitByOpponent = true;
 
@@ -912,7 +918,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			var spr:StrumNote = playerStrums.members[note.noteData];
 			if(spr != null) spr.playAnim('confirm', true);
 		}
-		else PlayState.strumPlayAnim(false, Std.int(Math.abs(note.noteData)));
+		else strumPlayAnim(false, Std.int(Math.abs(note.noteData)));
 		vocals.volume = 1;
 
 		if (!note.isSustainNote)
@@ -989,4 +995,19 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	function updateScore()
 		scoreTxt.text = 'Hits: $songHits | Misses: $songMisses';
+
+	function strumPlayAnim(isDad:Bool, id:Int) {
+		var spr:StrumNote = null;
+		if(isDad) {
+			spr = opponentStrums.members[id];
+		} else {
+			spr = playerStrums.members[id];
+		}
+
+		if(spr != null) {
+			spr.playAnim('confirm', true);
+			var strumCurAnim = spr.animation.curAnim;
+			spr.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Conductor.stepCrochet * 1.5 / 1000) / playbackRate : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
+		}
+	}
 }

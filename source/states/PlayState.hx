@@ -164,9 +164,9 @@ class PlayState extends MusicBeatState
 
 	public var spawnTime:Float = 2000;
 
-	public var inst:FlxSound;
-	public var vocals:FlxSound;
-	public var opponentVocals:FlxSound;
+	public var inst:FlxSound = new FlxSound();
+	public var vocals:FlxSound = new FlxSound();
+	public var opponentVocals:FlxSound = new FlxSound();
 
 	public var dad:Character = null;
 	public var gf:Character = null;
@@ -1598,6 +1598,9 @@ class PlayState extends MusicBeatState
 	function startSong():Void
 	{
 		startingSong = false;
+		FlxG.sound.list.add(inst);
+		FlxG.sound.list.add(vocals);
+		FlxG.sound.list.add(opponentVocals);
 
 		@:privateAccess
 		FlxG.sound.playMusic(inst._sound, 1, false);
@@ -1693,8 +1696,6 @@ class PlayState extends MusicBeatState
 
 		curSong = songData.song;
 
-		vocals = new FlxSound();
-		opponentVocals = new FlxSound();
 		try
 		{
 			if (songData.needsVoices)
@@ -1712,16 +1713,12 @@ class PlayState extends MusicBeatState
 		vocals.pitch = playbackRate;
 		opponentVocals.pitch = playbackRate;
 		#end
-		FlxG.sound.list.add(vocals);
-		FlxG.sound.list.add(opponentVocals);
 
-		inst = new FlxSound();
 		try
 		{
 			inst.loadEmbedded(Paths.inst(songData.song));
 		}
 		catch (e:Dynamic) {}
-		FlxG.sound.list.add(inst);
 
 		notes = new FlxTypedGroup<Note>();
 		noteGroup.add(notes);
