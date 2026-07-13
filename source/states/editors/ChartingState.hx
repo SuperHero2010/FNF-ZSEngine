@@ -198,7 +198,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformEnabled:Bool = false;
 	var waveformTarget:WaveformTarget = INST;
 
-	public static var editorPlaybackRate:Float = 1;
+	public static var playbackRate:Float = 1;
 
 	override function create()
 	{
@@ -784,18 +784,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if(holdingAlt)
 					{
-						if(editorPlaybackRate != 1)
+						if(playbackRate != 1)
 						{
-							editorPlaybackRate = 1;
+							playbackRate = 1;
 							setPitch();
 						}
 					}
 					else
 					{
-						editorPlaybackRate = FlxMath.bound(editorPlaybackRate + elapsed * (!goingBack ? 1 : -1), playbackSlider.min, playbackSlider.max);
+						playbackRate = FlxMath.bound(playbackRate + elapsed * (!goingBack ? 1 : -1), playbackSlider.min, playbackSlider.max);
 						setPitch();
 					}
-					playbackSlider.value = editorPlaybackRate;
+					playbackSlider.value = playbackRate;
 				}
 
 				if(vortexEnabled && _keysPressedBuffer.contains(true))
@@ -1801,7 +1801,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						if(strumNote != null)
 						{
 							strumNote.playAnim('confirm', true);
-							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / editorPlaybackRate;
+							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
 						}
 					}
 				}
@@ -2262,7 +2262,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function setPitch(?value:Null<Float>)
 	{
 		#if FLX_PITCH
-		if(value == null) value = editorPlaybackRate;
+		if(value == null) value = playbackRate;
 		FlxG.sound.music.pitch = value;
 		vocals.pitch = value;
 		opponentVocals.pitch = value;
@@ -3162,7 +3162,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(txt);
 
 		objY += 25;
-		playbackSlider = new PsychUISlider(50, objY, function(v:Float) setPitch(editorPlaybackRate = v), 1, 0.1, 5.0, 200);
+		playbackSlider = new PsychUISlider(50, objY, function(v:Float) setPitch(playbackRate = v), 1, 0.1, 5.0, 200);
 		playbackSlider.label = 'Playback Rate';
 
 		objY += 60;

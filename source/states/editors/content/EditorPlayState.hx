@@ -7,6 +7,7 @@ import backend.MemoryUtil;
 import objects.Note;
 import objects.NoteSplash;
 import objects.StrumNote;
+import objects.Bar;
 
 import flixel.util.FlxSort;
 import flixel.util.FlxStringUtil;
@@ -58,6 +59,11 @@ class EditorPlayState extends MusicBeatSubstate
 	var showComboNum:Bool = true;
 	var showRating:Bool = true;
 
+	var updateTime:Bool = true;
+	var timeTxt:FlxText;
+	var timeBar:Bar;
+	var songPercent:Float = 0;
+
 	// Originals
 	var startOffset:Float = 0;
 	var startPos:Float = 0;
@@ -84,7 +90,7 @@ class EditorPlayState extends MusicBeatSubstate
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
 
-		playbackRate = ChartingState.editorPlaybackRate;
+		playbackRate = ChartingState.playbackRate;
 	}
 
 	override function create()
@@ -145,7 +151,31 @@ class EditorPlayState extends MusicBeatSubstate
 		add(tipText);
 		FlxG.mouse.visible = false;
 
-		var botplayTxtY:Float = PlayState.instance.timeBar.y + (ClientPrefs.data.downScroll ? -80 : 55);
+		var showTime:Bool = (ClientPrefs.data.timeBarType != 'Disabled');
+		timeTxt = new FlxText(STRUM_X + (FlxG.width / 2) - 248, 19, 400, "", 32);
+		timeTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		timeTxt.scrollFactor.set();
+		timeTxt.alpha = 0;
+		timeTxt.borderSize = 2;
+		timeTxt.visible = updateTime = showTime;
+		if(ClientPrefs.data.downScroll) timeTxt.y = FlxG.height - 44;
+		if(ClientPrefs.data.timeBarType == 'Song Name') timeTxt.text = SONG.song;
+
+		timeBar = new Bar(0, timeTxt.y + (timeTxt.height / 4), 'timeBar', function() return songPercent, 0, 1);
+		timeBar.scrollFactor.set();
+		timeBar.screenCenter(X);
+		timeBar.alpha = 0;
+		timeBar.visible = showTime;
+		add(timeTxt);
+		add(timeBar);
+
+		if(ClientPrefs.data.timeBarType == 'Song Name')
+		{
+			timeTxt.size = 24;
+			timeTxt.y += 3;
+		}
+
+		var botplayTxtY:Float = timeBar.y + (ClientPrefs.data.downScroll ? -80 : 55);
 
 		botplayTxt = new FlxText(400, botplayTxtY, FlxG.width - 800, Language.getPhrase("Botplay").toUpperCase(), 32);
 		botplayTxt.setFormat(Paths.font("vcr.ttf"), 32, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
@@ -190,7 +220,7 @@ class EditorPlayState extends MusicBeatSubstate
 			Conductor.songPosition = startPos - timerToStart;
 			if(timerToStart < 0) startSong();
 		}
-		else
+		else if (updateTime)
 		{
 			Conductor.songPosition += elapsed * 1000 * playbackRate;
 			if (Conductor.songPosition >= 0)
@@ -200,6 +230,17 @@ class EditorPlayState extends MusicBeatSubstate
 				if (timeDiff > 1000 * playbackRate)
 					Conductor.songPosition = Conductor.songPosition + 1000 * FlxMath.signOf(timeDiff);
 			}
+
+			var curTime:Float = Math.max(0, Conductor.songPosition - ClientPrefs.data.noteOffset);
+			songPercent = (curTime / songLength);
+			var songCalc:Float = (songLength - curTime);
+			if(ClientPrefs.data.timeBarType == 'Time Elapsed') songCalc = curTime;
+
+			var secondsTotal:Int = Math.floor(songCalc / 1000);
+			if(secondsTotal < 0) secondsTotal = 0;
+
+			if(ClientPrefs.data.timeBarType != 'Song Name')
+				timeTxt.text = FlxStringUtil.formatTime(secondsTotal, false);
 		}
 
 		if (unspawnNotes[0] != null)
@@ -343,6 +384,8 @@ class EditorPlayState extends MusicBeatSubstate
 
 		// Song duration in a float, useful for the time left feature
 		songLength = inst.length;
+		FlxTween.tween(timeBar, {alpha: 1}, 0.5, {ease: FlxEase.circOut});
+		FlxTween.tween(timeTxt, {alpha: 1}, 0.5, {ease: FlxEase.circOut});
 	}
 
 	// Faster note parsing variables from H-Slice
@@ -564,6 +607,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function finishSong():Void
 	{
+		updateTime = false;
 		if(ClientPrefs.data.noteOffset <= 0) {
 			endSong();
 		} else {
@@ -575,6 +619,9 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function endSong()
 	{
+		timeBar.visible = false;
+		timeTxt.visible = false;
+		updateTime = false;
 		notes.forEachAlive(function(note:Note) invalidateNote(note));
 		for (note in unspawnNotes)
 			if(note != null) invalidateNote(note);
