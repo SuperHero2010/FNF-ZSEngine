@@ -166,8 +166,8 @@ class EditorPlayState extends MusicBeatSubstate
 		timeBar.screenCenter(X);
 		timeBar.alpha = 0;
 		timeBar.visible = showTime;
-		add(timeTxt);
 		add(timeBar);
+		add(timeTxt);
 
 		if(ClientPrefs.data.timeBarType == 'Song Name')
 		{
@@ -213,6 +213,11 @@ class EditorPlayState extends MusicBeatSubstate
 
 		if (FlxG.keys.justPressed.SIX && !cpuControlled) cpuControlled = true;
 		else if (FlxG.keys.justPressed.SIX && cpuControlled) cpuControlled = false;
+
+		if(botplayTxt != null && botplayTxt.visible) {
+			botplaySine += 180 * elapsed;
+			botplayTxt.alpha = 1 - Math.sin((Math.PI * botplaySine) / 180);
+		}
 
 		if (startingSong)
 		{
