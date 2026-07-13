@@ -31,6 +31,9 @@ class HealthIcon extends FlxSprite
 			loadIcon(char, 'normal', allowGPU);
 			iconType = 'normal';
 			antialiasing = ClientPrefs.data.antialiasing;
+
+			if (isPlayer)
+				flipX = true;
 		}
 	}
 
@@ -64,6 +67,10 @@ class HealthIcon extends FlxSprite
 			loadGraphic(image, true, Math.floor(image.width), Math.floor(image.height));
 			animation.addByPrefix(char, xml, 24, true);
 			animation.play(char);
+
+			if (isPlayer)
+				flipX = true;
+
 			updateHitbox();
 			return;
 		}
@@ -81,6 +88,10 @@ class HealthIcon extends FlxSprite
 
 		var graphic = Paths.image(path, allowGPU);
 		loadGraphic(graphic, true, Math.floor(graphic.width), Math.floor(graphic.height));
+
+		if (isPlayer)
+			flipX = true;
+
 		updateHitbox();
 	}
 
