@@ -75,7 +75,7 @@ class HealthIcon extends FlxSprite
 			{
 				path = 'icons/icon-face' + suffix;
 				if (!Paths.fileExists('images/' + path + '.png', IMAGE))
-				path = 'icons/icon-face';
+					path = 'icons/icon-face';
 			}
 		}
 
