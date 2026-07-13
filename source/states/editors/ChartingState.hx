@@ -349,7 +349,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			columns += GRID_COLUMNS_PER_PLAYER;
 
 			var icon:HealthIcon = new HealthIcon();
-			icon.autoAdjustOffset = false;
 			icon.y = iconY;
 			icon.alpha = 0.6;
 			icon.scrollFactor.set();
