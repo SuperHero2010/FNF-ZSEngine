@@ -133,7 +133,7 @@ class ZSPatternGenerator {
         var patterns = [];
 
         patterns = patterns.concat(generateBoolPatternsSpecial(
-            'read from group (.+) at (.+) property (.+?)(?= with|$)',
+            'read from group (.+?) at (.+?) property (.+?)',
             'getPropertyFromGroup($1, $2, $3',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             "Read a property from a group",
@@ -141,7 +141,7 @@ class ZSPatternGenerator {
         ));
 
         patterns = patterns.concat(generateBoolPatternsSpecial(
-            'read from class (.+) variable (.+?)(?= with|$)',
+            'read from class (.+?) variable (.+?)',
             'getPropertyFromClass($1, $2',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             "Read a property from a class",
@@ -149,7 +149,7 @@ class ZSPatternGenerator {
         ));
 
         patterns = patterns.concat(generateTwoBoolPatternsSpecial(
-            'change in group (.+) at (.+) property (.+?) to (.+?)(?= and|$)',
+            'change in group (.+?) at (.+?) property (.+?) to (.+?)',
             'setPropertyFromGroup($1, $2, $3, $4',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             {name: "allowInstances", type: "boolean", required: false, defaultValue: "false"},
@@ -158,7 +158,7 @@ class ZSPatternGenerator {
         ));
 
         patterns = patterns.concat(generateTwoBoolPatternsSpecial(
-            'change in class (.+) variable (.+?) to (.+?)(?= and|$)',
+            'change in class (.+?) variable (.+?) to (.+?)',
             'setPropertyFromClass($1, $2, $3',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             {name: "allowInstances", type: "boolean", required: false, defaultValue: "false"},
@@ -283,18 +283,30 @@ class ZSPatternGenerator {
             "reflection"
         ));
 
-        patterns = patterns.concat(generateBoolPatternsSpecial(
-            'scale (.+?) with (.+?) and (.+?)',
-            'scaleObject($1, $2, $3',
-            {name: "updateHitbox", type: "boolean", required: false, defaultValue: "true"},
+        patterns = patterns.concat(generateFunctionPatterns(
+            'scale',
+            'scaleObject',
+            [
+                {name: "tag", type: "string", required: true},
+                {name: "x", type: "any", required: true},
+                {name: "y", type: "any", required: true},
+                {name: "updateHitbox", type: "boolean", required: false, defaultValue: "true"}
+            ],
+            ['with', 'and', 'with'],
             "Scale an object",
             "reflection"
         ));
 
-        patterns = patterns.concat(generateBoolPatternsSpecial(
-            'scale (.+?) by pixel with (.+?) and (.+?)',
-            'setGraphicSize($1, $2, $3',
-            {name: "updateHitbox", type: "boolean", required: false, defaultValue: "true"},
+        patterns = patterns.concat(generateFunctionPatterns(
+            'scale by pixel',
+            'setGraphicSize',
+            [
+                {name: "tag", type: "string", required: true},
+                {name: "width", type: "any", required: true},
+                {name: "height", type: "any", required: true},
+                {name: "updateHitbox", type: "boolean", required: false, defaultValue: "true"}
+            ],
+            ['with', 'and', 'with'],
             "Scale an object by pixel",
             "reflection"
         ));
@@ -377,7 +389,7 @@ class ZSPatternGenerator {
         });
 
         patterns = patterns.concat(generateBoolPatternsSpecial(
-            "read (.+?)(?= with|$)",
+            "read (.+?)",
             'getProperty($1',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             "Read a property",
@@ -385,7 +397,7 @@ class ZSPatternGenerator {
         ));
 
         patterns = patterns.concat(generateTwoBoolPatternsSpecial(
-            'change (.+?) to (.+?)(?= and|$)',
+            'change (.+?) to (.+?)',
             'setProperty($1, $2',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             {name: "allowInstances", type: "boolean", required: false, defaultValue: "false"},
@@ -515,26 +527,45 @@ class ZSPatternGenerator {
     static function generateAnimationPatterns():Array<Pattern> {
         var patterns = [];
 
-        patterns = patterns.concat(generateBoolPatternsSpecial(
-            'add animation (.+) name (.+) with frames (.+)',
-            'addAnimation($1, $2, $3',
-            {name: "rate", type: "any", required: false, defaultValue: "24"},
+        patterns = patterns.concat(generateFunctionPatterns(
+            'add animation name with frames',
+            'addAnimation',
+            [
+                {name: "tag", type: "string", required: true},
+                {name: "name", type: "string", required: true},
+                {name: "frames", type: "any", required: true},
+                {name: "rate", type: "any", required: false, defaultValue: "24"}
+            ],
+            ['name', 'with', 'rate'],
             "Add animation with frames",
             "sprites"
         ));
 
-        patterns = patterns.concat(generateBoolPatternsSpecial(
-            'add animation (.+) name (.+) by prefix (.+)',
-            'addAnimationByPrefix($1, $2, $3',
-            {name: "rate", type: "any", required: false, defaultValue: "24"},
+        patterns = patterns.concat(generateFunctionPatterns(
+            'add animation name by prefix',
+            'addAnimationByPrefix',
+            [
+                {name: "tag", type: "string", required: true},
+                {name: "name", type: "string", required: true},
+                {name: "prefix", type: "string", required: true},
+                {name: "rate", type: "any", required: false, defaultValue: "24"}
+            ],
+            ['name', 'by', 'rate'],
             "Add animation by prefix",
             "sprites"
         ));
 
-        patterns = patterns.concat(generateBoolPatternsSpecial(
-            'add animation (.+) name (.+) by indices (.+) prefix (.+)',
-            'addAnimationByIndices($1, $2, $4, $3',
-            {name: "rate", type: "any", required: false, defaultValue: "24"},
+        patterns = patterns.concat(generateFunctionPatterns(
+            'add animation name by indices prefix',
+            'addAnimationByIndices',
+            [
+                {name: "tag", type: "string", required: true},
+                {name: "name", type: "string", required: true},
+                {name: "prefix", type: "string", required: true},
+                {name: "indices", type: "any", required: true},
+                {name: "rate", type: "any", required: false, defaultValue: "24"}
+            ],
+            ['name', 'by', 'prefix', 'rate'],
             "Add animation by indices",
             "sprites"
         ));
@@ -1982,6 +2013,10 @@ class ZSPatternGenerator {
     ):Array<Pattern> {
         var patterns = [];
 
+        // Check if baseReplacement already has parameters (contains $1, $2, etc.)
+        var hasParams = baseReplacement.indexOf('$') != -1;
+        var separator = hasParams ? ", " : "";
+
         patterns.push({
             pattern: "^" + basePattern + "$",
             replacement: baseReplacement + ")",
@@ -1991,13 +2026,13 @@ class ZSPatternGenerator {
 
         patterns.push({
             pattern: "^" + basePattern + " with (true|false)$",
-            replacement: baseReplacement + ", $1)",
+            replacement: baseReplacement + separator + "$1)",
             description: description + " with direct " + boolParam.name,
             category: category
         });
         patterns.push({
             pattern: "^" + basePattern + " with <([^>]+)>$",
-            replacement: baseReplacement + ", $1)",
+            replacement: baseReplacement + separator + "$1)",
             description: description + " with noun " + boolParam.name,
             category: category
         });
@@ -2015,6 +2050,10 @@ class ZSPatternGenerator {
     ):Array<Pattern> {
         var patterns = [];
 
+        // Check if baseReplacement already has parameters (contains $1, $2, etc.)
+        var hasParams = baseReplacement.indexOf('$') != -1;
+        var separator = hasParams ? ", " : "";
+
         patterns.push({
             pattern: "^" + basePattern + "$",
             replacement: baseReplacement + ")",
@@ -2024,38 +2063,38 @@ class ZSPatternGenerator {
 
         patterns.push({
             pattern: "^" + basePattern + " with (true|false)$",
-            replacement: baseReplacement + ", $1)",
+            replacement: baseReplacement + separator + "$1)",
             description: description + " with direct " + boolParam1.name,
             category: category
         });
         patterns.push({
             pattern: "^" + basePattern + " with <([^>]+)>$",
-            replacement: baseReplacement + ", $1)",
+            replacement: baseReplacement + separator + "$1)",
             description: description + " with noun " + boolParam1.name,
             category: category
         });
 
         patterns.push({
             pattern: "^" + basePattern + " with (true|false) and (true|false)$",
-            replacement: baseReplacement + ", $1, $2)",
+            replacement: baseReplacement + separator + "$1, $2)",
             description: description + " with direct " + boolParam1.name + " and direct " + boolParam2.name,
             category: category
         });
         patterns.push({
             pattern: "^" + basePattern + " with (true|false) and <([^>]+)>$",
-            replacement: baseReplacement + ", $1, $2)",
+            replacement: baseReplacement + separator + "$1, $2)",
             description: description + " with direct " + boolParam1.name + " and noun " + boolParam2.name,
             category: category
         });
         patterns.push({
             pattern: "^" + basePattern + " with <([^>]+)> and (true|false)$",
-            replacement: baseReplacement + ", $1, $2)",
+            replacement: baseReplacement + separator + "$1, $2)",
             description: description + " with noun " + boolParam1.name + " and direct " + boolParam2.name,
             category: category
         });
         patterns.push({
             pattern: "^" + basePattern + " with <([^>]+)> and <([^>]+)>$",
-            replacement: baseReplacement + ", $1, $2)",
+            replacement: baseReplacement + separator + "$1, $2)",
             description: description + " with noun " + boolParam1.name + " and noun " + boolParam2.name,
             category: category
         });
