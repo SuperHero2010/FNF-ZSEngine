@@ -720,9 +720,9 @@ class MergeChartState extends MusicBeatState
 		trace('nextTxtContent first 200 chars: ' + nextTxtContent.substr(0, 200));
 
 		var notesStart = nextTxtContent.indexOf('notes: [');
-		var notesEnd = nextTxtContent.indexOf('\n]', notesStart);
+		var notesEnd = findArrayEnd(nextTxtContent, notesStart);
 		var eventsStart = nextTxtContent.indexOf('events: [');
-		var eventsEnd = nextTxtContent.indexOf('\n]', eventsStart);
+		var eventsEnd = findArrayEnd(nextTxtContent, eventsStart);
 
 		trace('notesStart: ' + notesStart + ', notesEnd: ' + notesEnd);
 		trace('eventsStart: ' + eventsStart + ', eventsEnd: ' + eventsEnd);
@@ -801,7 +801,7 @@ class MergeChartState extends MusicBeatState
 			pos += chunk.length;
 
 			if (!foundStart) {
-				var startPos = buffer.indexOf('"' + arrayName + '"');
+				var startPos = buffer.indexOf(arrayName + ':');
 				if (startPos != -1) {
 					for (i in startPos...buffer.length) {
 						var char = buffer.charAt(i);
@@ -838,6 +838,50 @@ class MergeChartState extends MusicBeatState
 
 			if (buffer.length > chunkSize * 10) {
 				buffer = buffer.substr(-chunkSize * 5);
+			}
+		}
+
+		return -1;
+	}
+
+	private function findArrayEnd(content:String, startPos:Int):Int
+	{
+		if (startPos == -1) return -1;
+
+		var bracketCount = 0;
+		var inString = false;
+		var escapeNext = false;
+
+		var openBracketPos = content.indexOf('[', startPos);
+		if (openBracketPos == -1) return -1;
+
+		for (i in openBracketPos...content.length) {
+			var char = content.charAt(i);
+
+			if (escapeNext) {
+				escapeNext = false;
+				continue;
+			}
+
+			if (char == '\\') {
+				escapeNext = true;
+				continue;
+			}
+
+			if (char == '"') {
+				inString = !inString;
+				continue;
+			}
+
+			if (!inString) {
+				if (char == '[') {
+					bracketCount++;
+				} else if (char == ']') {
+					bracketCount--;
+					if (bracketCount == 0) {
+						return i;
+					}
+				}
 			}
 		}
 

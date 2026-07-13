@@ -2345,8 +2345,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	public dynamic function updateIconsPosition()
 	{
 		var iconOffset:Int = 26;
-		iconP1.x = healthBar.barCenter + (150 * iconP1.scale.x - 150) / 2 - iconOffset;
-		iconP2.x = healthBar.barCenter - (150 * iconP2.scale.x) / 2 - iconOffset * 2;
+		iconP1.x = healthBar.barCenter + (iconP1.width * iconP1.scale.x - iconP1.width) / 2 - iconOffset;
+		iconP2.x = healthBar.barCenter - (iconP2.width * iconP2.scale.x) / 2 - iconOffset * 2;
 	}
 
 	var iconsAnimations:Bool = true;

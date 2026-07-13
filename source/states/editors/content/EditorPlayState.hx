@@ -146,7 +146,7 @@ class EditorPlayState extends MusicBeatSubstate
 		dataTxt.borderSize = 1.25;
 		add(dataTxt);
 
-		var tipText:FlxText = new FlxText(10, FlxG.height - 20, 0, 'Press 6 to turn on/off Botplay Mode\nPress ESC to Go Back to Chart Editor', 16);
+		var tipText:FlxText = new FlxText(10, FlxG.height - 12, 0, 'Press 6 to turn on/off Botplay Mode\nPress ESC to Go Back to Chart Editor', 16);
 		tipText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		tipText.borderSize = 2;
 		tipText.scrollFactor.set();
@@ -215,6 +215,8 @@ class EditorPlayState extends MusicBeatSubstate
 
 		if (FlxG.keys.justPressed.SIX && !cpuControlled) cpuControlled = true;
 		else if (FlxG.keys.justPressed.SIX && cpuControlled) cpuControlled = false;
+
+		if(botplayTxt != null) botplayTxt.visible = cpuControlled;
 
 		if(botplayTxt != null && botplayTxt.visible) {
 			botplaySine += 180 * elapsed;
