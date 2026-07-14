@@ -2334,21 +2334,23 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	public dynamic function updateIconsScale(elapsed:Float)
 	{
 		var mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
+		var prevScale1 = iconP1.scale.x;
 		iconP1.scale.set(mult, mult);
 		iconP1.updateHitbox();
+		iconP1.offset.y = (iconP1.height - iconP1.frameHeight * (mult / prevScale1)) / 2;
 
 		var mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
+		var prevScale2 = iconP2.scale.x;
 		iconP2.scale.set(mult, mult);
 		iconP2.updateHitbox();
+		iconP2.offset.y = (iconP2.height - iconP2.frameHeight * (mult / prevScale2)) / 2;
 	}
 
 	public dynamic function updateIconsPosition()
 	{
 		var iconOffset:Int = 26;
 		iconP1.x = healthBar.barCenter + (iconP1.width * iconP1.scale.x - iconP1.width) / 2 - iconOffset;
-		iconP1.y = healthBar.y - 75 + (iconP1.height * iconP1.scale.y - iconP1.height) / 2;
 		iconP2.x = healthBar.barCenter - (iconP2.width * iconP2.scale.x) / 2 - iconOffset * 2;
-		iconP2.y = healthBar.y - 75 + (iconP2.height * iconP2.scale.y - iconP2.height) / 2;
 	}
 
 	var iconsAnimations:Bool = true;

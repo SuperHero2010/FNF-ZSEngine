@@ -198,7 +198,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformEnabled:Bool = false;
 	var waveformTarget:WaveformTarget = INST;
 
-	public static var playbackRate:Float = 1;
+	public var playbackRate:Float = 1;
 
 	override function create()
 	{
@@ -2236,7 +2236,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		updateAudioVolume();
-		setPitch(playbackRate);
+		setPitch();
 		_cacheSections();
 	}
 
@@ -6623,7 +6623,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		setSongPlaying(false);
 		chartEditorSave.flush(); //just in case a random crash happens before loading
 
-		openSubState(new EditorPlayState(cast notes, [vocals, opponentVocals]));
+		var editorState = new EditorPlayState(cast notes, [vocals, opponentVocals]);
+		editorState.playbackRate = playbackRate;
+		openSubState(editorState);
 		upperBox.isMinimized = true;
 		upperBox.visible = mainBox.visible = infoBox.visible = false;
 	}
