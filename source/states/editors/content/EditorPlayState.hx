@@ -91,8 +91,6 @@ class EditorPlayState extends MusicBeatSubstate
 		this._noteList = noteList;
 		this.startPos = Conductor.songPosition;
 		Conductor.songPosition = startPos;
-
-		playbackRate = ChartingState.playbackRate;
 	}
 
 	override function create()
