@@ -383,7 +383,12 @@ class EditorPlayState extends MusicBeatSubstate
 		FlxG.sound.list.add(inst);
 		FlxG.sound.list.add(vocals);
 		FlxG.sound.list.add(opponentVocals);
-		FlxG.sound.music.pitch = playbackRate;
+
+		#if FLX_PITCH
+		inst.pitch = playbackRate;
+		vocals.pitch = playbackRate;
+		opponentVocals.pitch = playbackRate;
+		#end
 
 		FlxG.sound.music.pause();
 		inst.play();
@@ -447,6 +452,7 @@ class EditorPlayState extends MusicBeatSubstate
 			case "constant":
 				songSpeed = ClientPrefs.getGameplaySetting('scrollspeed');
 		}
+		songSpeed *= playbackRate;
 		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed);
 
 		var songData = PlayState.SONG;

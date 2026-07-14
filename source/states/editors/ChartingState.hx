@@ -297,7 +297,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var startX:Float = gridBg.x;
 		var startY:Float = FlxG.height/2;
-		vortexIndicator.visible = strumLineNotes.visible = strumLineNotes.active = vortexEnabled;
+		vortexIndicator.visible = strumLineNotes.visible = vortexEnabled;
+		strumLineNotes.active = true;
 		if(SHOW_EVENT_COLUMN) startX += GRID_SIZE;
 
 		for (i in 0...Std.int(GRID_PLAYERS * GRID_COLUMNS_PER_PLAYER))
@@ -2235,7 +2236,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		updateAudioVolume();
-		setPitch();
+		setPitch(playbackRate);
 		_cacheSections();
 	}
 
@@ -5950,7 +5951,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			vortexEnabled = !vortexEnabled;
 			chartEditorSave.data.vortex = vortexEnabled;
-			vortexIndicator.visible = strumLineNotes.visible = strumLineNotes.active = vortexEnabled;
+			vortexIndicator.visible = strumLineNotes.visible = vortexEnabled;
 			vortexEditorButton.text.text = vortexEnabled ? '  Vortex Editor ON' : '  Vortex Editor OFF';
 
 			for (note in strumLineNotes)

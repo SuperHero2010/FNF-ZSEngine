@@ -1809,7 +1809,8 @@ class ZSPatternGenerator {
 
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                var prep = (i < prepositions.length) ? prepositions[i] : " ";
+                var prepIndex = i - 1; // Adjust index to account for first parameter using space
+                var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
 
                 if (prep == "with" && p.type == "boolean") {
                     zsPattern += " with ";
@@ -1850,14 +1851,16 @@ class ZSPatternGenerator {
             // Add noun pattern for boolean parameters with "with" preposition
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                if (p.type == "boolean" && i < prepositions.length && prepositions[i] == "with") {
+                var prepIndex = i - 1; // Adjust index to account for first parameter using space
+                if (p.type == "boolean" && prepIndex >= 0 && prepIndex < prepositions.length && prepositions[prepIndex] == "with") {
                     var nounPattern = "^" + command;
                     var nounCaptureGroups = [];
                     var nounParamIndex = 1;
 
                     for (j in 0...allParams.length) {
                         var param = allParams[j];
-                        var prep = (j < prepositions.length) ? prepositions[j] : " ";
+                        var prepIndex = j - 1; // Adjust index to account for first parameter using space
+                        var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
 
                         if (prep == "with" && param.type == "boolean") {
                             nounPattern += " with ";
@@ -2014,7 +2017,7 @@ class ZSPatternGenerator {
         var patterns = [];
 
         // Check if baseReplacement already has parameters (contains $1, $2, etc.)
-        var hasParams = baseReplacement.indexOf('$') != -1;
+        var hasParams = baseReplacement.indexOf('$') != -1 && baseReplacement.indexOf('(') != -1;
         var separator = hasParams ? ", " : "";
 
         patterns.push({
@@ -2051,7 +2054,7 @@ class ZSPatternGenerator {
         var patterns = [];
 
         // Check if baseReplacement already has parameters (contains $1, $2, etc.)
-        var hasParams = baseReplacement.indexOf('$') != -1;
+        var hasParams = baseReplacement.indexOf('$') != -1 && baseReplacement.indexOf('(') != -1;
         var separator = hasParams ? ", " : "";
 
         patterns.push({
@@ -2132,7 +2135,8 @@ class ZSPatternGenerator {
 
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                var prep = (i < prepositions.length) ? prepositions[i] : " ";
+                var prepIndex = i - 1; // Adjust index to account for first parameter using space
+                var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
                 var useComma = commaPositions.contains(i);
 
                 if (useComma) {
@@ -2176,14 +2180,16 @@ class ZSPatternGenerator {
             // Add noun pattern for boolean parameters with "with" preposition
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                if (p.type == "boolean" && i < prepositions.length && prepositions[i] == "with") {
+                var prepIndex = i - 1; // Adjust index to account for first parameter using space
+                if (p.type == "boolean" && prepIndex >= 0 && prepIndex < prepositions.length && prepositions[prepIndex] == "with") {
                     var nounPattern = "^" + command;
                     var nounCaptureGroups = [];
                     var nounParamIndex = 1;
 
                     for (j in 0...allParams.length) {
                         var param = allParams[j];
-                        var prep = (j < prepositions.length) ? prepositions[j] : " ";
+                        var prepIndex = j - 1; // Adjust index to account for first parameter using space
+                        var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
                         var useComma = commaPositions.contains(j);
 
                         if (useComma) {
