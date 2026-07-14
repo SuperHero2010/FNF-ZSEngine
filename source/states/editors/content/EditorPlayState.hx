@@ -23,7 +23,7 @@ class EditorPlayState extends MusicBeatSubstate
 	var spawnTime:Float = 2000;
 	var startingSong:Bool = true;
 
-	var playbackRate:Float = 1;
+	public var playbackRate:Float = 1;
 	var inst:FlxSound = new FlxSound();
 	var vocals:FlxSound = new FlxSound();
 	var opponentVocals:FlxSound = new FlxSound();
