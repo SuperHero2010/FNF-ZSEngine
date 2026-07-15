@@ -2333,17 +2333,20 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	// Health icon updaters
 	public dynamic function updateIconsScale(elapsed:Float)
 	{
+		var origOffsetY1 = iconP1.offset.y;
+		var origOffsetY2 = iconP2.offset.y;
+
 		var mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		var prevScale1 = iconP1.scale.x;
 		iconP1.scale.set(mult, mult);
 		iconP1.updateHitbox();
-		iconP1.offset.y = (iconP1.height - iconP1.frameHeight * (mult / prevScale1)) / 2;
+		iconP1.offset.y = origOffsetY1 + (iconP1.height - iconP1.frameHeight) / 2;
 
 		var mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		var prevScale2 = iconP2.scale.x;
 		iconP2.scale.set(mult, mult);
 		iconP2.updateHitbox();
-		iconP2.offset.y = (iconP2.height - iconP2.frameHeight * (mult / prevScale2)) / 2;
+		iconP2.offset.y = origOffsetY2 + (iconP2.height - iconP2.frameHeight) / 2;
 	}
 
 	public dynamic function updateIconsPosition()
