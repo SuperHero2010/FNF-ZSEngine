@@ -1794,24 +1794,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							hitSoundOpp = false;
 						}
 					}
-
-					if(vortexPlaying)
-					{
-						var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-						if(strumNote != null)
-						{
-							strumNote.playAnim('confirm', true);
-							strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
-						}
-					}
 				}
-				else if(vortexPlaying && note.strumTime >= Conductor.songPosition && note.strumTime < Conductor.songPosition + Conductor.stepCrochet)
+
+				if(vortexPlaying && Conductor.songPosition >= note.strumTime && lastTime < note.strumTime)
 				{
 					var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-					if(strumNote != null && strumNote.animation.curAnim != null && strumNote.animation.curAnim.name == 'static')
+					if(strumNote != null)
 					{
 						strumNote.playAnim('confirm', true);
-						strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
+						var strumCurAnim = strumNote.animation.curAnim;
+						strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Conductor.stepCrochet * 1.5 / 1000) / playbackRate : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
 					}
 				}
 			}
