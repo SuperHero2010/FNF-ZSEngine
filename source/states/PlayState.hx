@@ -699,14 +699,12 @@ class PlayState extends MusicBeatState
 
 		iconP1 = new HealthIcon(boyfriend.healthIcon, true);
 		iconP1.y = healthBar.y - 75;
-		iconP1.origin.set(iconP1.width / 2, iconP1.height / 2);
 		iconP1.visible = !ClientPrefs.data.hideHud;
 		iconP1.alpha = ClientPrefs.data.healthBarAlpha;
 		uiGroup.add(iconP1);
 
 		iconP2 = new HealthIcon(dad.healthIcon, false);
 		iconP2.y = healthBar.y - 75;
-		iconP2.origin.set(iconP2.width / 2, iconP2.height / 2);
 		iconP2.visible = !ClientPrefs.data.hideHud;
 		iconP2.alpha = ClientPrefs.data.healthBarAlpha;
 		uiGroup.add(iconP2);
@@ -2338,19 +2336,23 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		var mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP1.scale.set(mult, mult);
 		iconP1.updateHitbox();
+		iconP1.y = healthBar.y + (healthBar.height - iconP1.height) / 2;
 		iconP1.origin.set(iconP1.width / 2, iconP1.height / 2);
 
 		var mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP2.scale.set(mult, mult);
 		iconP2.updateHitbox();
+		iconP2.y = healthBar.y + (healthBar.height - iconP2.height) / 2;
 		iconP2.origin.set(iconP2.width / 2, iconP2.height / 2);
 	}
 
 	public dynamic function updateIconsPosition()
 	{
 		var iconOffset:Int = 26;
-		iconP1.x = healthBar.barCenter - iconOffset;
-		iconP2.x = healthBar.barCenter - iconOffset * 2;
+		iconP1.x = healthBar.barCenter + (iconP1.width * iconP1.scale.x - iconP1.width) / 2 - iconOffset;
+		iconP2.x = healthBar.barCenter - (iconP2.width * iconP2.scale.x) / 2 - iconOffset * 2;
+		iconP1.y = healthBar.y + (healthBar.height - iconP1.height) / 2;
+		iconP2.y = healthBar.y + (healthBar.height - iconP2.height) / 2;
 	}
 
 	var iconsAnimations:Bool = true;

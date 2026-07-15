@@ -1794,16 +1794,24 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							hitSoundOpp = false;
 						}
 					}
-				}
 
-				if(vortexPlaying && Conductor.songPosition >= note.strumTime && lastTime < note.strumTime)
+					if(vortexPlaying)
+					{
+						var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
+						if(strumNote != null)
+						{
+							strumNote.playAnim('confirm', true);
+							strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000) / playbackRate : (Math.max(1 / strumCurAnim.frameRate, note.sustainLength)) * strumCurAnim.numFrames;
+						}
+					}
+				}
+				else if(vortexPlaying && note.strumTime >= Conductor.songPosition && note.strumTime < Conductor.songPosition + (Conductor.stepCrochet / 4))
 				{
 					var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-					if(strumNote != null)
+					if(strumNote != null && strumNote.animation.curAnim != null && strumNote.animation.curAnim.name == 'static')
 					{
 						strumNote.playAnim('confirm', true);
-						var strumCurAnim = strumNote.animation.curAnim;
-						strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Conductor.stepCrochet * 1.5 / 1000) / playbackRate : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
+						strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000) / playbackRate : (Math.max(1 / strumCurAnim.frameRate, note.sustainLength)) * strumCurAnim.numFrames;
 					}
 				}
 			}
