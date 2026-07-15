@@ -1805,6 +1805,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						}
 					}
 				}
+				else if(vortexPlaying && note.strumTime >= Conductor.songPosition && note.strumTime < Conductor.songPosition + Conductor.stepCrochet)
+				{
+					var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
+					if(strumNote != null && strumNote.animation.curAnim != null && strumNote.animation.curAnim.name == 'static')
+					{
+						strumNote.playAnim('confirm', true);
+						strumNote.resetAnim = Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000 / playbackRate;
+					}
+				}
 			}
 			forceDataUpdate = false;
 
