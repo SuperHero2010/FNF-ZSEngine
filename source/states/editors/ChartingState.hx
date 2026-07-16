@@ -1767,6 +1767,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if(Conductor.songPosition != lastTime || forceDataUpdate)
 		{
+			var strumCurAnim = spr.animation.curAnim;
 			lastTime = Conductor.songPosition;
 			forceDataUpdate = false;
 
