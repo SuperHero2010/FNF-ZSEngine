@@ -1767,7 +1767,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if(Conductor.songPosition != lastTime || forceDataUpdate)
 		{
-			var strumCurAnim = spr.animation.curAnim;
 			lastTime = Conductor.songPosition;
 			forceDataUpdate = false;
 
@@ -1799,6 +1798,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					if(vortexPlaying)
 					{
 						var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
+						var strumCurAnim = strumNote.animation.curAnim;
 						if(strumNote != null)
 						{
 							strumNote.playAnim('confirm', true);
@@ -1809,6 +1809,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				else if(vortexPlaying && note.strumTime >= Conductor.songPosition && note.strumTime < Conductor.songPosition + (Conductor.stepCrochet / 4))
 				{
 					var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
+					var strumCurAnim = strumNote.animation.curAnim;
 					if(strumNote != null && strumNote.animation.curAnim != null && strumNote.animation.curAnim.name == 'static')
 					{
 						strumNote.playAnim('confirm', true);
