@@ -1,6 +1,6 @@
 package zsscript;
 
-import backend.ZSDebugger;
+import debug.ZSDebugger;
 
 class ZSTranspiler {
     public static var errors:Array<String> = [];

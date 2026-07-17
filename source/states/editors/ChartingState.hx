@@ -1767,6 +1767,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if(Conductor.songPosition != lastTime || forceDataUpdate)
 		{
+			trace('=== UPDATE LOOP START ===');
+			trace('Conductor.songPosition: ' + Conductor.songPosition);
+			trace('lastTime: ' + lastTime);
+			trace('forceDataUpdate: ' + forceDataUpdate);
+			trace('curRenderedNotes length: ' + curRenderedNotes.length);
+
 			lastTime = Conductor.songPosition;
 			forceDataUpdate = false;
 
@@ -1774,56 +1780,106 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var canPlayHitSound:Bool = (FlxG.sound.music != null && FlxG.sound.music.playing && lastTime < Conductor.songPosition);
 			var hitSoundPlayer:Bool = (hitsoundPlayerStepper.value > 0);
 			var hitSoundOpp:Bool = (hitsoundOpponentStepper.value > 0);
+
+			trace('vortexPlaying: ' + vortexPlaying);
+			trace('canPlayHitSound: ' + canPlayHitSound);
+			trace('hitSoundPlayer: ' + hitSoundPlayer);
+			trace('hitSoundOpp: ' + hitSoundOpp);
+
+			var processedCount:Int = 0;
+			var matchedCount:Int = 0;
+
 			for (note in curRenderedNotes)
 			{
 				if(note == null || note.isEvent) continue;
 
-				note.alpha = (note.strumTime >= Conductor.songPosition) ? 1 : 0.6;
-				if(Conductor.songPosition > note.strumTime && lastTime <= note.strumTime)
+				processedCount++;
+				var noteStrumTime = note.strumTime;
+
+				note.alpha = (noteStrumTime >= Conductor.songPosition) ? 1 : 0.6;
+
+				// Condition 1: Exact hit timing
+				var condition1:Bool = (Conductor.songPosition > noteStrumTime && lastTime <= noteStrumTime);
+
+				// Condition 2: Early window (1 step crochet)
+				var condition2:Bool = (vortexPlaying && noteStrumTime >= Conductor.songPosition && noteStrumTime < Conductor.songPosition + Conductor.stepCrochet);
+
+				if (processedCount <= 5 || condition1 || condition2)
 				{
+					trace('--- Note ' + processedCount + ' ---');
+					trace('strumTime: ' + noteStrumTime);
+					trace('songPosition: ' + Conductor.songPosition);
+					trace('lastTime: ' + lastTime);
+					trace('stepCrochet: ' + Conductor.stepCrochet);
+					trace('condition1 (exact hit): ' + condition1);
+					trace('condition2 (early window): ' + condition2);
+					trace('note.alpha: ' + note.alpha);
+					trace('note.mustPress: ' + note.mustPress);
+				}
+
+				if(condition1)
+				{
+					matchedCount++;
+					trace('>>> CONDITION 1 TRIGGERED for note ' + processedCount + ' (strumTime: ' + noteStrumTime + ')');
+
 					if(canPlayHitSound)
 					{
 						if(hitSoundPlayer && note.mustPress)
 						{
 							FlxG.sound.play(Paths.sound('hitsound'), hitsoundPlayerStepper.value);
 							hitSoundPlayer = false;
+							trace('Player hitsound played');
 						}
 						else if(hitSoundOpp && !note.mustPress)
 						{
 							FlxG.sound.play(Paths.sound('hitsound'), hitsoundOpponentStepper.value);
 							hitSoundOpp = false;
+							trace('Opponent hitsound played');
 						}
 					}
 
 					if(vortexPlaying)
 					{
 						var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-						var strumCurAnim = strumNote.animation.curAnim;
 						if(strumNote != null)
 						{
+							var strumCurAnim = strumNote.animation.curAnim;
+							trace('Playing confirm animation on strumNote ' + note.songData[1]);
 							strumNote.playAnim('confirm', true);
-							strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000) / playbackRate : (Math.max(1 / strumCurAnim.frameRate, note.sustainLength)) * strumCurAnim.numFrames;
+							strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Conductor.stepCrochet * 1.5 / 1000) / playbackRate : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
 						}
 					}
 				}
-				else if(vortexPlaying && note.strumTime >= Conductor.songPosition && note.strumTime < Conductor.songPosition + (Conductor.stepCrochet / 4))
+				else if(condition2)
 				{
+					matchedCount++;
+					trace('>>> CONDITION 2 TRIGGERED for note ' + processedCount + ' (strumTime: ' + noteStrumTime + ')');
+					trace('    (early window: ' + (noteStrumTime - Conductor.songPosition) + ' ms before strum)');
+
 					var strumNote:StrumNote = strumLineNotes.members[note.songData[1]];
-					var strumCurAnim = strumNote.animation.curAnim;
 					if(strumNote != null && strumNote.animation.curAnim != null && strumNote.animation.curAnim.name == 'static')
 					{
+						var strumCurAnim = strumNote.animation.curAnim;
+						trace('Playing confirm animation on strumNote (early) ' + note.songData[1]);
 						strumNote.playAnim('confirm', true);
-						strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Math.max(Conductor.stepCrochet * 1.25, note.sustainLength) / 1000) / playbackRate : (Math.max(1 / strumCurAnim.frameRate, note.sustainLength)) * strumCurAnim.numFrames;
+						strumNote.resetAnim = (ClientPrefs.data.strumLitStyle == 'BPM Based') ? (Conductor.stepCrochet * 1.5 / 1000) / playbackRate : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
 					}
 				}
 			}
+
+			trace('Total notes processed: ' + processedCount);
+			trace('Total conditions matched: ' + matchedCount);
+
 			forceDataUpdate = false;
 
 			// moved from beatHit()
 			if(metronomeStepper.value > 0 && lastBeatHit != curBeat)
+			{
 				FlxG.sound.play(Paths.sound('Metronome_Tick'), metronomeStepper.value);
-
+				trace('Metronome tick at beat: ' + curBeat);
+			}
 			lastBeatHit = curBeat;
+			trace('=== UPDATE LOOP END ===');
 		}
 
 		if(selectedNotes.length > 0)

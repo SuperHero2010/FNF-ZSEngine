@@ -52,11 +52,11 @@ import states.stages.objects.*;
 
 #if LUA_ALLOWED
 import psychlua.*;
-import backend.LuaDebugger;
+import debug.LuaDebugger;
 #else
 import psychlua.LuaUtils;
 import psychlua.HScript;
-import backend.LuaDebugger;
+import debug.LuaDebugger;
 #end
 
 #if HSCRIPT_ALLOWED
@@ -64,12 +64,12 @@ import psychlua.HScript.HScriptInfos;
 import crowplexus.iris.Iris;
 import crowplexus.hscript.Expr.Error as IrisError;
 import crowplexus.hscript.Printer;
-import backend.HaxeDebugger;
+import debug.HaxeDebugger;
 #end
 
 #if ZS_ALLOWED
 import zsscript.ZSTranspiler;
-import backend.ZSDebugger;
+import debug.ZSDebugger;
 #end
 
 /**
@@ -1743,7 +1743,7 @@ class PlayState extends MusicBeatState
 			if (section.changeBPM != null && section.changeBPM && section.bpm != null && daBpm != section.bpm)
 				daBpm = section.bpm;
 
-			++cnt;
+			cnt++;
 			sectionNoteCnt = 0;
 
 			// Show progress at start of each section
@@ -1776,8 +1776,8 @@ class PlayState extends MusicBeatState
 
 				swagNote.scrollFactor.set();
 				unspawnNotes.push(swagNote);
-				++sectionNoteCnt;
-				++parsedNotes;
+				sectionNoteCnt++;
+				parsedNotes++;
 
 				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
 				final roundSus:Int = Math.round(swagNote.sustainLength / curStepCrochet);

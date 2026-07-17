@@ -41,7 +41,7 @@ import psychlua.ModchartSprite;
 import flixel.input.keyboard.FlxKey;
 import flixel.input.gamepad.FlxGamepadInputID;
 #if LUA_ALLOWED
-import backend.LuaDebugger;
+import debug.LuaDebugger;
 #end
 import haxe.Json;
 

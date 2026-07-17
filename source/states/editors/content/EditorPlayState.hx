@@ -144,7 +144,7 @@ class EditorPlayState extends MusicBeatSubstate
 		dataTxt.borderSize = 1.25;
 		add(dataTxt);
 
-		var tipText:FlxText = new FlxText(10, FlxG.height - 12, 0, 'Press 6 to turn on/off Botplay Mode\nPress ESC to Go Back to Chart Editor', 16);
+		var tipText:FlxText = new FlxText(10, FlxG.height - 48, 0, 'Press 6 to turn on/off Botplay Mode\nPress ESC to Go Back to Chart Editor', 16);
 		tipText.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		tipText.borderSize = 2;
 		tipText.scrollFactor.set();
@@ -450,7 +450,6 @@ class EditorPlayState extends MusicBeatSubstate
 			case "constant":
 				songSpeed = ClientPrefs.getGameplaySetting('scrollspeed');
 		}
-		songSpeed *= playbackRate;
 		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed);
 
 		var songData = PlayState.SONG;

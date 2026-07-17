@@ -6,13 +6,13 @@ import lime.app.Application;
 import states.editors.MasterEditorMenu;
 import options.OptionsState;
 #if LUA_ALLOWED
-import backend.LuaDebugger;
+import debug.LuaDebugger;
 #end
 #if HSCRIPT_ALLOWED
-import backend.HaxeDebugger;
+import debug.HaxeDebugger;
 #end
 #if ZS_ALLOWED
-import backend.ZSDebugger;
+import debug.ZSDebugger;
 #end
 
 enum MainMenuColumn {
