@@ -1,4 +1,4 @@
-package backend;
+package debug;
 
 import haxe.CallStack;
 import sys.io.File;
