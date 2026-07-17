@@ -263,8 +263,8 @@ class EditorPlayState extends MusicBeatSubstate
 				notes.insert(0, dunceNote);
 				dunceNote.spawned = true;
 
-				var index:Int = unspawnNotes.indexOf(dunceNote);
-				unspawnNotes.splice(index, 1);
+				// var index:Int = unspawnNotes.indexOf(dunceNote);
+				unspawnNotes.splice(0, 1);
 			}
 		}
 
