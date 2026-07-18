@@ -1801,6 +1801,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						{
 							var strumCurAnim = strumNote.animation.curAnim;
 							strumNote.playAnim('confirm', true);
+
 							if (ClientPrefs.data.strumLitStyle == 'BPM Based')
 							{
 								var duration:Float = (note.sustainLength > 0) ? Math.max(note.sustainLength, Conductor.stepCrochet * 0.5) : Conductor.stepCrochet * 1.5;
@@ -1808,8 +1809,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							}
 							else
 							{
-								var frameDuration:Float = (note.sustainLength > 0) ? (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames * 1.5 : (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
-								strumNote.resetAnim = frameDuration;
+								if (note.sustainLength > 0)
+								{
+									strumNote.resetAnim = note.sustainLength / 1000 / playbackRate;
+								}
+								else
+								{
+									strumNote.resetAnim = (1 / strumCurAnim.frameRate) * strumCurAnim.numFrames;
+								}
 							}
 						}
 					}
