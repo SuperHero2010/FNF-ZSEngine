@@ -1826,6 +1826,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			lastTime = Conductor.songPosition;
 			forceDataUpdate = false;
 
+			// moved from beatHit()
 			if(metronomeStepper.value > 0 && lastBeatHit != curBeat)
 			{
 				FlxG.sound.play(Paths.sound('Metronome_Tick'), metronomeStepper.value);
