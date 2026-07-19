@@ -657,6 +657,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		stageDropDown.selectedLabel = PlayState.SONG.stage;
 		StageData.loadDirectory(PlayState.SONG);
 
+		if(icons.length > 0)
+		{
+			icons[0].changeIcon(PlayState.SONG.player1);
+			if(icons.length > 1) icons[1].changeIcon(PlayState.SONG.player2);
+		}
+
 		// DATA TAB
 		gameOverCharDropDown.selectedLabel = PlayState.SONG.gameOverChar;
 		gameOverSndInputText.text = PlayState.SONG.gameOverSound;
@@ -3159,29 +3165,63 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		for (eventData in PlayState.SONG.events)
 		{
-			if (eventData == null || eventData.length < 3) continue;
+			if (eventData == null || eventData.length < 2) continue;
 
 			var eventTime:Float = eventData[0];
 
 			if (eventTime > currentSectionTime) break;
 
-			var eventName = Std.string(eventData[1]);
-			if (eventName == 'Change Character')
-			{
-				var charType = Std.string(eventData[2]);
-				var newChar = Std.string(eventData[3]);
+			var eventContent:Dynamic = eventData[1];
 
-				if (charType == 'bf' || charType == '0')
+			if (eventContent != null && Std.isOfType(eventContent, Array))
+			{
+				var eventArray:Array<Dynamic> = cast eventContent;
+				for (singleEvent in eventArray)
 				{
-					if (target == 'player1') currentChar = newChar;
+					if (singleEvent != null && singleEvent.length > 0)
+					{
+						var eventName = Std.string(singleEvent[0]);
+						if (eventName == 'Change Character' && singleEvent.length >= 4)
+						{
+							var charType = Std.string(singleEvent[1]);
+							var newChar = Std.string(singleEvent[3]);
+
+							if (charType == 'bf' || charType == '0')
+							{
+								if (target == 'player1') currentChar = newChar;
+							}
+							else if (charType == 'dad' || charType == '1')
+							{
+								if (target == 'player2') currentChar = newChar;
+							}
+							else if (charType == 'gf' || charType == '2')
+							{
+								if (target == 'gf') currentChar = newChar;
+							}
+						}
+					}
 				}
-				else if (charType == 'dad' || charType == '1')
+			}
+			else if (eventData.length >= 4)
+			{
+				var eventName = Std.string(eventData[1]);
+				if (eventName == 'Change Character')
 				{
-					if (target == 'player2') currentChar = newChar;
-				}
-				else if (charType == 'gf' || charType == '2')
-				{
-					if (target == 'gf') currentChar = newChar;
+					var charType = Std.string(eventData[2]);
+					var newChar = Std.string(eventData[3]);
+
+					if (charType == 'bf' || charType == '0')
+					{
+						if (target == 'player1') currentChar = newChar;
+					}
+					else if (charType == 'dad' || charType == '1')
+					{
+						if (target == 'player2') currentChar = newChar;
+					}
+					else if (charType == 'gf' || charType == '2')
+					{
+						if (target == 'gf') currentChar = newChar;
+					}
 				}
 			}
 		}
