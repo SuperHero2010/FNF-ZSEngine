@@ -159,6 +159,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var eventLockOverlay:FlxSprite;
 	var vortexIndicator:FlxSprite;
 	var strumLineNotes:FlxTypedGroup<StrumNote> = new FlxTypedGroup<StrumNote>();
+	private var eventCache:Array<Array<Dynamic>> = [];
 	var dummyArrow:FlxSprite;
 	var isMovingNotes:Bool = false;
 	var movingNotesLastData:Int = 0;
@@ -3150,18 +3151,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var eventName = Std.string(eventData[1]);
 			if (eventName == 'Change Character')
 			{
-				var charType = eventData[2];
+				var charType = Std.string(eventData[2]);
 				var newChar = Std.string(eventData[3]);
 
-				if (charType == 'bf' || charType == 0)
+				if (charType == 'bf' || charType == '0')
 				{
 					if (target == 'player1') currentChar = newChar;
 				}
-				else if (charType == 'dad' || charType == 1)
+				else if (charType == 'dad' || charType == '1')
 				{
 					if (target == 'player2') currentChar = newChar;
 				}
-				else if (charType == 'gf' || charType == 2)
+				else if (charType == 'gf' || charType == '2')
 				{
 					if (target == 'gf') currentChar = newChar;
 				}
