@@ -2597,7 +2597,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					}
 					swagNote.noteType = noteTypeValue;
 					swagNote.scrollFactor.x = 0;
-					var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0);
+					var noteTypeIndex:Int = swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0;
+					if(noteTypeIndex < 0 && swagNote.noteType != null && swagNote.noteType.length > 0)
+					{
+						noteTypes.push(swagNote.noteType);
+						noteTypeIndex = noteTypes.indexOf(swagNote.noteType);
+					}
+					if(noteTypeIndex < 0) noteTypeIndex = 0;
+					var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
 					if(txt != null) txt.visible = showNoteTypeLabels;
 					swagNote.updateHitbox();
 					if(swagNote.width > swagNote.height)
@@ -2714,7 +2721,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
 		swagNote.noteType = note[3];
 		swagNote.scrollFactor.x = 0;
-		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0);
+		var noteTypeIndex:Int = swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0;
+		if(noteTypeIndex < 0 && swagNote.noteType != null && swagNote.noteType.length > 0)
+		{
+			noteTypes.push(swagNote.noteType);
+			noteTypeIndex = noteTypes.indexOf(swagNote.noteType);
+		}
+		if(noteTypeIndex < 0) noteTypeIndex = 0;
+		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
 		if(txt != null) txt.visible = showNoteTypeLabels;
 
 		swagNote.updateHitbox();
@@ -3134,9 +3148,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	function getCharacterAtSection(sectionIndex:Int, target:String):String
 	{
 		var defaultChar = switch(target) {
-			case 'player1': PlayState.SONG.player1;
-			case 'player2': PlayState.SONG.player2;
-			case 'gf': PlayState.SONG.gfVersion;
+			case 'player1': playerDropDown.selectedLabel;
+			case 'player2': opponentDropDown.selectedLabel;
+			case 'gf': girlfriendDropDown.selectedLabel;
 			default: '';
 		}
 
@@ -3146,7 +3160,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for (eventData in PlayState.SONG.events)
 		{
 			if (eventData == null || eventData.length < 3) continue;
-			if (eventData[0] >= currentSectionTime) break;
+
+			var eventTime:Float = eventData[0];
+
+			if (eventTime > currentSectionTime) break;
 
 			var eventName = Std.string(eventData[1]);
 			if (eventName == 'Change Character')
@@ -3501,6 +3518,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					{
 						event.events.remove(selectedEvent);
 						event.updateEventText();
+						event.updateSongDataFromEvents();
 						curEventSelected--;
 					}
 					else showOutput('No event is selected when you deleted it?? Weird.', true);
@@ -3520,6 +3538,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			{
 				event.events.push([eventsList[Std.int(Math.max(eventDropDown.selectedIndex, 0))][0], value1InputText.text, value2InputText.text]);
 				event.updateEventText();
+				event.updateSongDataFromEvents();
 				curEventSelected++;
 			});
 		}, 20);

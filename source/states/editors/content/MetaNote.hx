@@ -216,6 +216,14 @@ class EventMetaNote extends MetaNote
 		else eventText.text = 'ERROR FAILSAFE';
 	}
 
+	public function updateSongDataFromEvents()
+	{
+		if(songData != null && songData.length > 1)
+		{
+			songData[1] = events.copy();
+		}
+	}
+
 	override function destroy()
 	{
 		eventText = FlxDestroyUtil.destroy(eventText);
