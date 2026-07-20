@@ -159,7 +159,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var eventLockOverlay:FlxSprite;
 	var vortexIndicator:FlxSprite;
 	var strumLineNotes:FlxTypedGroup<StrumNote> = new FlxTypedGroup<StrumNote>();
-	private var eventCache:Array<Array<Dynamic>> = [];
 	var dummyArrow:FlxSprite;
 	var isMovingNotes:Bool = false;
 	var movingNotesLastData:Int = 0;
@@ -200,19 +199,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformTarget:WaveformTarget = INST;
 
 	public var playbackRate:Float = 1;
-
-	function refreshEventCache()
-	{
-		eventCache = [];
-		if (PlayState.SONG.events != null)
-		{
-			for (event in PlayState.SONG.events)
-			{
-				eventCache.push(event);
-			}
-			eventCache.sort(function(a, b) { return Std.int(a[0] - b[0]); });
-		}
-	}
 
 	override function create()
 	{
@@ -656,12 +642,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		girlfriendDropDown.selectedLabel = PlayState.SONG.gfVersion;
 		stageDropDown.selectedLabel = PlayState.SONG.stage;
 		StageData.loadDirectory(PlayState.SONG);
-
-		if(icons.length > 0)
-		{
-			icons[0].changeIcon(PlayState.SONG.player1);
-			if(icons.length > 1) icons[1].changeIcon(PlayState.SONG.player2);
-		}
 
 		// DATA TAB
 		gameOverCharDropDown.selectedLabel = PlayState.SONG.gameOverChar;
@@ -3151,84 +3131,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 	}
 
-	function getCharacterAtSection(sectionIndex:Int, target:String):String
-	{
-		var defaultChar = switch(target) {
-			case 'player1': playerDropDown.selectedLabel;
-			case 'player2': opponentDropDown.selectedLabel;
-			case 'gf': girlfriendDropDown.selectedLabel;
-			default: '';
-		}
-
-		var currentChar = defaultChar;
-		var currentSectionTime:Float = cachedSectionTimes[sectionIndex];
-
-		for (eventData in PlayState.SONG.events)
-		{
-			if (eventData == null || eventData.length < 2) continue;
-
-			var eventTime:Float = eventData[0];
-
-			if (eventTime > currentSectionTime) break;
-
-			var eventContent:Dynamic = eventData[1];
-
-			if (eventContent != null && Std.isOfType(eventContent, Array))
-			{
-				var eventArray:Array<Dynamic> = cast eventContent;
-				for (singleEvent in eventArray)
-				{
-					if (singleEvent != null && singleEvent.length > 0)
-					{
-						var eventName = Std.string(singleEvent[0]);
-						if (eventName == 'Change Character')
-						{
-							var charType = Std.string(singleEvent[1]);
-							var newChar = Std.string(singleEvent[2]);
-
-							if (charType == 'bf' || charType == '0')
-							{
-								if (target == 'player1') currentChar = newChar;
-							}
-							else if (charType == 'dad' || charType == '1')
-							{
-								if (target == 'player2') currentChar = newChar;
-							}
-							else if (charType == 'gf' || charType == '2')
-							{
-								if (target == 'gf') currentChar = newChar;
-							}
-						}
-					}
-				}
-			}
-			else
-			{
-				var eventName = Std.string(eventData[1]);
-				if (eventName == 'Change Character')
-				{
-					var charType = Std.string(eventData[2]);
-					var newChar = Std.string(eventData[3]);
-
-					if (charType == 'bf' || charType == '0')
-					{
-						if (target == 'player1') currentChar = newChar;
-					}
-					else if (charType == 'dad' || charType == '1')
-					{
-						if (target == 'player2') currentChar = newChar;
-					}
-					else if (charType == 'gf' || charType == '2')
-					{
-						if (target == 'gf') currentChar = newChar;
-					}
-				}
-			}
-		}
-
-		return currentChar;
-	}
-
 	var _lastSec:Int = -1;
 	var _lastGfSection:Null<Bool> = null;
 	function updateHeads(ignoreCheck:Bool = false):Void
@@ -3237,44 +3139,31 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var isGfSection:Bool = (curSecData != null && curSecData.gfSection == true);
 		if(_lastGfSection == isGfSection && _lastSec == curSec && !ignoreCheck) return;
 
-		var charP1:String = getCharacterAtSection(curSec, 'player1');
-		var charP2:String = getCharacterAtSection(curSec, 'player2');
-		var charGf:String = getCharacterAtSection(curSec, 'gf');
-
-		if (icons.length > 0)
+		for (i in 0...GRID_PLAYERS)
 		{
-			var iconP1:HealthIcon = icons[0];
-			var iconP2:HealthIcon = (icons.length > 1) ? icons[1] : null;
-
-			if (isGfSection)
-			{
-				if (curSecData != null && curSecData.mustHitSection)
-				{
-					iconP1.changeIcon(charGf);
-					if (iconP2 != null) iconP2.changeIcon(charP2);
-				}
-				else
-				{
-					if (iconP2 != null) iconP2.changeIcon(charGf);
-					iconP1.changeIcon(charP1);
-				}
-			}
-			else
-			{
-				iconP1.changeIcon(charP1);
-				if (iconP2 != null) iconP2.changeIcon(charP2);
-			}
-
-			if (iconP2 != null)
-			{
-				var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
-				if(mustHitSection)
-					mustHitIndicator.x = iconP1.x + iconP1.width/2;
-				else
-					mustHitIndicator.x = iconP2.x + iconP2.width/2;
-			}
+			var icon:HealthIcon = icons[i];
+			var iconName:String = Reflect.field(characterData, 'iconP${icon.ID}');
+			icon.changeIcon(iconName);
 		}
 
+		if(icons.length > 1)
+		{
+			var iconP1:HealthIcon = icons[0];
+			var iconP2:HealthIcon = icons[1];
+			var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
+			if (isGfSection)
+			{
+				if (mustHitSection)
+					iconP1.changeIcon('gf');
+				else
+					iconP2.changeIcon('gf');
+			}
+
+			if(mustHitSection)
+				mustHitIndicator.x = iconP1.x + iconP1.width/2;
+			else
+				mustHitIndicator.x = iconP2.x + iconP2.width/2;
+		}
 		_lastGfSection = isGfSection;
 		_lastSec = curSec;
 	}
@@ -3637,34 +3526,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					event.updateEventText();
 				}
 			}
-
-			refreshEventCache();
-
-			if (selectedNotes.length > 0 && selectedNotes[0].isEvent)
-			{
-				var event:EventMetaNote = cast (selectedNotes[0], EventMetaNote);
-				if (event != null && event.events != null && event.events.length > 0)
-				{
-					var eventData = event.events[0];
-					if (eventData != null && eventData.length >= 3)
-					{
-						var eventName = Std.string(eventData[0]);
-						if (eventName == 'Change Character')
-						{
-							var charType = eventData[1];
-							var newChar = Std.string(eventData[2]);
-
-							var curSecData = PlayState.SONG.notes[curSec];
-							if (curSecData != null)
-							{
-								updateHeads(true);
-							}
-						}
-					}
-				}
-			}
-
-			forceDataUpdate = true;
 		}
 
 		objY += 70;
