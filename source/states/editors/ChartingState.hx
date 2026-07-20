@@ -3181,10 +3181,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					if (singleEvent != null && singleEvent.length > 0)
 					{
 						var eventName = Std.string(singleEvent[0]);
-						if (eventName == 'Change Character' && singleEvent.length >= 4)
+						if (eventName == 'Change Character')
 						{
 							var charType = Std.string(singleEvent[1]);
-							var newChar = Std.string(singleEvent[3]);
+							var newChar = Std.string(singleEvent[2]);
 
 							if (charType == 'bf' || charType == '0')
 							{
@@ -3202,7 +3202,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					}
 				}
 			}
-			else if (eventData.length >= 4)
+			else
 			{
 				var eventName = Std.string(eventData[1]);
 				if (eventName == 'Change Character')
