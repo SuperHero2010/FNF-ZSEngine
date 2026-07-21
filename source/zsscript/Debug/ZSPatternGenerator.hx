@@ -1851,16 +1851,16 @@ class ZSPatternGenerator {
             // Add noun pattern for boolean parameters with "with" preposition
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                var prepIndex = i - 1; // Adjust index to account for first parameter using space
-                if (p.type == "boolean" && prepIndex >= 0 && prepIndex < prepositions.length && prepositions[prepIndex] == "with") {
+                var outerPrepIndex = i - 1; // Adjust index to account for first parameter using space
+                if (p.type == "boolean" && outerPrepIndex >= 0 && outerPrepIndex < prepositions.length && prepositions[outerPrepIndex] == "with") {
                     var nounPattern = "^" + command;
                     var nounCaptureGroups = [];
                     var nounParamIndex = 1;
 
                     for (j in 0...allParams.length) {
                         var param = allParams[j];
-                        var prepIndex = j - 1; // Adjust index to account for first parameter using space
-                        var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
+                        var innerPrepIndex = j - 1; // Adjust index to account for first parameter using space
+                        var prep = (innerPrepIndex >= 0 && innerPrepIndex < prepositions.length) ? prepositions[innerPrepIndex] : " ";
 
                         if (prep == "with" && param.type == "boolean") {
                             nounPattern += " with ";
@@ -1891,7 +1891,19 @@ class ZSPatternGenerator {
 
                     nounPattern += "$";
 
-                    var nounReplacement = luaFunction + "(" + nounCaptureGroups.join(", ") + ")";
+                    // Convert noun capture groups to boolean replacement
+                    var nounReplacement = luaFunction + "(";
+                    var replacementParts = [];
+                    for (k in 0...nounCaptureGroups.length) {
+                        var group = nounCaptureGroups[k];
+                        if (k == i) {
+                            // Use the captured noun directly as a variable reference
+                            replacementParts.push('$' + (k + 1));
+                        } else {
+                            replacementParts.push(group);
+                        }
+                    }
+                    nounReplacement += replacementParts.join(", ") + ")";
 
                     patterns.push({
                         pattern: nounPattern,
@@ -2180,16 +2192,16 @@ class ZSPatternGenerator {
             // Add noun pattern for boolean parameters with "with" preposition
             for (i in 0...allParams.length) {
                 var p = allParams[i];
-                var prepIndex = i - 1; // Adjust index to account for first parameter using space
-                if (p.type == "boolean" && prepIndex >= 0 && prepIndex < prepositions.length && prepositions[prepIndex] == "with") {
+                var outerPrepIndex = i - 1; // Adjust index to account for first parameter using space
+                if (p.type == "boolean" && outerPrepIndex >= 0 && outerPrepIndex < prepositions.length && prepositions[outerPrepIndex] == "with") {
                     var nounPattern = "^" + command;
                     var nounCaptureGroups = [];
                     var nounParamIndex = 1;
 
                     for (j in 0...allParams.length) {
                         var param = allParams[j];
-                        var prepIndex = j - 1; // Adjust index to account for first parameter using space
-                        var prep = (prepIndex >= 0 && prepIndex < prepositions.length) ? prepositions[prepIndex] : " ";
+                        var innerPrepIndex = j - 1; // Adjust index to account for first parameter using space
+                        var prep = (innerPrepIndex >= 0 && innerPrepIndex < prepositions.length) ? prepositions[innerPrepIndex] : " ";
                         var useComma = commaPositions.contains(j);
 
                         if (useComma) {
@@ -2223,7 +2235,19 @@ class ZSPatternGenerator {
 
                     nounPattern += "$";
 
-                    var nounReplacement = luaFunction + "(" + nounCaptureGroups.join(", ") + ")";
+                    // Convert noun capture groups to boolean replacement
+                    var nounReplacement = luaFunction + "(";
+                    var replacementParts = [];
+                    for (k in 0...nounCaptureGroups.length) {
+                        var group = nounCaptureGroups[k];
+                        if (k == i) {
+                            // Use the captured noun directly as a variable reference
+                            replacementParts.push('$' + (k + 1));
+                        } else {
+                            replacementParts.push(group);
+                        }
+                    }
+                    nounReplacement += replacementParts.join(", ") + ")";
 
                     patterns.push({
                         pattern: nounPattern,

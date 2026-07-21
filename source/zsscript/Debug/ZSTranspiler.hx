@@ -3,9 +3,11 @@ package;
 class ZSTranspiler {
     public static var errors:Array<String> = [];
     public static var currentLine:Int = 0;
+    public static var log:Array<String> = [];
 
     public static function transpile(zsSource:String):Null<String> {
         errors = [];
+        log = [];
         var luaCode = new StringBuf();
         var lines = zsSource.split("\n");
         var directiveFound = false;
@@ -393,27 +395,28 @@ class ZSTranspiler {
                 }
             }
 
-            trimmedLine = convertQuotes(trimmedLine);
             trimmedLine = fixMinusSigns(trimmedLine);
 
-            trace('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
+            log.push('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
-            trace('=== APPLYING PATTERNS ===');
-            trace('Input line: "' + trimmedLine + '"');
+            log.push('=== APPLYING PATTERNS ===');
+            log.push('Input line: "' + trimmedLine + '"');
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
                 if (regex.match(trimmedLine)) {
-                    trace('  MATCHED: ' + pattern.pattern);
+                    log.push('  MATCHED: ' + pattern.pattern);
                     luaLine = regex.replace(luaLine, pattern.replacement);
-                    trace('  -> "' + luaLine + '"');
+                    log.push('  -> "' + luaLine + '"');
                 }
                 else {
-                    trace('  UNMATCHED: ' + pattern.pattern);
-                    trace('  -> "' + luaLine + '"');
+                    log.push('  UNMATCHED: ' + pattern.pattern);
+                    log.push('  -> "' + luaLine + '"');
                 }
             }
-            trace('AFTER ZSPatterns: luaLine="$luaLine"');
+            log.push('AFTER ZSPatterns: luaLine="$luaLine"');
+
+            luaLine = convertQuotes(luaLine);
 
             if (trimmedLine.indexOf(":") == -1 && trimmedLine.indexOf("function") == -1) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
@@ -685,16 +688,28 @@ class ZSTranspiler {
         while (indentationStack.length > 1) {
             var blockIndent = indentationStack[indentationStack.length - 1];
             for (_ in 0...blockIndent) {
-                trace('OUTPUT: "end" at indent $blockIndent');
+                log.push('OUTPUT: "end" at indent $blockIndent');
                 luaCode.add(" ");
             }
-            trace('OUTPUT: "end" at indent ' + blockIndent);
+            log.push('OUTPUT: "end" at indent ' + blockIndent);
             luaCode.add("end\n");
             indentationStack.pop();
             blockTypeStack.pop();
         }
 
-        return luaCode.toString();
+        var result = luaCode.toString();
+
+        // Write log to file
+        #if sys
+        try {
+            var logContent = log.join("\n");
+            sys.io.File.saveContent("transpiler.log", logContent);
+        } catch (e:Dynamic) {
+            // Silently fail if log writing fails
+        }
+        #end
+
+        return result;
     }
 
     static function getIndentLevel(line:String):Int {
