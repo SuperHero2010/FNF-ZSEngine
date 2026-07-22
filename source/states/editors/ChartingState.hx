@@ -2508,6 +2508,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if (estimatedNotes > 0) notes = [];
 		if (estimatedEvents > 0) events = [];
 
+		trace('=== reloadNotes: Creating notes ===');
+		trace('Total sections: ' + PlayState.SONG.notes.length);
 
 		for (secNum => section in PlayState.SONG.notes)
 		{
@@ -2533,11 +2535,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			var sectionNotes = section.sectionNotes;
 			var len:Int = sectionNotes.length;
+			trace('Section ' + secNum + ' has ' + len + ' notes/events');
 			for (i in 0...len)
 			{
 				var note = sectionNotes[i];
 				if(note != null)
 				{
+					if (note.length > 1 && note[1] < 0)
+					{
+						trace('Found event in sectionNotes: ' + note);
+					}
+
 					var newNote = createNote(note, secNum);
 					notes.push(newNote);
 					parsedNotes++;
@@ -2545,18 +2553,34 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 		}
 
+		trace('=== reloadNotes: Creating events from PlayState.SONG.events ===');
+    	trace('PlayState.SONG.events length: ' + PlayState.SONG.events.length);
 		var cachedLen:Int = cachedSectionTimes.length;
 		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen - 1] : 0;
 
 		for (i in 0...PlayState.SONG.events.length)
 		{
 			var event = PlayState.SONG.events[i];
+			trace('Processing event ' + i + ': ' + event);
 			if(event != null && (cachedLen < 1 || event[0] < lastTime))
 			{
+				trace('  event[0]: ' + event[0]);
+				trace('  event[1]: ' + (event.length > 1 ? event[1] : 'undefined'));
+				trace('  event length: ' + event.length);
+				trace('  -> Creating event with createEvent()');
 				var newEvent = createEvent(event);
-				events.push(newEvent);
+				if (newEvent != null) {
+					events.push(newEvent);
+					trace('  -> Event created successfully');
+				} else {
+					trace('  -> createEvent returned null!');
+				}
 			}
 		}
+
+		trace('=== reloadNotes: Sorting and loading ===');
+		trace('Total notes created: ' + notes.length);
+		trace('Total events created: ' + events.length);
 
 		notes.sort(PlayState.sortByTime);
 		events.sort(PlayState.sortByTime);
@@ -2581,6 +2605,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		showProgress(true);
+		trace('=== reloadNotes: COMPLETE ===');
 	}
 
 	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
