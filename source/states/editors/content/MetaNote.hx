@@ -142,8 +142,27 @@ class EventMetaNote extends MetaNote
 	{
 		super(time, -1, eventData);
 		this.isEvent = true;
-		events = eventData[1];
-		//trace('events: $events');
+		events = [];
+		try
+		{
+			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
+			if (outer != null && Std.isOfType(outer, Array))
+			{
+				var outerArr:Array<Dynamic> = cast outer;
+				for (entry in outerArr)
+				{
+					if (entry != null && Std.isOfType(entry, Array))
+						events.push(cast entry);
+					else
+						events.push([entry]);
+				}
+			}
+		}
+		catch (e:Dynamic)
+		{
+			trace('Error parsing event data: $e');
+		}
+		if (events == null) events = [];
 
 		loadGraphic(Paths.image('editors/eventIcon'));
 		setGraphicSize(ChartingState.GRID_SIZE);
@@ -172,18 +191,33 @@ class EventMetaNote extends MetaNote
 	public var events:Array<Array<String>>;
 	public function updateEventText()
 	{
+		if (eventText == null) return;
+
 		var myTime:Float = Math.floor(this.strumTime);
-		if(events.length == 1)
+		if (events == null) events = [];
+		if (events.length == 0)
+		{
+			eventText.text = 'Event at $myTime ms (no data)';
+			return;
+		}
+
+		if (events.length == 1)
 		{
 			var event = events[0];
-			eventText.text = 'Event: ${event[0]} ($myTime ms)\nValue 1: ${event[1]}\nValue 2: ${event[2]}';
+			var name:String = (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown';
+			var v1:String = (event != null && event.length > 1 && event[1] != null) ? Std.string(event[1]) : '';
+			var v2:String = (event != null && event.length > 2 && event[2] != null) ? Std.string(event[2]) : '';
+			eventText.text = 'Event: ${name} ($myTime ms)\nValue 1: ${v1}\nValue 2: ${v2}';
 		}
-		else if(events.length > 1)
+		else if (events.length > 1)
 		{
-			var eventNames:Array<String> = [for (event in events) event[0]];
+			var eventNames:Array<String> = [for (event in events) (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown'];
 			eventText.text = '${events.length} Events ($myTime ms):\n${eventNames.join(', ')}';
 		}
-		else eventText.text = 'ERROR FAILSAFE';
+		else
+		{
+			eventText.text = 'ERROR FAILSAFE';
+		}
 	}
 
 	public function updateSongDataFromEvents()

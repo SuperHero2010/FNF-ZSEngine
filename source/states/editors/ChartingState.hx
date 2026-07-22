@@ -2626,22 +2626,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function createEvent(event:Dynamic)
 	{
-		var daStrumTime:Float = event[0];
-
-		// Fix: Use proper EventMetaNote constructor to prevent songData padding errors
-		var swagEvent:EventMetaNote;
-		if(event.length < 2 || event[1] == null || (Std.isOfType(event[1], Array) && cast(event[1], Array<Dynamic>).length <= 0)) {
-			var minimalEvent:Array<Dynamic> = [event[0], []];
-			swagEvent = new EventMetaNote(event[0], minimalEvent);
-		} else {
-			swagEvent = new EventMetaNote(event[0], event);
+		if (event == null || event.length < 1)
+		{
+			trace('Warning: createEvent called with invalid event data');
+			return null;
 		}
-
+		var daStrumTime:Float = event[0];
+		var swagEvent:EventMetaNote = new EventMetaNote(daStrumTime, event);
 		swagEvent.x = gridBg.x;
 		swagEvent.eventText.x = swagEvent.x - swagEvent.eventText.width - 10;
 		swagEvent.scrollFactor.x = 0;
 		swagEvent.active = false;
-
 		var secNum:Int = 0;
 		for (i in 1...cachedSectionTimes.length)
 		{
