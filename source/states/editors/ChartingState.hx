@@ -2548,7 +2548,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 
 		var cachedLen:Int = cachedSectionTimes.length;
-		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen-1] : 0;
+		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen - 1] : 0;
 
 		for (i in 0...PlayState.SONG.events.length)
 		{

@@ -16,7 +16,6 @@ class MetaNote extends Note
 	public function new(time:Float, data:Int, songData:Array<Dynamic>)
 	{
 		super(time, data, null, false, true);
-
 		this.songData = songData;
 		this.strumTime = time;
 		this.chartNoteData = data;
@@ -143,31 +142,7 @@ class EventMetaNote extends MetaNote
 	{
 		super(time, -1, eventData);
 		this.isEvent = true;
-		// Some charts may contain malformed/partial event entries.
-		// If eventData[1] is missing/null, ensure we don't crash the chart editor.
-		events = [];
-		try
-		{
-			// expected shape from ChartingState.createEvent:
-			// eventData = [strumTime, [[eventName, value1, value2], ...]]
-			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
-			if (outer != null && Std.isOfType(outer, Array))
-			{
-				var outerArr:Array<Dynamic> = cast outer;
-				for (entry in outerArr)
-				{
-					// tolerate malformed entries: if it's already an array, keep it, otherwise wrap.
-					if (entry != null && Std.isOfType(entry, Array))
-						events.push(cast entry);
-					else
-						events.push([entry]);
-				}
-			}
-		}
-		catch (e:Dynamic)
-		{
-			trace('Error: $e');
-		}
+		events = eventData[1];
 		//trace('events: $events');
 
 		loadGraphic(Paths.image('editors/eventIcon'));
@@ -194,23 +169,18 @@ class EventMetaNote extends MetaNote
 
 	override function setSustainLength(v:Float, stepCrochet:Float, zoom:Float = 1) {}
 
-	// Be tolerant: charts/mods may store non-string values or malformed arrays.
-	public var events:Array<Array<Dynamic>>;
+	public var events:Array<Array<String>>;
 	public function updateEventText()
 	{
 		var myTime:Float = Math.floor(this.strumTime);
-		if(events == null) events = [];
 		if(events.length == 1)
 		{
 			var event = events[0];
-			var name:String = (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown';
-			var v1:String = (event != null && event.length > 1 && event[1] != null) ? Std.string(event[1]) : '';
-			var v2:String = (event != null && event.length > 2 && event[2] != null) ? Std.string(event[2]) : '';
-			eventText.text = 'Event: ${name} ($myTime ms)\nValue 1: ${v1}\nValue 2: ${v2}';
+			eventText.text = 'Event: ${event[0]} ($myTime ms)\nValue 1: ${event[1]}\nValue 2: ${event[2]}';
 		}
 		else if(events.length > 1)
 		{
-			var eventNames:Array<String> = [for (event in events) (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown'];
+			var eventNames:Array<String> = [for (event in events) event[0]];
 			eventText.text = '${events.length} Events ($myTime ms):\n${eventNames.join(', ')}';
 		}
 		else eventText.text = 'ERROR FAILSAFE';
