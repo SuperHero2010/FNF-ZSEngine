@@ -2557,17 +2557,22 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for (i in 0...eventsArray.length)
 		{
 			var event = eventsArray[i];
-			trace('Processing event ' + i + ': ' + event);
-			if(event != null && Std.isOfType(event, Array))
+			trace('Event ' + i + ': ' + event);
+
+			if (event != null && Std.isOfType(event, Array) && event.length > 0)
 			{
-				trace('  event[0]: ' + event[0]);
-				trace('  event[1]: ' + (event.length > 1 ? event[1] : 'undefined'));
+				var event0:Dynamic = event[0];
+				var event1:Dynamic = (event.length > 1) ? event[1] : null;
+
+				trace('  event[0]: ' + event0);
+				trace('  event[1]: ' + event1);
 				trace('  event length: ' + event.length);
 
-				if(cachedLen < 1 || event[0] < lastTime)
+				var eventArray:Array<Dynamic> = cast event;
+				if (cachedLen < 1 || eventArray[0] < lastTime)
 				{
 					trace('  -> Creating event with createEvent()');
-					var newEvent = createEvent(event);
+					var newEvent = createEvent(eventArray);
 					if (newEvent != null) {
 						events.push(newEvent);
 						trace('  -> Event created successfully');
@@ -2578,7 +2583,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 			else
 			{
-				trace('  Event ' + i + ' is null or not an array: ' + event);
+				trace('  Event ' + i + ' is null or not a valid array: ' + event);
 			}
 		}
 
