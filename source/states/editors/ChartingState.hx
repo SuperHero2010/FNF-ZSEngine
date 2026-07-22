@@ -2457,7 +2457,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		sectionNoteCnt = 0;
 		syncTime = haxe.Timer.stamp() * 1000;
 
-		// JS-Engine: Clear existing notes (destructive while loop method - ZS-Engine compatible)
 		selectedNotes = [];
 		while (notes.length > 0)
 		{
@@ -2472,7 +2471,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			events.splice(0, 1);
 		}
 
-		// Pre-allocate arrays with exact sizing
 		var estimatedNotes:Int = 0;
 		for (section in PlayState.SONG.notes)
 			estimatedNotes += section.sectionNotes.length;
@@ -2485,7 +2483,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			MemoryUtil.disable();
 		} else cpp.vm.Gc.run(true);
 
-		// GC optimization for large charts
 		if (estimatedNotes > 500000) {
 			if (ClientPrefs.data.disableGC) {
 				MemoryUtil.enable();
@@ -2512,25 +2509,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if (estimatedNotes > 0) notes = [];
 		if (estimatedEvents > 0) events = [];
 
-		// Load all notes with memory management
-		var cnt:Int = 0;
-		var sectionNoteCnt:Int = 0;
-
-		// BUFFERING OPTIMIZATION: Progressive loading with memory management
-		// Load notes in chunks with buffering to improve performance and reduce memory
-		var bufferSize:Int = 1000; // Process notes in chunks
-		var currentBuffer:Array<MetaNote> = [];
-		var bufferIndex:Int = 0;
 
 		for (secNum => section in PlayState.SONG.notes)
 		{
-			++cnt;
-			sectionNoteCnt = 0;
+			cnt++;
 
-			// Show progress at start of each section
 			showProgress(false);
 
-			// Periodic GC cleanup and buffer flush
 			if (cnt % 25 == 0) {
 				#if sys
 				if (ClientPrefs.data.disableGC) {
@@ -2545,14 +2530,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					}
 				}
 				#end
-
-				// Flush buffer to main array
-				if (currentBuffer.length > 0) {
-					for (note in currentBuffer) {
-						notes.push(note);
-					}
-					currentBuffer = [];
-				}
 			}
 
 			var sectionNotes = section.sectionNotes;
@@ -2562,112 +2539,38 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					// JS-Engine: Direct inline note creation
-					var daNoteInfo:Int = Std.int(note[1]);
-					var daStrumTime:Float = note[0];
-					var daNoteData = Std.int(daNoteInfo % GRID_COLUMNS_PER_PLAYER);
-					var gottaHitNote = (daNoteInfo < GRID_COLUMNS_PER_PLAYER);
-
-					var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
-					swagNote.mustPress = gottaHitNote;
-					swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
-					swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
-					swagNote.noteType = note[3];
-					swagNote.scrollFactor.x = 0;
-					var noteTypeIndex:Int = swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0;
-					if(noteTypeIndex < 0 && swagNote.noteType != null && swagNote.noteType.length > 0)
-					{
-						noteTypes.push(swagNote.noteType);
-						noteTypeIndex = noteTypes.indexOf(swagNote.noteType);
-					}
-					if(noteTypeIndex < 0) noteTypeIndex = 0;
-					var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
-					if(txt != null) txt.visible = showNoteTypeLabels;
-					swagNote.updateHitbox();
-					if(swagNote.width > swagNote.height)
-						swagNote.setGraphicSize(GRID_SIZE);
-					else
-						swagNote.setGraphicSize(0, GRID_SIZE);
-
-					// Position the note during loading
-					positionNoteXByData(swagNote);
-					positionNoteYOnTime(swagNote, cnt);
-
-					// Add to buffer instead of main array
-					currentBuffer.push(swagNote);
+					var newNote = createNote(note, secNum);
+					notes.push(newNote);
 					sectionNoteCnt++;
 					parsedNotes++;
-
-					// Flush buffer when it reaches capacity
-					if (currentBuffer.length >= bufferSize) {
-						for (note in currentBuffer) {
-							notes.push(note);
-						}
-						currentBuffer = [];
-					}
 				}
 			}
 		}
 
-		// Final buffer flush
-		if (currentBuffer.length > 0) {
-			for (note in currentBuffer) {
-				notes.push(note);
-			}
-		}
-
-		var eventsLen:Int = PlayState.SONG.events.length;
 		var cachedLen:Int = cachedSectionTimes.length;
 		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen-1] : 0;
 
-		// JS-Engine OPTIMIZATION 3: Batch create events with optimized timing
-		for (i in 0...eventsLen)
+		for (i in 0...PlayState.SONG.events.length)
 		{
 			var event = PlayState.SONG.events[i];
-			if(event != null && (cachedLen < 1 || (event[0] != null && event[0] < lastTime)))
+			if(event != null && (cachedLen < 1 || event[0] < lastTime))
 			{
-				var eventNote:EventMetaNote;
-				if(event.length < 2 || event[1] == null || (Std.isOfType(event[1], Array) && cast(event[1], Array<Dynamic>).length <= 0)) {
-					// Create minimal event data for malformed events
-					var minimalEvent:Array<Dynamic> = [event[0], []];
-					eventNote = new EventMetaNote(event[0], minimalEvent);
-				} else {
-					// JS-Engine: Create EventMetaNote with proper event data storage
-					eventNote = new EventMetaNote(event[0], event);
-				}
-				eventNote.x = gridBg.x;
-				eventNote.eventText.x = eventNote.x - eventNote.eventText.width - 10;
-				eventNote.scrollFactor.x = 0;
-				eventNote.active = false;
-
-				// Calculate section for positioning
-				var secNum:Int = 0;
-				for (j in 1...cachedSectionTimes.length)
-				{
-					if(cachedSectionTimes[j] > event[0]) break;
-					secNum++;
-				}
-
-				positionNoteYOnTime(eventNote, secNum);
-				events.push(eventNote);
+				var newEvent = createEvent(event);
+				events.push(newEvent);
 			}
 		}
 
-		// Use chart editor-specific sorting for proper note stacking
 		notes.sort(PlayState.sortByTime);
 		events.sort(PlayState.sortByTime);
 
-		// Only load section if needed
 		if (curSec >= 0 && curSec < PlayState.SONG.notes.length)
 			loadSection(curSec);
 
 		forceDataUpdate = true;
 
-		// Debug timing for large charts
 		if (estimatedNotes > 50000)
 			trace('reloadNotes() processed ' + estimatedNotes + ' notes in ' + (haxe.Timer.stamp() - startTime) + 's');
 
-		// Re-enable GC after loading
 		#if sys
 		if (ClientPrefs.data.disableGC) {
 			MemoryUtil.enable();
@@ -2679,7 +2582,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 		#end
 
-		// Show final progress
 		showProgress(true);
 	}
 
@@ -2883,7 +2785,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			{
 				var totalNotes = parsedNotes + sectionNoteCnt;
 
-				Sys.stdout().writeString('\x1b[0GLoading $totalNotes notes');
+				Sys.stdout().writeString('\x1b[0GLoading $cnt/${PlayState.SONG.notes.length} ($totalNotes notes)');
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
@@ -2891,7 +2793,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		else if (isDesktop && force) 
 		{
 			var totalNotes = parsedNotes + sectionNoteCnt;
-			Sys.println('Loading $totalNotes notes');
+			Sys.println('Loading $cnt/${PlayState.SONG.notes.length} ($totalNotes notes)');
 		}
 	}
 

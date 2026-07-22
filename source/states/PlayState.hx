@@ -1744,16 +1744,13 @@ class PlayState extends MusicBeatState
 				daBpm = section.bpm;
 
 			cnt++;
-			sectionNoteCnt = 0;
 
-			// Show progress at start of each section
 			showProgress(false);
 
 			for (i in 0...section.sectionNotes.length)
 			{
 				final songNotes: Array<Dynamic> = section.sectionNotes[i];
 
-				// JS Engine optimization: Skip notes that won't be played
 				if (songNotes[0] < startOnTime - 500)
 					continue;
 
