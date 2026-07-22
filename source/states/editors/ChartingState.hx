@@ -2541,11 +2541,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					if (note.length > 1 && note[1] < 0)
-					{
-						trace('Found event in sectionNotes: ' + note);
-					}
-
 					var newNote = createNote(note, secNum);
 					notes.push(newNote);
 					parsedNotes++;
@@ -2555,26 +2550,35 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		trace('=== reloadNotes: Creating events from PlayState.SONG.events ===');
     	trace('PlayState.SONG.events length: ' + PlayState.SONG.events.length);
+		var eventsArray:Array<Dynamic> = PlayState.SONG.events;
 		var cachedLen:Int = cachedSectionTimes.length;
 		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen - 1] : 0;
 
-		for (i in 0...PlayState.SONG.events.length)
+		for (i in 0...eventsArray.length)
 		{
-			var event = PlayState.SONG.events[i];
+			var event = eventsArray[i];
 			trace('Processing event ' + i + ': ' + event);
-			if(event != null && (cachedLen < 1 || event[0] < lastTime))
+			if(event != null && Std.isOfType(event, Array))
 			{
 				trace('  event[0]: ' + event[0]);
 				trace('  event[1]: ' + (event.length > 1 ? event[1] : 'undefined'));
 				trace('  event length: ' + event.length);
-				trace('  -> Creating event with createEvent()');
-				var newEvent = createEvent(event);
-				if (newEvent != null) {
-					events.push(newEvent);
-					trace('  -> Event created successfully');
-				} else {
-					trace('  -> createEvent returned null!');
+
+				if(cachedLen < 1 || event[0] < lastTime)
+				{
+					trace('  -> Creating event with createEvent()');
+					var newEvent = createEvent(event);
+					if (newEvent != null) {
+						events.push(newEvent);
+						trace('  -> Event created successfully');
+					} else {
+						trace('  -> createEvent returned null!');
+					}
 				}
+			}
+			else
+			{
+				trace('  Event ' + i + ' is null or not an array: ' + event);
 			}
 		}
 
