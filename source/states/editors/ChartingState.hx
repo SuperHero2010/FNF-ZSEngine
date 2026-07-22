@@ -2558,34 +2558,45 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for (i in 0...eventsArray.length)
 		{
 			var event = eventsArray[i];
-			trace('Event ' + i + ': ' + event);
 
-			if (event != null && Std.isOfType(event, Array) && event.length > 0)
+			if (event == null)
 			{
-				var eventArray:Array<Dynamic> = cast event;
+				trace('Event ' + i + ' is null');
+				continue;
+			}
 
-				var event0:Dynamic = eventArray[0];
-				var event1:Dynamic = (eventArray.length > 1) ? eventArray[1] : null;
+			if (!Std.isOfType(event, Array))
+			{
+				trace('Event ' + i + ' is not an array: ' + Std.string(event) + ' (type: ' + Type.typeof(event) + ')');
+				continue;
+			}
 
-				trace('  event[0]: ' + event0);
-				trace('  event[1]: ' + event1);
+			var eventArray:Array<Dynamic> = cast event;
+			trace('Event ' + i + ': ' + eventArray);
+
+			if (eventArray.length > 0)
+			{
+				trace('  event[0]: ' + eventArray[0]);
+				if (eventArray.length > 1)
+					trace('  event[1]: ' + eventArray[1]);
 				trace('  event length: ' + eventArray.length);
-
-				if (cachedLen < 1 || eventArray[0] < lastTime)
-				{
-					trace('  -> Creating event with createEvent()');
-					var newEvent = createEvent(eventArray);
-					if (newEvent != null) {
-						events.push(newEvent);
-						trace('  -> Event created successfully');
-					} else {
-						trace('  -> createEvent returned null!');
-					}
-				}
 			}
 			else
 			{
-				trace('  Event ' + i + ' is null or not a valid array: ' + event);
+				trace('  event is empty array');
+				continue;
+			}
+
+			if (cachedLen < 1 || eventArray[0] < lastTime)
+			{
+				trace('  -> Creating event');
+				var newEvent = createEvent(eventArray);
+				if (newEvent != null) {
+					events.push(newEvent);
+					trace('  -> Event created');
+				} else {
+					trace('  -> createEvent returned null!');
+				}
 			}
 		}
 
