@@ -2550,6 +2550,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		trace('=== reloadNotes: Creating events from PlayState.SONG.events ===');
     	trace('PlayState.SONG.events length: ' + PlayState.SONG.events.length);
+
 		var eventsArray:Array<Dynamic> = PlayState.SONG.events;
 		var cachedLen:Int = cachedSectionTimes.length;
 		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen - 1] : 0;
@@ -2561,14 +2562,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			if (event != null && Std.isOfType(event, Array) && event.length > 0)
 			{
-				var event0:Dynamic = event[0];
-				var event1:Dynamic = (event.length > 1) ? event[1] : null;
+				var eventArray:Array<Dynamic> = cast event;
+
+				var event0:Dynamic = eventArray[0];
+				var event1:Dynamic = (eventArray.length > 1) ? eventArray[1] : null;
 
 				trace('  event[0]: ' + event0);
 				trace('  event[1]: ' + event1);
-				trace('  event length: ' + event.length);
+				trace('  event length: ' + eventArray.length);
 
-				var eventArray:Array<Dynamic> = cast event;
 				if (cachedLen < 1 || eventArray[0] < lastTime)
 				{
 					trace('  -> Creating event with createEvent()');
