@@ -155,7 +155,8 @@ class EventMetaNote extends MetaNote
 			trace('eventData[1]: ' + (eventData != null ? eventData[1] : 'null'));
 
 			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
-			trace('outer is Array? ' + (outer != null ? Std.isOfType(outer, Array) : 'null'));
+			var isOuterArray:Bool = (outer != null && Std.isOfType(outer, Array));
+			trace('outer is Array? ' + isOuterArray);
 
 			if (outer != null && Std.isOfType(outer, Array))
 			{
