@@ -143,26 +143,50 @@ class EventMetaNote extends MetaNote
 		super(time, -1, eventData);
 		this.isEvent = true;
 		events = [];
+
+		trace('=== EventMetaNote constructor ===');
+		trace('time: ' + time);
+		trace('eventData: ' + eventData);
+		trace('eventData length: ' + (eventData != null ? eventData.length : 'null'));
+
 		try
 		{
+			trace('eventData[0]: ' + (eventData != null ? eventData[0] : 'null'));
+			trace('eventData[1]: ' + (eventData != null ? eventData[1] : 'null'));
+			trace('Type of eventData[1]: ' + (eventData != null ? Type.typeof(eventData[1]) : 'null'));
+
 			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
 			if (outer != null && Std.isOfType(outer, Array))
 			{
+				trace('outer is Array, length: ' + outer.length);
 				var outerArr:Array<Dynamic> = cast outer;
 				for (entry in outerArr)
 				{
+					trace('entry: ' + entry);
 					if (entry != null && Std.isOfType(entry, Array))
+					{
+						trace('entry is Array: ' + entry);
 						events.push(cast entry);
+					}
 					else
+					{
+						trace('entry is not Array, wrapping: ' + entry);
 						events.push([entry]);
+					}
 				}
+			}
+			else
+			{
+				trace('outer is null or not an Array. Value: ' + outer);
 			}
 		}
 		catch (e:Dynamic)
 		{
-			trace('Error parsing event data: $e');
+			trace('Error parsing event data: ' + e);
 		}
-		if (events == null) events = [];
+
+		trace('Final events: ' + events);
+		trace('events.length: ' + events.length);
 
 		loadGraphic(Paths.image('editors/eventIcon'));
 		setGraphicSize(ChartingState.GRID_SIZE);

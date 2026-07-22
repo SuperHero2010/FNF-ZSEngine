@@ -1644,7 +1644,6 @@ class PlayState extends MusicBeatState
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.05;
 	private var cnt:Int = 0;
-	private var sectionNoteCnt:Int = 0;
 	private var parsedNotes:Int = 0;
 	private var sustainTotalCnt:Int = 0;
 	private var sustainNoteCnt:Int = 0;
@@ -1657,11 +1656,11 @@ class PlayState extends MusicBeatState
 		{
 			if ((Date.now().getTime() - syncTime > progressUpdateTime) || force)
 			{
-				Sys.stdout().writeString('\x1b[0GLoading $cnt/${SONG.notes.length} (${parsedNotes + sectionNoteCnt} notes)');
+				Sys.stdout().writeString('\x1b[0GLoading $cnt/${SONG.notes.length} ($parsedNotes notes)');
 				syncTime = Date.now().getTime();
 			}
 		} else if (isDesktop && force) {
-			Sys.println('Loading $cnt/${SONG.notes.length} (${parsedNotes + sectionNoteCnt} notes)');
+			Sys.println('Loading $cnt/${SONG.notes.length} ($parsedNotes notes)');
 		}
 	}
 
@@ -1773,7 +1772,6 @@ class PlayState extends MusicBeatState
 
 				swagNote.scrollFactor.set();
 				unspawnNotes.push(swagNote);
-				sectionNoteCnt++;
 				parsedNotes++;
 
 				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;

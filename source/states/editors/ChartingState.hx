@@ -2454,7 +2454,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		cnt = 0;
 		parsedNotes = 0;
-		sectionNoteCnt = 0;
 		syncTime = haxe.Timer.stamp() * 1000;
 
 		selectedNotes = [];
@@ -2541,7 +2540,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					var newNote = createNote(note, secNum);
 					notes.push(newNote);
-					sectionNoteCnt++;
 					parsedNotes++;
 				}
 			}
@@ -2767,7 +2765,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.05;
 	private var cnt:Int = 0;
-	private var sectionNoteCnt:Int = 0;
 	private var parsedNotes:Int = 0;
 	private var loadTime:Float = 0;
 
@@ -2778,17 +2775,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var currentTime = haxe.Timer.stamp() * 1000;
 			if ((currentTime - syncTime > progressUpdateTime * 1000) || force)
 			{
-				var totalNotes = parsedNotes + sectionNoteCnt;
-
-				Sys.stdout().writeString('\x1b[0GLoading $cnt/${PlayState.SONG.notes.length} ($totalNotes notes)');
+				Sys.stdout().writeString('\x1b[0GLoading $cnt/${PlayState.SONG.notes.length} ($parsedNotes notes)');
 				Sys.stdout().flush();
 				syncTime = currentTime;
 			}
 		}
 		else if (isDesktop && force) 
 		{
-			var totalNotes = parsedNotes + sectionNoteCnt;
-			Sys.println('Loading $cnt/${PlayState.SONG.notes.length} ($totalNotes notes)');
+			Sys.println('Loading $cnt/${PlayState.SONG.notes.length} ($parsedNotes notes)');
 		}
 	}
 
