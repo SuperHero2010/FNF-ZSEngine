@@ -2539,8 +2539,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				if(note != null)
 				{
 					trace('Creating note - section ' + secNum + ', note: ' + note);
-					if (note.length > 1) trace('  note[1]: ' + note[1] + ' (noteData)');
-					if (note.length > 3) trace('  note[3]: ' + note[3] + ' (noteType)');
+
+					if (Std.isOfType(note, Array))
+					{
+						var noteArray:Array<Dynamic> = cast note;
+						if (noteArray.length > 1) {
+							trace('  note[1]: ' + noteArray[1] + ' (noteData)');
+						}
+						if (noteArray.length > 3) {
+							trace('  note[3]: ' + noteArray[3] + ' (noteType)');
+						}
+					}
+
 					var newNote = createNote(note, secNum);
 					notes.push(newNote);
 					parsedNotes++;
@@ -2603,9 +2613,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		trace('=== createNote ===');
 		trace('note: ' + note);
 		trace('secNum: ' + secNum);
-		if (note != null && note.length > 1) {
-			trace('note[1]: ' + note[1]);
-			if (note.length > 3) trace('note[3]: ' + note[3]);
+
+		if (Std.isOfType(note, Array))
+		{
+			var noteArray:Array<Dynamic> = cast note;
+			if (noteArray.length > 1) {
+				trace('note[1]: ' + noteArray[1]);
+				if (noteArray.length > 3) {
+					trace('note[3]: ' + noteArray[3]);
+				}
+			}
 		}
 
 		var daStrumTime:Float = note[0];

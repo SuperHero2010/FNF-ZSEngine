@@ -19,10 +19,14 @@ class MetaNote extends Note
 		trace('time: ' + time);
 		trace('data: ' + data);
 		trace('songData: ' + songData);
-		if (songData != null && songData.length > 1) {
-			trace('  songData[1]: ' + songData[1] + ' (noteData)');
-			if (songData.length > 3) {
-				trace('  songData[3]: ' + songData[3] + ' (noteType)');
+		if (songData != null && Std.isOfType(songData, Array))
+		{
+			var songDataArray:Array<Dynamic> = cast songData;
+			if (songDataArray.length > 1) {
+				trace('  songData[1]: ' + songDataArray[1] + ' (noteData)');
+				if (songDataArray.length > 3) {
+					trace('  songData[3]: ' + songDataArray[3] + ' (noteType)');
+				}
 			}
 		}
 
