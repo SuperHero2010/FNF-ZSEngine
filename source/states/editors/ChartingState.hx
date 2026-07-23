@@ -2633,6 +2633,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
+		trace('Before MetaNote - daStrumTime: ' + daStrumTime + ', daNoteData: ' + daNoteData + ', note: ' + note);
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);

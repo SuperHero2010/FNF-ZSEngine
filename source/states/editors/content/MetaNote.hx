@@ -33,7 +33,7 @@ class MetaNote extends Note
 			}
 		}
 
-		super(time, data, songData, false, true);
+		super(time, data, null, false, true);
 
 		this.songData = songData;
 		this.strumTime = time;
