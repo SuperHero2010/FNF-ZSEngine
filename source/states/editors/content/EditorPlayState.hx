@@ -416,11 +416,11 @@ class EditorPlayState extends MusicBeatSubstate
 		{
 			if ((Date.now().getTime() - syncTime > progressUpdateTime) || force)
 			{
-				Sys.stdout().writeString('\x1b[0GLoading ${parsedNotes} notes');
+				Sys.stdout().writeString('\x1b[0GLoading $parsedNotes notes');
 				syncTime = Date.now().getTime();
 			}
 		} else if (isDesktop && force) {
-			Sys.println('Loading ${parsedNotes} notes');
+			Sys.println('Loading $parsedNotes notes');
 		}
 	}
 

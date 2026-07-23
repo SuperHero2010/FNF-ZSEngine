@@ -15,7 +15,19 @@ class MetaNote extends Note
 
 	public function new(time:Float, data:Int, songData:Array<Dynamic>)
 	{
+		trace('=== MetaNote constructor ===');
+		trace('time: ' + time);
+		trace('data: ' + data);
+		trace('songData: ' + songData);
+		if (songData != null && songData.length > 1) {
+			trace('  songData[1]: ' + songData[1] + ' (noteData)');
+			if (songData.length > 3) {
+				trace('  songData[3]: ' + songData[3] + ' (noteType)');
+			}
+		}
+
 		super(time, data, null, false, true);
+
 		this.songData = songData;
 		this.strumTime = time;
 		this.chartNoteData = data;

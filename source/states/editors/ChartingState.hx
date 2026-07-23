@@ -2480,24 +2480,28 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			MemoryUtil.enable();
 			MemoryUtil.collect(true);
 			MemoryUtil.disable();
-		} else cpp.vm.Gc.run(true);
+		}
+		else cpp.vm.Gc.run(true);
 
 		if (estimatedNotes > 500000) {
 			if (ClientPrefs.data.disableGC) {
 				MemoryUtil.enable();
 				MemoryUtil.collect(true);
 				MemoryUtil.disable();
-			} else {
+			}
+			else {
 				cpp.vm.Gc.enable(false);
 				cpp.vm.Gc.run(true);
 			}
-		} else if (estimatedNotes > 1000000) {
+		}
+		else if (estimatedNotes > 1000000) {
 			if (ClientPrefs.data.disableGC) {
 				MemoryUtil.enable();
 				MemoryUtil.collect(true);
 				MemoryUtil.disable();
 				MemoryUtil.collect(true);
-			} else {
+			}
+			else {
 				cpp.vm.Gc.enable(false);
 				cpp.vm.Gc.run(true);
 				cpp.vm.Gc.run(true);
@@ -2518,14 +2522,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				#if sys
 				if (ClientPrefs.data.disableGC) {
 					MemoryUtil.collect(true);
-					if (estimatedNotes > 1000000) {
-						MemoryUtil.collect(true);
-					}
+					if (estimatedNotes > 1000000) MemoryUtil.collect(true);
 				} else {
 					cpp.vm.Gc.run(true);
-					if (estimatedNotes > 1000000) {
-						cpp.vm.Gc.run(true);
-					}
+					if (estimatedNotes > 1000000) cpp.vm.Gc.run(true);
 				}
 				#end
 			}
@@ -2537,6 +2537,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
+					trace('Creating note - section ' + secNum + ', note: ' + note);
+					if (note.length > 1) trace('  note[1]: ' + note[1] + ' (noteData)');
+					if (note.length > 3) trace('  note[3]: ' + note[3] + ' (noteType)');
 					var newNote = createNote(note, secNum);
 					notes.push(newNote);
 					parsedNotes++;
@@ -2588,12 +2591,21 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		showProgress(true);
+		Sys.stdout().writeString('\n');
 	}
 
 	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
 	{
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
+
+		trace('=== createNote ===');
+		trace('note: ' + note);
+		trace('secNum: ' + secNum);
+		if (note != null && note.length > 1) {
+			trace('note[1]: ' + note[1]);
+			if (note.length > 3) trace('note[3]: ' + note[3]);
+		}
 
 		var daStrumTime:Float = note[0];
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
@@ -2631,11 +2643,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function createEvent(event:Dynamic)
 	{
-		if (event == null || event.length < 1)
-		{
-			trace('Warning: createEvent called with invalid event data');
-			return null;
-		}
 		var daStrumTime:Float = event[0];
 		var swagEvent:EventMetaNote = new EventMetaNote(daStrumTime, event);
 		swagEvent.x = gridBg.x;
