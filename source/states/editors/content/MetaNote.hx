@@ -19,13 +19,16 @@ class MetaNote extends Note
 		trace('time: ' + time);
 		trace('data: ' + data);
 		trace('songData: ' + songData);
-		if (songData != null && Std.isOfType(songData, Array))
+
+		if (Reflect.isObject(songData) && Reflect.hasField(songData, "length"))
 		{
-			var songDataArray:Array<Dynamic> = cast songData;
-			if (songDataArray.length > 1) {
-				trace('  songData[1]: ' + songDataArray[1] + ' (noteData)');
-				if (songDataArray.length > 3) {
-					trace('  songData[3]: ' + songDataArray[3] + ' (noteType)');
+			var len:Int = Reflect.field(songData, "length");
+			if (len > 1) {
+				var val1 = Reflect.field(songData, "1");
+				trace('  songData[1]: ' + val1 + ' (noteData)');
+				if (len > 3) {
+					var val3 = Reflect.field(songData, "3");
+					trace('  songData[3]: ' + val3 + ' (noteType)');
 				}
 			}
 		}

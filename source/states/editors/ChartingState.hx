@@ -2538,18 +2538,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					trace('Creating note - section ' + secNum + ', note: ' + Std.string(note));
+					trace('Creating note - section ' + secNum + ', note: ' + note);
 
 					if (Reflect.isObject(note) && Reflect.hasField(note, "length"))
 					{
-						var length:Int = Reflect.field(note, "length");
-						if (length > 1) {
-							var val1 = Reflect.field(note, 1);
-							trace('  note[1]: ' + Std.string(val1) + ' (noteData)');
+						var len2:Int = Reflect.field(note, "length");
+						if (len2 > 1) {
+							var val1 = Reflect.field(note, "1");
+							trace('  note[1]: ' + val1 + ' (noteData)');
 						}
-						if (length > 3) {
-							var val3 = Reflect.field(note, 3);
-							trace('  note[3]: ' + Std.string(val3) + ' (noteType)');
+						if (len2 > 3) {
+							var val3 = Reflect.field(note, "3");
+							trace('  note[3]: ' + val3 + ' (noteType)');
 						}
 					}
 
@@ -2618,13 +2618,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (Reflect.isObject(note) && Reflect.hasField(note, "length"))
 		{
-			var length:Int = Reflect.field(note, "length");
-			if (length > 1) {
-				var val1 = Reflect.field(note, 1);
-				trace('note[1]: ' + Std.string(val1));
-				if (length > 3) {
-					var val3 = Reflect.field(note, 3);
-					trace('note[3]: ' + Std.string(val3));
+			var len:Int = Reflect.field(note, "length");
+			if (len > 1) {
+				var val1 = Reflect.field(note, "1");
+				trace('note[1]: ' + val1);
+				if (len > 3) {
+					var val3 = Reflect.field(note, "3");
+					trace('note[3]: ' + val3);
 				}
 			}
 		}
