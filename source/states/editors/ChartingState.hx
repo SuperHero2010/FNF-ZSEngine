@@ -2593,7 +2593,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		showProgress(true);
-		Sys.stdout().writeString('\n');
 	}
 
 	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
