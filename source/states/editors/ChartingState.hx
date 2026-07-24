@@ -2536,35 +2536,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (i in 0...len)
 			{
 				var note = sectionNotes[i];
-				if(note != null)
+				if(note != null && Std.isOfType(note, Array) && note.length >= 3)
 				{
-					var noteData:Array<Dynamic>;
-					if (Std.isOfType(note, Array))
-					{
-						noteData = cast note;
-					}
-					else
-					{
-						var noteStr:String = Std.string(note);
-						var cleaned = noteStr.replace('[', '').replace(']', '').split(',');
-						noteData = [];
-						for (val in cleaned)
-						{
-							noteData.push(Std.parseFloat(StringTools.trim(val)));
-						}
-						sectionNotes[i] = noteData;
-						note = noteData;
-						trace('Fixed malformed note at section ' + secNum + ', index ' + i + ': ' + noteData);
-					}
+					if (note[1] < 0) continue;
 
-					if (noteData == null || noteData.length < 2) continue;
-
-					if (noteData[1] < 0)
-					{
-						continue;
-					}
-
-					var newNote = createNote(noteData, secNum);
+					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
 						parsedNotes++;
@@ -2625,50 +2601,27 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
-		trace('=== createNote ===');
-		trace('note: ' + note);
-		trace('secNum: ' + secNum);
-
-		var noteArray:Array<Dynamic>;
-		if (Std.isOfType(note, Array))
-		{
-			noteArray = cast note;
-		}
-		else
-		{
-			var cleaned = Std.string(note).replace('[', '').replace(']', '').split(',');
-			noteArray = [];
-			for (val in cleaned)
-			{
-				noteArray.push(Std.parseFloat(StringTools.trim(val)));
-			}
-			trace('Parsed noteArray: ' + noteArray);
-			note = noteArray;
-		}
-
 		var daStrumTime:Float = note[0];
-		var daNoteInfo:Float = note[1];
-		var daNoteData:Int = Std.int(daNoteInfo % GRID_COLUMNS_PER_PLAYER);
+		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
-		trace('daStrumTime: ' + daStrumTime + ', daNoteData: ' + daNoteData);
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
-		swagNote.noteType = note[3];
+
+		var noteTypeStr:String = note[3] != null ? Std.string(note[3]) : '';
+		swagNote.noteType = noteTypeStr;
 		swagNote.scrollFactor.x = 0;
-		trace('noteTypes: ' + noteTypes);
-		var noteTypeIndex:Int = swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0;
-		trace('swagNote.noteType: ' + swagNote.noteType);
-		trace('noteTypeIndex: ' + noteTypeIndex);
-		if(noteTypeIndex < 0 && swagNote.noteType != null && swagNote.noteType.length > 0)
+
+		var noteTypeIndex:Int = noteTypeStr != '' ? noteTypes.indexOf(noteTypeStr) : 0;
+		if(noteTypeIndex < 0 && noteTypeStr != '' && noteTypeStr.length > 0)
 		{
-			noteTypes.push(swagNote.noteType);
-			noteTypeIndex = noteTypes.indexOf(swagNote.noteType);
-			trace('Added note type, new noteTypes: ' + noteTypes);
+			noteTypes.push(noteTypeStr);
+			noteTypeIndex = noteTypes.indexOf(noteTypeStr);
 		}
 		if(noteTypeIndex < 0) noteTypeIndex = 0;
+
 		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
 		if(txt != null) txt.visible = showNoteTypeLabels;
 

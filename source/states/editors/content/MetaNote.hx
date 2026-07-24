@@ -15,11 +15,6 @@ class MetaNote extends Note
 
 	public function new(time:Float, data:Int, songData:Array<Dynamic>)
 	{
-		trace('=== MetaNote constructor ===');
-		trace('time: ' + time);
-		trace('data: ' + data);
-		trace('songData: ' + songData);
-
 		super(time, data, null, false, true);
 
 		this.songData = songData;
@@ -95,7 +90,6 @@ class MetaNote extends Note
 	var _noteTypeText:FlxText;
 	public function findNoteTypeText(num:Int)
 	{
-		trace('findNoteTypeText called with num: ' + num);
 		var txt:FlxText = null;
 		if(num != 0)
 		{
@@ -151,37 +145,18 @@ class EventMetaNote extends MetaNote
 		this.isEvent = true;
 		events = [];
 
-		trace('=== EventMetaNote constructor ===');
-		trace('time: ' + time);
-		trace('eventData: ' + eventData);
-		trace('eventData length: ' + (eventData != null ? eventData.length : 'null'));
-
 		try
 		{
-			trace('eventData[0]: ' + (eventData != null ? eventData[0] : 'null'));
-			trace('eventData[1]: ' + (eventData != null ? eventData[1] : 'null'));
-
 			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
 			var isOuterArray:Bool = (outer != null && Std.isOfType(outer, Array));
-			trace('outer is Array? ' + isOuterArray);
 
 			if (outer != null && Std.isOfType(outer, Array))
 			{
-				trace('outer is Array, length: ' + outer.length);
 				var outerArr:Array<Dynamic> = cast outer;
 				for (entry in outerArr)
 				{
-					trace('entry: ' + entry);
-					if (entry != null && Std.isOfType(entry, Array))
-					{
-						trace('entry is Array: ' + entry);
-						events.push(cast entry);
-					}
-					else
-					{
-						trace('entry is not Array, wrapping: ' + entry);
-						events.push([entry]);
-					}
+					if (entry != null && Std.isOfType(entry, Array)) events.push(cast entry);
+					else events.push([entry]);
 				}
 			}
 			else
@@ -193,9 +168,6 @@ class EventMetaNote extends MetaNote
 		{
 			trace('Error parsing event data: ' + e);
 		}
-
-		trace('Final events: ' + events);
-		trace('events.length: ' + events.length);
 
 		loadGraphic(Paths.image('editors/eventIcon'));
 		setGraphicSize(ChartingState.GRID_SIZE);
