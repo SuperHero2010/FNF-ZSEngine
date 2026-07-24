@@ -2538,24 +2538,37 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					trace('Creating note - section ' + secNum + ', note: ' + note);
-
-					if (Reflect.isObject(note) && Reflect.hasField(note, "length"))
+					var noteData:Array<Dynamic>;
+					if (Std.isOfType(note, Array))
 					{
-						var len2:Int = Reflect.field(note, "length");
-						if (len2 > 1) {
-							var val1 = Reflect.field(note, "1");
-							trace('  note[1]: ' + val1 + ' (noteData)');
+						noteData = cast note;
+					}
+					else
+					{
+						var noteStr:String = Std.string(note);
+						var cleaned = noteStr.replace('[', '').replace(']', '').split(',');
+						noteData = [];
+						for (val in cleaned)
+						{
+							noteData.push(Std.parseFloat(StringTools.trim(val)));
 						}
-						if (len2 > 3) {
-							var val3 = Reflect.field(note, "3");
-							trace('  note[3]: ' + val3 + ' (noteType)');
-						}
+						sectionNotes[i] = noteData;
+						note = noteData;
+						trace('Fixed malformed note at section ' + secNum + ', index ' + i + ': ' + noteData);
 					}
 
-					var newNote = createNote(note, secNum);
-					notes.push(newNote);
-					parsedNotes++;
+					if (noteData == null || noteData.length < 2) continue;
+
+					if (noteData[1] < 0)
+					{
+						continue;
+					}
+
+					var newNote = createNote(noteData, secNum);
+					if (newNote != null) {
+						notes.push(newNote);
+						parsedNotes++;
+					}
 				}
 			}
 		}
@@ -2616,24 +2629,29 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		trace('note: ' + note);
 		trace('secNum: ' + secNum);
 
-		if (Reflect.isObject(note) && Reflect.hasField(note, "length"))
+		var noteArray:Array<Dynamic>;
+		if (Std.isOfType(note, Array))
 		{
-			var len:Int = Reflect.field(note, "length");
-			if (len > 1) {
-				var val1 = Reflect.field(note, "1");
-				trace('note[1]: ' + val1);
-				if (len > 3) {
-					var val3 = Reflect.field(note, "3");
-					trace('note[3]: ' + val3);
-				}
+			noteArray = cast note;
+		}
+		else
+		{
+			var cleaned = Std.string(note).replace('[', '').replace(']', '').split(',');
+			noteArray = [];
+			for (val in cleaned)
+			{
+				noteArray.push(Std.parseFloat(StringTools.trim(val)));
 			}
+			trace('Parsed noteArray: ' + noteArray);
+			note = noteArray;
 		}
 
 		var daStrumTime:Float = note[0];
-		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
+		var daNoteInfo:Float = note[1];
+		var daNoteData:Int = Std.int(daNoteInfo % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
-		trace('Before MetaNote - daStrumTime: ' + daStrumTime + ', daNoteData: ' + daNoteData + ', note: ' + note);
+		trace('daStrumTime: ' + daStrumTime + ', daNoteData: ' + daNoteData);
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);

@@ -20,19 +20,6 @@ class MetaNote extends Note
 		trace('data: ' + data);
 		trace('songData: ' + songData);
 
-		if (Reflect.isObject(songData) && Reflect.hasField(songData, "length"))
-		{
-			var len:Int = Reflect.field(songData, "length");
-			if (len > 1) {
-				var val1 = Reflect.field(songData, "1");
-				trace('  songData[1]: ' + val1 + ' (noteData)');
-				if (len > 3) {
-					var val3 = Reflect.field(songData, "3");
-					trace('  songData[3]: ' + val3 + ' (noteType)');
-				}
-			}
-		}
-
 		super(time, data, null, false, true);
 
 		this.songData = songData;
