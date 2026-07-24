@@ -1875,6 +1875,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		outputTxt.visible = (outputAlpha > 0);
 		FlxG.camera.scroll.y = scrollY;
 		lastFocus = PsychUIInputText.focusOn;
+
+		var noteCount:Int = notes.length;
+		if (noteCount >= 2000) {
+			selectAllButton.active = false;
+			selectAllButton.alpha = 0.5;
+		}
+		else {
+			selectAllButton.active = true;
+			selectAllButton.alpha = 1;
+		}
 	}
 
 	function moveSelectedNotes(noteData:Int = 0, lastY:Float) //This turns selected notes into moving notes
@@ -2512,6 +2522,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if (estimatedNotes > 0) notes = [];
 		if (estimatedEvents > 0) events = [];
 
+		trace('=== reloadNotes: noteTypes before loading ===');
+		trace('noteTypes: ' + noteTypes);
 		for (secNum => section in PlayState.SONG.notes)
 		{
 			cnt++;
@@ -2540,6 +2552,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if (note[1] < 0) continue;
 
+					trace('Creating note with note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
@@ -2548,6 +2561,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
+		trace('=== reloadNotes: noteTypes after loading ===');
+		trace('noteTypes: ' + noteTypes);
 
 		var eventsArray:Array<Dynamic> = PlayState.SONG.events;
 		var cachedLen:Int = cachedSectionTimes.length;
@@ -2593,6 +2608,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		#end
 
 		showProgress(true);
+		if (Main.isConsoleAvailable) Sys.stdout().writeString('\n');
 	}
 
 	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
@@ -2604,24 +2620,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
+		trace('=== createNote ===');
+		trace('note: ' + note);
+		trace('note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
+		trace('noteTypes before adding: ' + noteTypes);
+
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
-
-		var noteTypeStr:String = note[3] != null ? Std.string(note[3]) : '';
-		swagNote.noteType = noteTypeStr;
+		swagNote.noteType = note[3];
 		swagNote.scrollFactor.x = 0;
-
-		var noteTypeIndex:Int = noteTypeStr != '' ? noteTypes.indexOf(noteTypeStr) : 0;
-		if(noteTypeIndex < 0 && noteTypeStr != '' && noteTypeStr.length > 0)
-		{
-			noteTypes.push(noteTypeStr);
-			noteTypeIndex = noteTypes.indexOf(noteTypeStr);
-		}
-		if(noteTypeIndex < 0) noteTypeIndex = 0;
-
-		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
+		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0);
 		if(txt != null) txt.visible = showNoteTypeLabels;
 
 		swagNote.updateHitbox();
@@ -3453,6 +3463,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var noteTypeDropDown:PsychUIDropDownMenu;
 	var noteTypes:Array<String>;
 
+	var selectAllButton:PsychUIButton;
 	var check_stackActive:PsychUICheckBox;
 	var stepperStackNum:PsychUINumericStepper;
 	var stepperStackOffset:ZSUINumericStepper;
@@ -3536,6 +3547,27 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			forceDataUpdate = true;
 		}, 120);
 
+		selectAllButton = new PsychUIButton(objX, objY + 80, 'Select All Notes', function() {
+			selectedNotes = [];
+			resetSelectedNotes();
+
+			var foundCount:Int = 0;
+
+			for (note in notes)
+			{
+				if (note == null || note.isEvent) continue;
+				selectedNotes.push(note);
+				foundCount++;
+			}
+
+			if (foundCount > 0)
+				showOutput('Selected $foundCount notes from entire chart');
+			else
+				showOutput('No notes found in chart');
+
+			forceDataUpdate = true;
+		}, 120);
+
 		noteTypeDropDown = new PsychUIDropDownMenu(objX, objY, [], function(id:Int, changeToType:String)
 		{
 			var newSelected:Array<MetaNote> = [];
@@ -3568,6 +3600,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(susLengthStepper);
 		tab_group.add(strumTimeStepper);
 		tab_group.add(selectAllSustainsButton);
+		tab_group.add(selectAllButton);
 		tab_group.add(noteTypeDropDown);
 	}
 
