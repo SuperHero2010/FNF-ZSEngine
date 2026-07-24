@@ -95,6 +95,7 @@ class MetaNote extends Note
 	var _noteTypeText:FlxText;
 	public function findNoteTypeText(num:Int)
 	{
+		trace('findNoteTypeText called with num: ' + num);
 		var txt:FlxText = null;
 		if(num != 0)
 		{
