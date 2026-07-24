@@ -17,7 +17,8 @@ class MetaNote extends Note
 	{
 		trace('=== MetaNote constructor ===');
 		trace('songData: ' + songData);
-		trace('songData[3]: ' + (songData != null && songData.length > 3 ? songData[3] : 'undefined'));
+		var songData3 = (songData != null && songData.length > 3) ? Std.string(songData[3]) : 'undefined';
+		trace('songData[3]: ' + songData3);
 		super(time, data, null, false, true);
 
 		this.songData = songData;

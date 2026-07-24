@@ -2552,7 +2552,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if (note[1] < 0) continue;
 
-					trace('Creating note with note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
+					var note3Value = (note.length > 3) ? Std.string(note[3]) : 'undefined';
+                	trace('Creating note with note[3]: ' + note3Value);
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
@@ -2622,7 +2623,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		trace('=== createNote ===');
 		trace('note: ' + note);
-		trace('note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
+		var note3Value = (note.length > 3) ? Std.string(note[3]) : 'undefined';
+		trace('note[3]: ' + note3Value);
 		trace('noteTypes before adding: ' + noteTypes);
 
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
