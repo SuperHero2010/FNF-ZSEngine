@@ -127,7 +127,11 @@ class MetaNote extends Note
 			txt.borderColor = FlxColor.BLACK;
 			txt.scrollFactor.x = 0;
 
-			var newKey = noteTypeTexts.keys().length;
+			var newKey = 0;
+			while (noteTypeTexts.exists(newKey))
+			{
+				newKey++;
+			}
 			noteTypeTexts.set(newKey, txt);
 		}
 
