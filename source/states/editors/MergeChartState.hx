@@ -1624,18 +1624,18 @@ class MergeChartState extends MusicBeatState
 				showMergingProgress(false, "Merge complete!\n", true);
 				trace("Chart saved to: " + path);
 				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
-				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
+				// if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 			},
 			function()
 			{
 				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
-				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
+				// if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 				showMergingProgress(false, "Save cancelled\n", true);
 			},
 			function(e:String)
 			{
 				if (FileSystem.exists(tempJsonPath)) FileSystem.deleteFile(tempJsonPath);
-				if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
+				// if (txt && FileSystem.exists(tempTxtPath)) FileSystem.deleteFile(tempTxtPath);
 				showMergingProgress(false, "Error saving chart: " + e + "\n", true);
 			}
 		);
