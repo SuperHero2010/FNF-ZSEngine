@@ -94,12 +94,20 @@ class MetaNote extends Note
 	var _noteTypeText:FlxText;
 	public function findNoteTypeText(num:Int)
 	{
+		trace('=== findNoteTypeText ===');
+		trace('num received: ' + num);
+		trace('num > 0: ' + (num > 0));
+		trace('noteTypeTexts exists? ' + noteTypeTexts.exists(num));
+
 		var txt:FlxText = null;
 		if(num != 0)
 		{
 			if(!noteTypeTexts.exists(num))
 			{
-				txt = new FlxText(0, 0, ChartingState.GRID_SIZE, (num > 0) ? Std.string(num) : '?', 16);
+				trace('Creating new text for num: ' + num);
+				var displayText = (num > 0) ? Std.string(num) : '?';
+				trace('displayText: ' + displayText);
+				txt = new FlxText(0, 0, ChartingState.GRID_SIZE, displayText, 16);
 				txt.autoSize = false;
 				txt.alignment = CENTER;
 				txt.borderStyle = SHADOW;
@@ -108,8 +116,18 @@ class MetaNote extends Note
 				txt.scrollFactor.x = 0;
 				noteTypeTexts.set(num, txt);
 			}
-			else txt = noteTypeTexts.get(num);
+			else
+			{
+				trace('Using existing text for num: ' + num);
+				txt = noteTypeTexts.get(num);
+			}
 		}
+		else
+		{
+			trace('num is 0, returning null (no label)');
+		}
+
+		trace('Returning txt: ' + (txt != null ? txt.text : 'null'));
 		return (_noteTypeText = txt);
 	}
 

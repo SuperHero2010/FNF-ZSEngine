@@ -2617,23 +2617,30 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
+		trace('=== createNote ===');
+		trace('note: ' + note);
+		trace('note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
+
 		var daStrumTime:Float = note[0];
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
-
-		trace('=== createNote ===');
-		trace('note: ' + note);
-		var note3Value = (note.length > 3) ? Std.string(note[3]) : 'undefined';
-		trace('note[3]: ' + note3Value);
-		trace('noteTypes before adding: ' + noteTypes);
 
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
-		swagNote.noteType = note[3];
+		swagNote.noteType = note.length > 3 ? Std.string(note[3]) : '';
 		swagNote.scrollFactor.x = 0;
-		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0);
+
+		trace('swagNote.noteType: "' + swagNote.noteType + '"');
+		trace('noteTypes: ' + noteTypes);
+
+		var noteTypeIndex:Int = swagNote.noteType != null && swagNote.noteType != '' ? noteTypes.indexOf(swagNote.noteType) : 0;
+		trace('noteTypeIndex: ' + noteTypeIndex);
+
+		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
+		trace('txt from findNoteTypeText: ' + (txt != null ? txt.text : 'null'));
+
 		if(txt != null) txt.visible = showNoteTypeLabels;
 
 		swagNote.updateHitbox();
