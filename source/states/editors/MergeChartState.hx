@@ -42,8 +42,8 @@ class MergeChartState extends MusicBeatState
 	var tempCheckbox:PsychUICheckBox;
 	var rewrite:Bool = false;
 	var rewriteCheckbox:PsychUICheckBox;
-	var convertToTxt:Bool = false;
-	var convertToTxtCheckbox:PsychUICheckBox;
+	// var convertToTxt:Bool = false;
+	// var convertToTxtCheckbox:PsychUICheckBox;
 
 	static public var mergeThread:sys.thread.Thread;
 	private var mergeComplete:Bool = false;
@@ -132,6 +132,7 @@ class MergeChartState extends MusicBeatState
 		rewrite = rewriteCheckbox.checked;
 		add(rewriteCheckbox);
 
+		/*
 		convertToTxtCheckbox = new PsychUICheckBox(20, backButton.y - 120, "Convert to TXT", 200, function() {
 			convertToTxt = convertToTxtCheckbox.checked;
 			mergeChartSave.data.convertToTxt = convertToTxt;
@@ -141,6 +142,7 @@ class MergeChartState extends MusicBeatState
 		convertToTxtCheckbox.checked = (mergeChartSave.data.convertToTxt == true);
 		convertToTxt = convertToTxtCheckbox.checked;
 		add(convertToTxtCheckbox);
+		*/
 
 		fileDialog = new FileDialogHandler();
 		add(fileDialog);
@@ -152,11 +154,12 @@ class MergeChartState extends MusicBeatState
 		temp = mergeChartSave.data.temp;
 		if (mergeChartSave.data.rewrite == null) mergeChartSave.data.rewrite = false;
 		rewrite = mergeChartSave.data.rewrite;
-		if (mergeChartSave.data.convertToTxt == null) mergeChartSave.data.convertToTxt = false;
-		convertToTxt = mergeChartSave.data.convertToTxt;
-		updateCheckboxStates();
+		// if (mergeChartSave.data.convertToTxt == null) mergeChartSave.data.convertToTxt = false;
+		// convertToTxt = mergeChartSave.data.convertToTxt;
+		// updateCheckboxStates();
 	}
 
+	/*
 	private function updateCheckboxStates():Void
 	{
 		var otherCheckboxes = [indentationCheckbox, tempCheckbox, rewriteCheckbox];
@@ -180,6 +183,7 @@ class MergeChartState extends MusicBeatState
 		}
 		mergeChartSave.flush();
 	}
+	*/
 
 	private function callLater(callback:Void->Void, delay:Float):Void
 	{
@@ -220,14 +224,16 @@ class MergeChartState extends MusicBeatState
 			if (temp) {
 				updateUI('Writing temp file...\n');
 				tempPath = 'temp_merged.json';
-				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base", false);
+				saveChartStreaming(baseChart, tempPath, hasWrapper, false, "base", indentation);
 			}
+			/*
 			else if (convertToTxt) {
 				updateUI('Converting to TXT format...\n');
 				tempPath = 'temp_merged.txt';
 				var txtContent = convertToTxtFormat(baseChart, hasWrapper);
 				sys.io.File.saveContent(tempPath, txtContent);
 			}
+			*/
 
 			var totalCharts:Int = chartPaths.length;
 			var baseChart2:Dynamic = null;
@@ -248,10 +254,12 @@ class MergeChartState extends MusicBeatState
 						baseChart2 = baseObj2;
 					SongJson.log = false;
 				}
+				/*
 				else if (convertToTxt) {
 					var txtContent = File.getContent(tempPath);
 					baseChart2 = txtContent;
 				}
+				*/
 
 				SongJson.log = true;
 				var nextData = loadChartFromFileWithProgress(chartPaths[i]);
@@ -264,10 +272,12 @@ class MergeChartState extends MusicBeatState
 					nextChart = nextObj;
 				SongJson.log = false;
 
+				/*
 				var nextTxtContent:String = null;
 				if (convertToTxt) {
 					nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
 				}
+				*/
 
 				if (temp) {
 					if (rewrite) {
@@ -305,12 +315,14 @@ class MergeChartState extends MusicBeatState
 						appendChartToTempFile(tempPath, nextChart, hasWrapper, i + 1, indentation);
 					}
 				}
+				/*
 				else if (convertToTxt) {
 					updateUI('Appending chart ${i + 1} to TXT...\n');
 					var nextTxtContent = convertToTxtFormat(nextChart, hasWrapper);
 					appendTxtToTempFile(tempPath, nextTxtContent);
 					updateUI('Appended notes and events from chart ${i + 1}\n');
 				}
+				*/
 				else {
 					updateUI('Fast array concatenation...\n');
 
@@ -342,6 +354,7 @@ class MergeChartState extends MusicBeatState
 			updateUI('Finalizing...\n');
 
 			var finalChart:Dynamic;
+			/*
 			if (convertToTxt) {
 				updateUI('Loading TXT temp file...\n');
 				try {
@@ -356,10 +369,11 @@ class MergeChartState extends MusicBeatState
 					finalChart = baseChart;
 				}
 			}
-			else if (temp) {
+			*/
+			if (temp) {
 				if (rewrite) {
 					updateUI('Saving temp file...\n');
-					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp", false);
+					saveChartStreaming(baseChart2, tempPath, hasWrapper, false, "temp", indentation);
 					var baseData = File.getContent(tempPath);
 					var baseObj = SongJson.parse(baseData);
 					if (baseObj.song != null && Std.isOfType(baseObj.song, Dynamic))
@@ -386,7 +400,7 @@ class MergeChartState extends MusicBeatState
 					updateUI('ERROR: finalChart is null, cannot save merged chart\n');
 					return;
 				}
-				saveMergedChart(finalChart, hasWrapper, indentation, convertToTxt);
+				saveMergedChart(finalChart, hasWrapper);
 			}, 0);
 
 			#if cpp
@@ -632,7 +646,7 @@ class MergeChartState extends MusicBeatState
 					tempChart = tempObj;
 				}
 				mergeInto(tempChart, nextChart);
-				saveChartStreaming(tempChart, tempPath, hasWrapper, false, 'chart $chartIndex');
+				saveChartStreaming(tempChart, tempPath, hasWrapper, false, 'chart $chartIndex', indentation);
 				return;
 			};
 			var funcNo = function() {
@@ -888,6 +902,7 @@ class MergeChartState extends MusicBeatState
 		return -1;
 	}
 
+	/*
 	private function convertToTxtFormat(chart:Dynamic, hasWrapper:Bool):String
 	{
 		var sb = new StringBuf();
@@ -1093,6 +1108,7 @@ class MergeChartState extends MusicBeatState
 		}
 		return result;
 	}
+	*/
 
 	private function copyChunk(inputFile:sys.io.FileInput, outputFile:sys.io.FileOutput, bytesToCopy:Int, message:String):Void
 	{
@@ -1570,12 +1586,15 @@ class MergeChartState extends MusicBeatState
 		showMergingProgress(true, '\nFile written: $path\n', true);
 	}
 
-	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true, indentation:Bool = false, txt:Bool = false):Void
+	private function saveMergedChart(chart:Dynamic, hasWrapper:Bool = true /*, txt:Bool = false */):Void
 	{
 		var defaultName:String = chart.song + "-merged.json";
 		var tempJsonPath = "temp_final_merged.json";
 		var tempTxtPath = "temp_final_merged.txt";
 
+		var jsonString = Json.stringify(chart);
+		sys.io.File.saveContent(tempJsonPath, jsonString);
+		/*
 		if (!txt) {
 			var jsonString = Json.stringify(chart);
 			sys.io.File.saveContent(tempJsonPath, jsonString);
@@ -1594,8 +1613,10 @@ class MergeChartState extends MusicBeatState
 			var jsonString = Json.stringify(finalChart);
 			sys.io.File.saveContent(tempJsonPath, jsonString);
 		}
+		*/
 
-		var finalTempPath = txt ? tempTxtPath : tempJsonPath;
+		// var finalTempPath = txt ? tempTxtPath : tempJsonPath;
+		var finalTempPath = tempJsonPath;
 
 		fileDialog.saveFile(finalTempPath, defaultName,
 			function(path:String)
