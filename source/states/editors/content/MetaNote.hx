@@ -92,43 +92,47 @@ class MetaNote extends Note
 	}
 
 	var _noteTypeText:FlxText;
-	public function findNoteTypeText(num:Int)
+	public function findNoteTypeText(noteTypeValue:String)
 	{
-		trace('=== findNoteTypeText ===');
-		trace('num received: ' + num);
-		trace('num > 0: ' + (num > 0));
-		trace('noteTypeTexts exists? ' + noteTypeTexts.exists(num));
-
 		var txt:FlxText = null;
-		if(num != 0)
+
+		if (noteTypeValue == null || noteTypeValue == '')
 		{
-			if(!noteTypeTexts.exists(num))
+			_noteTypeText = null;
+			return null;
+		}
+
+		var existingKey = -1;
+		for (key => text in noteTypeTexts)
+		{
+			if (text != null && text.text == noteTypeValue)
 			{
-				trace('Creating new text for num: ' + num);
-				var displayText = (num > 0) ? Std.string(num) : '?';
-				trace('displayText: ' + displayText);
-				txt = new FlxText(0, 0, ChartingState.GRID_SIZE, displayText, 16);
-				txt.autoSize = false;
-				txt.alignment = CENTER;
-				txt.borderStyle = SHADOW;
-				txt.shadowOffset.set(2, 2);
-				txt.borderColor = FlxColor.BLACK;
-				txt.scrollFactor.x = 0;
-				noteTypeTexts.set(num, txt);
+				existingKey = key;
+				break;
 			}
-			else
-			{
-				trace('Using existing text for num: ' + num);
-				txt = noteTypeTexts.get(num);
-			}
+		}
+
+		if (existingKey != -1)
+		{
+			txt = noteTypeTexts.get(existingKey);
 		}
 		else
 		{
-			trace('num is 0, returning null (no label)');
+			var displayText = '?';
+			txt = new FlxText(0, 0, ChartingState.GRID_SIZE, displayText, 16);
+			txt.autoSize = false;
+			txt.alignment = CENTER;
+			txt.borderStyle = SHADOW;
+			txt.shadowOffset.set(2, 2);
+			txt.borderColor = FlxColor.BLACK;
+			txt.scrollFactor.x = 0;
+
+			var newKey = noteTypeTexts.length;
+			noteTypeTexts.set(newKey, txt);
 		}
 
-		trace('Returning txt: ' + (txt != null ? txt.text : 'null'));
-		return (_noteTypeText = txt);
+		_noteTypeText = txt;
+		return txt;
 	}
 
 	override function draw()

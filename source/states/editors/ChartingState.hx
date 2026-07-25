@@ -1877,7 +1877,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		lastFocus = PsychUIInputText.focusOn;
 
 		var noteCount:Int = notes.length;
-		if (noteCount >= 2000) {
+		if (noteCount >= 10000) {
 			selectAllButton.active = false;
 			selectAllButton.alpha = 0.5;
 		}
@@ -2522,8 +2522,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if (estimatedNotes > 0) notes = [];
 		if (estimatedEvents > 0) events = [];
 
-		trace('=== reloadNotes: noteTypes before loading ===');
-		trace('noteTypes: ' + noteTypes);
 		for (secNum => section in PlayState.SONG.notes)
 		{
 			cnt++;
@@ -2545,6 +2543,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			var sectionNotes = section.sectionNotes;
 			var len:Int = sectionNotes.length;
+
 			for (i in 0...len)
 			{
 				var note = sectionNotes[i];
@@ -2552,8 +2551,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if (note[1] < 0) continue;
 
-					var note3Value = (note.length > 3) ? Std.string(note[3]) : 'undefined';
-                	trace('Creating note with note[3]: ' + note3Value);
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
@@ -2562,8 +2559,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
-		trace('=== reloadNotes: noteTypes after loading ===');
-		trace('noteTypes: ' + noteTypes);
 
 		var eventsArray:Array<Dynamic> = PlayState.SONG.events;
 		var cachedLen:Int = cachedSectionTimes.length;
@@ -2617,10 +2612,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
-		trace('=== createNote ===');
-		trace('note: ' + note);
-		trace('note[3]: ' + (note.length > 3 ? note[3] : 'undefined'));
-
 		var daStrumTime:Float = note[0];
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
@@ -2632,15 +2623,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		swagNote.noteType = note.length > 3 ? Std.string(note[3]) : '';
 		swagNote.scrollFactor.x = 0;
 
-		trace('swagNote.noteType: "' + swagNote.noteType + '"');
-		trace('noteTypes: ' + noteTypes);
-
-		var noteTypeIndex:Int = swagNote.noteType != null && swagNote.noteType != '' ? noteTypes.indexOf(swagNote.noteType) : 0;
-		trace('noteTypeIndex: ' + noteTypeIndex);
-
-		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
-		trace('txt from findNoteTypeText: ' + (txt != null ? txt.text : 'null'));
-
+		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType);
 		if(txt != null) txt.visible = showNoteTypeLabels;
 
 		swagNote.updateHitbox();
