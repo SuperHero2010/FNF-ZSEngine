@@ -2549,18 +2549,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					var fixedNote:Array<Dynamic> = [
-						Std.parseFloat(Std.string(note[0])),
-						note[1],
-						note.length > 2 ? Std.parseFloat(Std.string(note[2])) : 0
-					];
-					if (note.length > 3) {
-						fixedNote.push(note[3]);
-					}
-
-					sectionNotes[i] = fixedNote;
-					note = fixedNote;
-
 					trace('note: ' + note);
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
