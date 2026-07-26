@@ -2547,29 +2547,31 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (i in 0...len)
 			{
 				var note = sectionNotes[i];
-				if(note != null)
+				if(note != null && Std.isOfType(note, Array))
 				{
+					var noteArray:Array<Dynamic> = cast note;
+
 					trace('=== BEFORE CONVERSION ===');
-					trace('note: ' + note);
-					trace('note[0] type: ' + Type.typeof(note[0]));
-					trace('note[0] value: ' + note[0]);
-					if (note.length > 2) {
-						trace('note[2] type: ' + Type.typeof(note[2]));
-						trace('note[2] value: ' + note[2]);
+					trace('note: ' + noteArray);
+					trace('note[0] type: ' + Type.typeof(noteArray[0]));
+					trace('note[0] value: ' + noteArray[0]);
+					if (noteArray.length > 2) {
+						trace('note[2] type: ' + Type.typeof(noteArray[2]));
+						trace('note[2] value: ' + noteArray[2]);
 					}
 
-					if (Std.isOfType(note, Array) && note.length >= 1)
+					if (noteArray.length >= 1)
 					{
-						note[0] = Std.parseFloat(Std.string(note[0]));
-						if (note.length > 2) note[2] = Std.parseFloat(Std.string(note[2]));
-						sectionNotes[i] = note;
+						noteArray[0] = Std.parseFloat(Std.string(noteArray[0]));
+						if (noteArray.length > 2) noteArray[2] = Std.parseFloat(Std.string(noteArray[2]));
+						sectionNotes[i] = noteArray;
 					}
 
 					trace('=== AFTER CONVERSION ===');
-					trace('note[0]: ' + note[0]);
-					if (note.length > 2) trace('note[2]: ' + note[2]);
+					trace('note[0]: ' + noteArray[0]);
+					if (noteArray.length > 2) trace('note[2]: ' + noteArray[2]);
 
-					var newNote = createNote(note, secNum);
+					var newNote = createNote(noteArray, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
 						parsedNotes++;
@@ -2632,16 +2634,24 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		trace('=== IN createNote ===');
 		trace('note before: ' + note);
-		trace('note[0] before: ' + note[0]);
-		trace('Type of note[0]: ' + Type.typeof(note[0]));
 
-		var daStrumTime:Float = Std.parseFloat(Std.string(note[0]));
-		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
-		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
+		if (!Std.isOfType(note, Array))
+		{
+			trace('ERROR: note is not an array!');
+			return null;
+		}
+		var noteArray:Array<Dynamic> = cast note;
+
+		trace('note[0] before: ' + noteArray[0]);
+		trace('Type of note[0]: ' + Type.typeof(noteArray[0]));
+
+		var daStrumTime:Float = Std.parseFloat(Std.string(noteArray[0]));
+		var daNoteData:Int = Std.int(noteArray[1] % GRID_COLUMNS_PER_PLAYER);
+		var gottaHitNote:Bool = (noteArray[1] < GRID_COLUMNS_PER_PLAYER);
 
 		trace('daStrumTime: ' + daStrumTime);
 
-		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
+		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, noteArray);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
