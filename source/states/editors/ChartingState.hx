@@ -2553,7 +2553,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					{
 						note[0] = Std.parseFloat(Std.string(note[0]));
 						if (note.length > 2) note[2] = Std.parseFloat(Std.string(note[2]));
+						sectionNotes[i] = note;
 					}
+
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
@@ -2615,7 +2617,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
-		var daStrumTime:Float = note[0];
+		var daStrumTime:Float = Std.parseFloat(Std.string(note[0]));
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
