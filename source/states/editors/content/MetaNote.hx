@@ -88,51 +88,25 @@ class MetaNote extends Note
 	}
 
 	var _noteTypeText:FlxText;
-	public function findNoteTypeText(noteTypeValue:String)
+	public function findNoteTypeText(num:Int)
 	{
 		var txt:FlxText = null;
-
-		if (noteTypeValue == null || noteTypeValue == '')
+		if(num != 0)
 		{
-			_noteTypeText = null;
-			return null;
-		}
-
-		var existingKey = -1;
-		for (key => text in noteTypeTexts)
-		{
-			if (text != null && text.text == noteTypeValue)
+			if(!noteTypeTexts.exists(num))
 			{
-				existingKey = key;
-				break;
+				txt = new FlxText(0, 0, ChartingState.GRID_SIZE, (num > 0) ? Std.string(num) : '?', 16);
+				txt.autoSize = false;
+				txt.alignment = CENTER;
+				txt.borderStyle = SHADOW;
+				txt.shadowOffset.set(2, 2);
+				txt.borderColor = FlxColor.BLACK;
+				txt.scrollFactor.x = 0;
+				noteTypeTexts.set(num, txt);
 			}
+			else txt = noteTypeTexts.get(num);
 		}
-
-		if (existingKey != -1)
-		{
-			txt = noteTypeTexts.get(existingKey);
-		}
-		else
-		{
-			var displayText = '?';
-			txt = new FlxText(0, 0, ChartingState.GRID_SIZE, displayText, 16);
-			txt.autoSize = false;
-			txt.alignment = CENTER;
-			txt.borderStyle = SHADOW;
-			txt.shadowOffset.set(2, 2);
-			txt.borderColor = FlxColor.BLACK;
-			txt.scrollFactor.x = 0;
-
-			var newKey = 0;
-			while (noteTypeTexts.exists(newKey))
-			{
-				newKey++;
-			}
-			noteTypeTexts.set(newKey, txt);
-		}
-
-		_noteTypeText = txt;
-		return txt;
+		return (_noteTypeText = txt);
 	}
 
 	override function draw()

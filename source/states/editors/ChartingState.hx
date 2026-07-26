@@ -2547,35 +2547,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			for (i in 0...len)
 			{
 				var note = sectionNotes[i];
-				if(note != null && Std.isOfType(note, Array))
+				if(note != null)
 				{
-					var noteArray:Array<Dynamic> = cast note;
-
-					trace('=== BEFORE CONVERSION ===');
-					trace('note: ' + noteArray);
-					trace('note[0] type: ' + Type.typeof(noteArray[0]));
-					trace('note[0] value: ' + noteArray[0]);
-					if (noteArray.length > 2) {
-						trace('note[2] type: ' + Type.typeof(noteArray[2]));
-						trace('note[2] value: ' + noteArray[2]);
-					}
-
-					if (noteArray.length >= 1)
-					{
-						noteArray[0] = Std.parseFloat(Std.string(noteArray[0]));
-						if (noteArray.length > 2) noteArray[2] = Std.parseFloat(Std.string(noteArray[2]));
-						sectionNotes[i] = noteArray;
-					}
-
-					trace('=== AFTER CONVERSION ===');
-					trace('note[0]: ' + noteArray[0]);
-					if (noteArray.length > 2) trace('note[2]: ' + noteArray[2]);
-
-					var newNote = createNote(noteArray, secNum);
-					if (newNote != null) {
-						notes.push(newNote);
-						parsedNotes++;
-					}
+					var newNote = createNote(note, secNum);
+					notes.push(newNote);
+					parsedNotes++;
 				}
 			}
 		}
@@ -2632,33 +2608,24 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
-		trace('=== IN createNote ===');
-		trace('note before: ' + note);
+		var daStrumTime:Float = note[0];
+		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
+		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
 
-		if (!Std.isOfType(note, Array))
-		{
-			trace('ERROR: note is not an array!');
-			return null;
-		}
-		var noteArray:Array<Dynamic> = cast note;
-
-		trace('note[0] before: ' + noteArray[0]);
-		trace('Type of note[0]: ' + Type.typeof(noteArray[0]));
-
-		var daStrumTime:Float = Std.parseFloat(Std.string(noteArray[0]));
-		var daNoteData:Int = Std.int(noteArray[1] % GRID_COLUMNS_PER_PLAYER);
-		var gottaHitNote:Bool = (noteArray[1] < GRID_COLUMNS_PER_PLAYER);
-
-		trace('daStrumTime: ' + daStrumTime);
-
-		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, noteArray);
+		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
 		swagNote.setSustainLength(note[2], cachedSectionCrochets[secNum] / 4, curZoom);
 		swagNote.gfNote = (section.gfSection && gottaHitNote == section.mustHitSection);
-		swagNote.noteType = note.length > 3 ? Std.string(note[3]) : '';
+		swagNote.noteType = note[3];
 		swagNote.scrollFactor.x = 0;
-
-		var txt:FlxText = swagNote.findNoteTypeText(swagNote.noteType);
+		var noteTypeIndex:Int = swagNote.noteType != null ? noteTypes.indexOf(swagNote.noteType) : 0;
+		if(noteTypeIndex < 0 && swagNote.noteType != null && swagNote.noteType.length > 0)
+		{
+			noteTypes.push(swagNote.noteType);
+			noteTypeIndex = noteTypes.indexOf(swagNote.noteType);
+		}
+		if(noteTypeIndex < 0) noteTypeIndex = 0;
+		var txt:FlxText = swagNote.findNoteTypeText(noteTypeIndex);
 		if(txt != null) txt.visible = showNoteTypeLabels;
 
 		swagNote.updateHitbox();
@@ -3041,19 +3008,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function positionNoteYOnTime(note:MetaNote, section:Int)
 	{
-		trace('=== positionNoteYOnTime ===');
-		trace('note.strumTime before: ' + note.strumTime);
-		trace('note.strumTime type: ' + Type.typeof(note.strumTime));
-
 		var time:Float = note.strumTime - cachedSectionTimes[section];
 		var noteY:Float = (time / cachedSectionCrochets[section]) * GRID_SIZE * 4 * curZoom;
 		noteY += cachedSectionRow[section] * GRID_SIZE * curZoom;
 		noteY = Math.max(noteY, -150);
 		note.y = noteY + (GRID_SIZE/2 - note.height/2);
 		note.chartY = noteY;
-
-		trace('note.y: ' + note.y);
-		trace('note.chartY: ' + note.chartY);
 		//trace(gridBg.y, noteY);
 	}
 
