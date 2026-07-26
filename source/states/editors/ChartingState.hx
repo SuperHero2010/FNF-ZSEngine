@@ -2549,12 +2549,25 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
+					trace('=== BEFORE CONVERSION ===');
+					trace('note: ' + note);
+					trace('note[0] type: ' + Type.typeof(note[0]));
+					trace('note[0] value: ' + note[0]);
+					if (note.length > 2) {
+						trace('note[2] type: ' + Type.typeof(note[2]));
+						trace('note[2] value: ' + note[2]);
+					}
+
 					if (Std.isOfType(note, Array) && note.length >= 1)
 					{
 						note[0] = Std.parseFloat(Std.string(note[0]));
 						if (note.length > 2) note[2] = Std.parseFloat(Std.string(note[2]));
 						sectionNotes[i] = note;
 					}
+
+					trace('=== AFTER CONVERSION ===');
+					trace('note[0]: ' + note[0]);
+					if (note.length > 2) trace('note[2]: ' + note[2]);
 
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
@@ -2617,9 +2630,16 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
 
+		trace('=== IN createNote ===');
+		trace('note before: ' + note);
+		trace('note[0] before: ' + note[0]);
+		trace('Type of note[0]: ' + Type.typeof(note[0]));
+
 		var daStrumTime:Float = Std.parseFloat(Std.string(note[0]));
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
 		var gottaHitNote:Bool = (note[1] < GRID_COLUMNS_PER_PLAYER);
+
+		trace('daStrumTime: ' + daStrumTime);
 
 		var swagNote:MetaNote = new MetaNote(daStrumTime, daNoteData, note);
 		swagNote.mustPress = gottaHitNote;
@@ -3011,12 +3031,19 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function positionNoteYOnTime(note:MetaNote, section:Int)
 	{
+		trace('=== positionNoteYOnTime ===');
+		trace('note.strumTime before: ' + note.strumTime);
+		trace('note.strumTime type: ' + Type.typeof(note.strumTime));
+
 		var time:Float = note.strumTime - cachedSectionTimes[section];
 		var noteY:Float = (time / cachedSectionCrochets[section]) * GRID_SIZE * 4 * curZoom;
 		noteY += cachedSectionRow[section] * GRID_SIZE * curZoom;
 		noteY = Math.max(noteY, -150);
 		note.y = noteY + (GRID_SIZE/2 - note.height/2);
 		note.chartY = noteY;
+
+		trace('note.y: ' + note.y);
+		trace('note.chartY: ' + note.chartY);
 		//trace(gridBg.y, noteY);
 	}
 

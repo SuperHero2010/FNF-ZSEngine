@@ -2370,11 +2370,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		var healthPercent = healthBar.percent;
 
-		if (healthPercent < 20)
+		if (healthPercent <= 20)
 		{
 			iconP1.setIconState('lose');
 		}
-		else if (healthPercent > 80)
+		else if (healthPercent >= 80)
 		{
 			var winPath = 'icons/' + iconP1.getCharacter() + '-win';
 			if (Paths.fileExists('images/' + winPath + '.png', IMAGE))
@@ -2387,11 +2387,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			iconP1.setIconState('normal');
 		}
 
-		if (healthPercent > 80)
+		if (healthPercent >= 80)
 		{
 			iconP2.setIconState('lose');
 		}
-		else if (healthPercent < 20)
+		else if (healthPercent <= 20)
 		{
 			var winPath = 'icons/' + iconP2.getCharacter() + '-win';
 			if (Paths.fileExists('images/' + winPath + '.png', IMAGE))
