@@ -2549,7 +2549,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var note = sectionNotes[i];
 				if(note != null)
 				{
-					trace('note: ' + note);
+					if (Std.isOfType(note, Array) && note.length >= 1)
+					{
+						note[0] = Std.parseFloat(Std.string(note[0]));
+						if (note.length > 2) note[2] = Std.parseFloat(Std.string(note[2]));
+					}
 					var newNote = createNote(note, secNum);
 					if (newNote != null) {
 						notes.push(newNote);
