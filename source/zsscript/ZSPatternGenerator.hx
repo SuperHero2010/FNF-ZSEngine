@@ -2004,13 +2004,13 @@ class ZSPatternGenerator {
         });
         patterns.push({
             pattern: "give (.+?)",
-            replacement: "return ($1)",
+            replacement: "return $1",
             description: "Return a value from a function",
             category: "control"
         });
         patterns.push({
             pattern: "give back (.+?)",
-            replacement: "return ($1)",
+            replacement: "return $1",
             description: "Return a value from a function (same as 'give')",
             category: "control"
         });
