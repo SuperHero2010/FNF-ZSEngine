@@ -408,6 +408,7 @@ class ZSTranspiler {
                     log.push('  MATCHED: ' + pattern.pattern);
                     luaLine = regex.replace(luaLine, pattern.replacement);
                     log.push('  -> "' + luaLine + '"');
+                    break;
                 }
                 else {
                     log.push('  UNMATCHED: ' + pattern.pattern);
@@ -860,8 +861,9 @@ class ZSTranspiler {
                 }
 
                 var isListAccess = (inner.indexOf("<") != -1 && inner.indexOf(">") != -1);
+                var isEmptyTable = (openChar == '{' && trimStr(inner) == "");
 
-                if (isLiteral || isListAccess) {
+                if (isLiteral || isListAccess || isEmptyTable) {
                     result += openChar + convertGroupingBrackets(inner) + closeChar;
                 } else {
                     result += "(" + convertGroupingBrackets(inner) + ")";

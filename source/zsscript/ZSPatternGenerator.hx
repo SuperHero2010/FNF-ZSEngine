@@ -1,4 +1,4 @@
-package;
+package zsscript;
 
 typedef Pattern = {
     pattern:String,

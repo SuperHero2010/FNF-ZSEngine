@@ -137,7 +137,7 @@ class ZSLibValidator {
                 var trimmedLine = trimStr(line);
                 var isZSKeyword = false;
 
-                var zsKeywords = ["change", "read", "print", "register", "apply", "import", "local", "global"];
+                var zsKeywords = ["change", "read", "print", "register", "apply", "import", "local", "global", "add", "create", "start", "close", "exit", "restart", "load", "trigger", "call", "instance", "remove", "scale", "update", "play", "cancel", "stop", "pause", "resume", "cancel", "center", "shake", "fade", "flash", "mouse", "key", "keyboard", "any", "gamepad", "tween", "run", "flush", "erase", "precache"];
                 for (kw in zsKeywords) {
                     if (trimmedLine.indexOf(kw + " ") == 0 || trimmedLine.indexOf(kw + "<") == 0 || trimmedLine.indexOf(kw + ":") == 0 || trimmedLine == kw) {
                         isZSKeyword = true;

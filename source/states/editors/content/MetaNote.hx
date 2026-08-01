@@ -91,7 +91,7 @@ class MetaNote extends Note
 	public function findNoteTypeText(num:Int)
 	{
 		var txt:FlxText = null;
-		if(num != 0)
+		if(num >= 0)
 		{
 			if(!noteTypeTexts.exists(num))
 			{

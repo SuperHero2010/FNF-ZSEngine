@@ -74,10 +74,10 @@ onCreate:
     change in class “class” variable “variable” to 0.5 with <allowMaps> and <allowInstances>
 
     call method “function”
-    call method from class “class” “function”
+    call method “function” from class “class”
 
     call method “function” with {}
-    call method from class “class” “function” with {}
+    call method “function” from class “class” with {}
 
     instance argument “instanceName”
     instance argument “instanceName” with “classvar”
@@ -105,7 +105,7 @@ onCreate:
     remove from “group”
     remove at 1 from “group”
     remove at 1 with “tag” from “group”
-    remove at 1 with “tag” from “group”
+    remove at 1 with “tag” from “group” with true
 
     local <destroy> = true
     remove at 1 with “tag” from “group” with <destroy>
@@ -131,11 +131,11 @@ onCreate:
 
     change “tag” to blend “blend”
 
-    read midPoint(x) of “tag”
-    read midPoint(y) of “tag”
+    read midPoint x of “tag”
+    read midPoint y of “tag”
 
-    read graphic of midPoint(x) of “tag”
-    read graphic of midPoint(y) of “tag”
+    read graphic midPoint x of “tag”
+    read graphic midPoint y of “tag”
 
     read position x of “tag” by “camera”
     read position y of “tag” by “camera”
@@ -325,7 +325,259 @@ onCreate:
 
     sprite <tag> exists
     text <tag> exists
-    sound “tag” exists";
+    sound “tag” exists
+
+    change scroll camera with 1 and 3
+
+    change camera follow to point 1 and 3
+
+    add scroll camera
+    add scroll camera with 1
+    add scroll camera with 1 and 3
+
+    add camera follow point
+    add camera follow point 1
+    add camera follow point 3 and 1
+
+    read camera scroll x
+    read camera scroll y
+    read camera follow x
+    read camera follow y
+
+    change camera to “character”
+
+    shake camera “camera” with value 0.1 and 0.1
+
+    flash camera “camera” with color “color” duration 1 with true
+    fade camera “camera” with color “color” duration 1 with true
+    fade camera “camera” with color “color” duration 1 with true and false
+
+    local <forceReset> = true
+    local <fadeOut> = false
+
+    flash camera “camera” with color “color” duration 1 with <forceReset>
+    fade camera “camera” with color “color” duration 1 with <forceReset>
+    fade camera “camera” with color “color” duration 1 with <forceReset> and <fadeOut>
+
+    mouse “left” clicked
+    mouse “right” clicked
+    mouse “left” pressed
+    mouse “right” pressed
+    mouse “left” released
+    mouse “right” released
+
+    read mouse x on “camera”
+    read mouse y on “camera”
+
+    key “button” pressed
+    key “button” just pressed
+    key “button” released
+    keyboard “button” pressed
+    keyboard “button” just pressed
+    keyboard “button” released
+    any gamepad “button” pressed
+    any gamepad “button” just pressed
+    any gamepad “button” released
+
+    gamepad id “id” button “button” pressed
+    gamepad id “id” button “button” just pressed
+    gamepad id “id” button “button” released
+
+    gamepad id “id” analog x
+    gamepad id “id” analog x with true
+    gamepad id “id” analog y
+    gamepad id “id” analog y with true
+
+    local <leftStick> = true
+    gamepad id “id” analog x with <leftStick>
+    gamepad id “id” analog y with <leftStick>
+
+    start tween tag “twnTag” for “objTag” value {} duration 1
+    start tween tag “twnTag” for “objTag” value {} duration 1 options {}
+
+    tween x tag “twnTag” for “objTag” value {} duration 1
+    tween x tag “twnTag” for “objTag” value {} duration 1 type “ease”
+    tween y tag “twnTag” for “objTag” value {} duration 1
+    tween y tag “twnTag” for “objTag” value {} duration 1 type “ease”
+    tween angle tag “twnTag” for “objTag” value {} duration 1
+    tween angle tag “twnTag” for “objTag” value {} duration 1 type “ease”
+    tween alpha tag “twnTag” for “objTag” value {} duration 1
+    tween alpha tag “twnTag” for “objTag” value {} duration 1 type “ease”
+
+    tween color tag “twnTag” for “objTag” color “color” duration 1
+    tween color tag “twnTag” for “objTag” color “color” duration 1 type “ease”
+
+    tween zoom tag “twnTag” camera “objTag” value {} duration 1
+    tween zoom tag “twnTag” camera “objTag” value {} duration 1 type “ease”
+
+    tween x tag “twnTag” note 1 value {} duration 1
+    tween x tag “twnTag” note 1 value {} duration 1 type “ease”
+    tween y tag “twnTag” note 1 value {} duration 1
+    tween y tag “twnTag” note 1 value {} duration 1 type “ease”
+    tween angle tag “twnTag” note 1 value {} duration 1
+    tween angle tag “twnTag” note 1 value {} duration 1 type “ease”
+    tween alpha tag “twnTag” note 1 value {} duration 1
+    tween alpha tag “twnTag” note 1 value {} duration 1 type “ease”
+    tween direction tag “twnTag” note 1 value {} duration 1
+    tween direction tag “twnTag” note 1 value {} duration 1 type “ease”
+
+    cancel tween tag “twnTag”
+
+    run timer “tmrTag”
+    run timer “tmrTag” time 60
+    run timer “tmrTag” time 60 loops 1
+
+    cancel timer “tmrTag”
+
+    add 500 to score
+    add 1 to miss
+    add 1 to hit
+    add 0.02 to health
+
+    change score to 100000
+    change miss to 10
+    change hit to 100
+    change health to 1
+
+    read health
+
+    change rating percent to 1
+    change rating name to “name”
+    change rating FC to “name”
+
+    update score text
+
+    register save data “save”
+    register save data “save” path “path”
+
+    flush save data “save”
+    erase save data “save”
+
+    read save data “save” property “property”
+    read save data “save” property “property” value 1
+
+    change save data “save” property “property” value 1
+
+    read running scripts
+
+    call script “script” property “function”
+    call script “script” property “function” with {}
+
+    add Lua script “script”
+    add HX script “script”
+
+    add Lua script “script” with false
+    add HX script “script” with false
+
+    local <ignoreAlreadyRunning> = false
+    add Lua script “script” with <ignoreAlreadyRunning>
+    add HX script “script” with <ignoreAlreadyRunning>
+
+    remove Lua script “script”
+    remove HX script “script”
+
+    call on scripts property “function”
+    call on scripts property “function” with {}
+    call on scripts property “function” with {} and {}
+    call on scripts property “function” with {} and {} and {}
+    call on Luas property “function”
+    call on Luas property “function” with {}
+    call on Luas property “function” with {} and {}
+    call on Luas property “function” with {} and {} and {}
+    call on HScript property “function”
+    call on HScript property “function” with {}
+    call on HScript property “function” with {} and {}
+    call on HScript property “function” with {} and {} and {}
+
+    call on scripts property “function” with {} and {} and {} with true
+    call on scripts property “function” with {} and {} and {} with true and false
+    call on Luas property “function” with {} and {} and {} with true
+    call on Luas property “function” with {} and {} and {} with true and false
+    call on HScript property “function” with {} and {} and {} with true
+    call on HScript property “function” with {} and {} and {} with true and false
+
+    local <ignoreSelf> = true
+    local <ignoreStops> = false
+    call on scripts property “function” with {} and {} and {} with <ignoreStops>
+    call on scripts property “function” with {} and {} and {} with <ignoreStops> and <ignoreSelf>
+    call on Luas property “function” with {} and {} and {} with <ignoreStops>
+    call on Luas property “function” with {} and {} and {} with <ignoreStops> and <ignoreSelf>
+    call on HScript property “function” with {} and {} and {} with <ignoreStops>
+    call on HScript property “function” with {} and {} and {} with <ignoreStops> and <ignoreSelf>
+
+    run Haxe code “code”
+    run Haxe code “code” with {}
+    run Haxe code “code” with {} property “function”
+    run Haxe code “code” with {} and {} property “function”
+
+    run Haxe property “function”
+    run Haxe property “function” with {}
+
+    add Haxe library “lib”
+    add Haxe library “lib” package “package”
+
+    precache image “path”
+    precache sound “path”
+    precache music “path”
+    precache image “path” with true
+
+    local <allowGPU> = true
+    precache image “path” with <allowGPU>
+
+    add “character” type “type”
+
+    change <noun> to 1
+
+    read <noun>
+
+    change on scripts <noun> to 1
+    change on Luas <noun> to 1
+    change on HScript <noun> to 1
+
+    change on scripts <noun> to 1 with true
+    change on scripts <noun> to 1 with true and {}
+    change on Luas <noun> to 1 with true
+    change on Luas <noun> to 1 with true and {}
+    change on HScript <noun> to 1 with true
+    change on HScript <noun> to 1 with true and {}
+
+    local <ignoreSelf> = false
+    local <ignoreStops> = false
+    change on scripts <noun> to 1 with <ignoreSelf>
+    change on scripts <noun> to 1 with <ignoreSelf> and {}
+    change on Luas <noun> to 1 with <ignoreSelf>
+    change on Luas <noun> to 1 with <ignoreSelf> and {}
+    change on HScript <noun> to 1 with <ignoreSelf>
+    change on HScript <noun> to 1 with <ignoreSelf> and {}
+
+    close script
+
+    create Flixel animate sprite <tag>
+    create Flixel animate sprite <tag> with position 1
+    create Flixel animate sprite <tag> with position 1 and 3
+    create Flixel animate sprite <tag> with position 1 and 3 path “path”
+
+    load atlas sprite <tag> path “path”
+    load atlas sprite <tag> path “path” sprite path “jsonPath”
+    load atlas sprite <tag> path “path” sprite path “jsonPath” animation path “jsonPath”
+
+    add animation <tag> name “name” by symbol “symbol”
+    add animation <tag> name “name” by symbol “symbol” rate 60
+
+    add animation <tag> name “name” by symbol “symbol” rate 60 with false
+    add animation <tag> name “name” by symbol “symbol” rate 60 with false matrix 1
+    add animation <tag> name “name” by symbol “symbol” rate 60 with false matrix 1 and 3
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with false
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with false matrix 1
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with false matrix 1 and 3
+
+    local <loop> = false
+    add animation <tag> name “name” by symbol “symbol” rate 60 with <loop>
+    add animation <tag> name “name” by symbol “symbol” rate 60 with <loop> matrix 1
+    add animation <tag> name “name” by symbol “symbol” rate 60 with <loop> matrix 1 and 3
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with <loop>
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with <loop> matrix 1
+    add animation <tag> name “name” by symbol “symbol” and indicies 1 rate 60 with <loop> matrix 1 and 3";
 
         trace("=== ZS DEBUG TRANSPILER ===");
         trace("Original Script:");
