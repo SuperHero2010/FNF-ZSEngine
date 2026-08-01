@@ -2015,12 +2015,6 @@ class ZSPatternGenerator {
             category: "control"
         });
         patterns.push({
-            pattern: "\\bgive nothing\\b",
-            replacement: "return",
-            description: "Return nothing",
-            category: "control"
-        });
-        patterns.push({
             pattern: "\\bproceed\\b",
             replacement: "return Function_Continue",
             description: "Continue script execution",
