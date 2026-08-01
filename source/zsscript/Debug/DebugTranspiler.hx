@@ -524,7 +524,7 @@ onCreate:
     local <allowGPU> = true
     precache image “path” with <allowGPU>
 
-    add “character” type “type”
+    add character “character” type “type”
 
     change <noun> to 1
 

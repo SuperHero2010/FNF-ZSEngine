@@ -1,5 +1,7 @@
 package;
 
+import ZSPatternGenerator.Pattern;
+
 class ZSTranspiler {
     public static var errors:Array<String> = [];
     public static var currentLine:Int = 0;
@@ -198,6 +200,10 @@ class ZSTranspiler {
                     errors.push('Error at line $currentLine: \'nil\' is prohibited in ZS');
                     return null;
                 }
+                if (codeToCheck.indexOf('return') > -1) {
+                    errors.push('Error at line $currentLine: \'return\' is prohibited in ZS');
+                    return null;
+                }
                 if (codeToCheck.indexOf('"') > -1) {
                     errors.push('Error at line $currentLine: Straight double quotes " are not allowed in ZS');
                     errors.push('  → Use curly quotes “ and ” instead');
@@ -285,57 +291,6 @@ class ZSTranspiler {
                 }
             }
 
-            if (trimmedLine.indexOf("<") > -1 && trimmedLine.indexOf(">") > -1) {
-                var commandKeywords = [
-                    "print", "register", "apply", "import", "add", "create", "start", "close",
-                    "exit", "restart", "load", "trigger", "call", "instance", "remove", "scale",
-                    "update", "play", "cancel", "stop", "pause", "resume", "center", "shake",
-                    "fade", "flash", "mouse", "key", "keyboard", "any", "gamepad", "tween",
-                    "run", "flush", "erase", "precache", "if", "else", "for", "while", "repeat", "until"
-                ];
-
-                var isCommand = false;
-                for (kw in commandKeywords) {
-                    if (trimmedLine.indexOf(kw + " ") == 0 || trimmedLine.indexOf(kw + "<") == 0 || trimmedLine.indexOf(kw + "“") == 0) {
-                        isCommand = true;
-                        break;
-                    }
-                }
-
-                if (isCommand) {}
-                else {
-                    var isFuncCall = ~/^[a-zA-Z_][a-zA-Z0-9_]*<[^>]*>/.match(trimmedLine);
-
-                    var isAssignment = (
-                        trimmedLine.indexOf(" = ") > -1 ||
-                        trimmedLine.indexOf("=") > -1 ||
-                        trimmedLine.indexOf(" to ") > -1
-                    );
-
-                    var nounPos = trimmedLine.indexOf("<");
-                    var hasDeclarationBeforeNoun = (
-                        trimmedLine.lastIndexOf("local ", nounPos) > -1 ||
-                        trimmedLine.lastIndexOf("global ", nounPos) > -1 ||
-                        trimmedLine.lastIndexOf("change ", nounPos) > -1 ||
-                        trimmedLine.lastIndexOf("read ", nounPos) > -1
-                    );
-
-                    if (isFuncCall) {}
-                    else if (isAssignment || hasDeclarationBeforeNoun) {
-                        if (!hasDeclarationBeforeNoun) {
-                            var hasListAccess = trimmedLine.indexOf(">[") > -1 || trimmedLine.indexOf("> [") > -1;
-                            var hasTableAccess = trimmedLine.indexOf(">.") > -1 || trimmedLine.indexOf("> .") > -1;
-                            if (!hasListAccess && !hasTableAccess) {
-                                errors.push('Error at line $currentLine: Noun "<...>" must be used with local, global, change, or read');
-                                errors.push('  Found: "$trimmedLine"');
-                                errors.push('  Use local <name> = value, change <name> to value, or read <name>');
-                                return null;
-                            }
-                        }
-                    }
-                }
-            }
-
             var colonPos = trimmedLine.indexOf(":");
             if (colonPos > 0) {
                 if (isInsideTableLiteral(trimmedLine, colonPos)) {}
@@ -405,10 +360,13 @@ class ZSTranspiler {
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
                 if (regex.match(trimmedLine)) {
-                    log.push('  MATCHED: ' + pattern.pattern);
-                    luaLine = regex.replace(luaLine, pattern.replacement);
-                    log.push('  -> "' + luaLine + '"');
-                    break;
+                    var matchPos = regex.matchedPos().pos;
+                    if (matchPos == 0) {
+                        log.push('  MATCHED: ' + pattern.pattern);
+                        luaLine = replaceMultiPattern(regex, pattern, luaLine, trimmedLine);
+                        log.push('  -> "' + luaLine + '"');
+                        break;
+                    }
                 }
                 else {
                     log.push('  UNMATCHED: ' + pattern.pattern);
@@ -419,14 +377,14 @@ class ZSTranspiler {
 
             luaLine = convertQuotes(luaLine);
 
-            if (trimmedLine.indexOf(":") == -1 && trimmedLine.indexOf("function") == -1) {
+            if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
-                if (funcCallMixedPattern.match(trimmedLine)) {
+                if (funcCallMixedPattern.match(luaLine)) {
                     var funcName = funcCallMixedPattern.matched(1);
                     var nounArgs = funcCallMixedPattern.matched(2);
                     var directArgs = funcCallMixedPattern.matched(4);
                     var allNounArgs = [nounArgs];
-                    var rest = trimmedLine.substring(trimmedLine.indexOf(">") + 1);
+                    var rest = luaLine.substring(luaLine.indexOf(">") + 1);
                     while (rest.indexOf("<") > -1) {
                         var start = rest.indexOf("<");
                         var end = rest.indexOf(">", start);
@@ -436,17 +394,17 @@ class ZSTranspiler {
                     }
                     var combinedArgs = allNounArgs.join(", ");
                     if (directArgs != "") {
-                        trimmedLine = funcName + "(" + combinedArgs + ", " + directArgs + ")";
+                        luaLine = funcName + "(" + combinedArgs + ", " + directArgs + ")";
                     } else {
-                        trimmedLine = funcName + "(" + combinedArgs + ")";
+                        luaLine = funcName + "(" + combinedArgs + ")";
                     }
                 }
                 else {
                     var funcCallNounPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>$/;
-                    if (funcCallNounPattern.match(trimmedLine)) {
+                    if (funcCallNounPattern.match(luaLine)) {
                         var funcName = funcCallNounPattern.matched(1);
                         var allNounArgs = [];
-                        var temp = trimmedLine;
+                        var temp = luaLine;
                         while (temp.indexOf("<") > -1) {
                             var start = temp.indexOf("<");
                             var end = temp.indexOf(">", start);
@@ -454,16 +412,19 @@ class ZSTranspiler {
                             allNounArgs.push(temp.substring(start + 1, end));
                             temp = temp.substring(end + 1);
                         }
-                        trimmedLine = funcName + "(" + allNounArgs.join(", ") + ")";
+                        luaLine = funcName + "(" + allNounArgs.join(", ") + ")";
                     }
                 }
 
-                if (trimmedLine.indexOf("<") == -1) {
-                    var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) (.+)$/;
-                    if (funcCallDirectPattern.match(trimmedLine)) {
+                if (luaLine.indexOf("<") == -1) {
+                    var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) ([a-zA-Z_][a-zA-Z0-9_]*)$/;
+                    if (funcCallDirectPattern.match(luaLine)) {
                         var funcName = funcCallDirectPattern.matched(1);
                         var args = funcCallDirectPattern.matched(2);
-                        trimmedLine = funcName + "(" + args + ")";
+                        var keywords = ["if", "else", "else if", "then", "end", "while", "do", "repeat", "until", "for", "in", "function", "local", "global", "return", "break", "and", "or", "not", "true", "false", "nil"];
+                        if (!keywords.contains(funcName) && !keywords.contains(args)) {
+                            luaLine = funcName + "(" + args + ")";
+                        }
                     }
                 }
             }
@@ -829,9 +790,52 @@ class ZSTranspiler {
         var result = "";
         var i = 0;
         var len = line.length;
+        var inString = false;
+        var stringChar = "";
+        var inComment = false;
 
         while (i < len) {
             var c = line.charAt(i);
+            if (!inString && !inComment && i + 1 < len && c == '-' && line.charAt(i + 1) == '/') {
+                inComment = true;
+                i += 2;
+                continue;
+            }
+
+            if (!inString && !inComment && i + 2 < len && c == '*' && line.charAt(i + 1) == '/' && line.charAt(i + 2) == '-') {
+                inComment = true;
+                i += 3;
+                continue;
+            }
+
+            if (inComment && i + 2 < len && c == '/' && line.charAt(i + 1) == '-' && line.charAt(i + 2) == '*') {
+                inComment = false;
+                result += c + line.charAt(i + 1) + line.charAt(i + 2);
+                i += 3;
+                continue;
+            }
+
+            if (!inString && !inComment && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”")) {
+                inString = true;
+                stringChar = c;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inString && c == stringChar) {
+                inString = false;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inString || inComment) {
+                result += c;
+                i++;
+                continue;
+            }
+
             if (c == '[' || c == '{') {
                 var openChar = c;
                 var closeChar = (openChar == '[') ? ']' : '}';
@@ -862,9 +866,10 @@ class ZSTranspiler {
 
                 var isListAccess = (inner.indexOf("<") != -1 && inner.indexOf(">") != -1);
                 var isEmptyTable = (openChar == '{' && trimStr(inner) == "");
+                var isEmptyList = (openChar == '[' && trimStr(inner) == "");
 
-                if (isLiteral || isListAccess || isEmptyTable) {
-                    result += openChar + convertGroupingBrackets(inner) + closeChar;
+                if (isLiteral || isListAccess || isEmptyTable || isEmptyList) {
+                    result += openChar + inner + closeChar;
                 } else {
                     result += "(" + convertGroupingBrackets(inner) + ")";
                 }
@@ -893,5 +898,57 @@ class ZSTranspiler {
             }
         }
         return braceDepth > 0 && hasCommaOrQuote;
+    }
+
+    static function replaceMultiPattern(regex:EReg, pattern:Pattern, luaLine:String, trimmedLine:String):String {
+        var result = trimmedLine;
+        var allPatterns = ZSPatterns.getPatterns();
+
+        var hasNestedPatterns = false;
+        for (p in allPatterns) {
+            var pRegex = new EReg(p.pattern, "g");
+            if (pRegex.match(result)) {
+                var matchPos = pRegex.matchedPos().pos;
+                if (matchPos > 0) {
+                    hasNestedPatterns = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasNestedPatterns) {
+            return regex.replace(luaLine, pattern.replacement);
+        }
+
+        var mainRegex = new EReg(pattern.pattern, "g");
+        result = mainRegex.replace(result, pattern.replacement);
+
+        var changed = true;
+        var maxIterations = 10;
+        var iterations = 0;
+
+        while (changed && iterations < maxIterations) {
+            changed = false;
+            iterations++;
+
+            for (p in allPatterns) {
+                var pRegex = new EReg(p.pattern, "g");
+                if (pRegex.match(result)) {
+                    var matchPos = pRegex.matchedPos().pos;
+                    if (matchPos > 0) {
+                        var before = result;
+                        result = pRegex.replace(result, p.replacement);
+                        if (before != result) {
+                            changed = true;
+                            log.push('  NESTED MATCHED: ' + p.pattern);
+                            log.push('  -> "' + result + '"');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 }

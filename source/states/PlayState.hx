@@ -2995,7 +2995,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					FlxTransitionableState.skipNextTransOut = true;
 					prevCamFollow = camFollow;
 
-					Song.loadFromJson(storyPlaylist[0] + difficulty, storyPlaylist[0], true);
+					Song.loadFromJson(storyPlaylist[0] + difficulty, storyPlaylist[0]);
 					FlxG.sound.music.stop();
 
 					canResync = false;

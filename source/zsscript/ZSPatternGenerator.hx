@@ -70,7 +70,7 @@ class ZSPatternGenerator {
             "load song",
             "loadSong",
             [
-                {name: "song", type: "string", required: false, defaultValue: "null"},
+                {name: "song", type: "any", required: false, defaultValue: "null"},
                 {name: "difficulty", type: "any", required: false, defaultValue: "-1"}
             ],
             ['with difficulty'],
@@ -101,8 +101,8 @@ class ZSPatternGenerator {
             "start dialogue",
             "startDialogue",
             [
-                {name: "file", type: "string", required: true},
-                {name: "music", type: "string", required: false, defaultValue: "null"}
+                {name: "file", type: "any", required: true},
+                {name: "music", type: "any", required: false, defaultValue: "null"}
             ],
             ['with'],
             "Start a dialogue",
@@ -113,7 +113,7 @@ class ZSPatternGenerator {
             "start video",
             "startVideo",
             [
-                {name: "file", type: "string", required: true},
+                {name: "file", type: "any", required: true},
                 {name: "canSkip", type: "boolean", required: false, defaultValue: "true"},
                 {name: "forMidSong", type: "boolean", required: false, defaultValue: "false"},
                 {name: "shouldLoop", type: "boolean", required: false, defaultValue: "false"},
@@ -150,8 +150,8 @@ class ZSPatternGenerator {
             "read order of",
             "getObjectOrder",
             [
-                {name: "tag", type: "string", required: true},
-                {name: "group", type: "string", required: false, defaultValue: "null"}
+                {name: "tag", type: "any", required: true},
+                {name: "group", type: "any", required: false, defaultValue: "null"}
             ],
             ['with'],
             "Read object order",
@@ -162,9 +162,9 @@ class ZSPatternGenerator {
             "change in order of",
             "setObjectOrder",
             [
-                {name: "tag", type: "string", required: true},
+                {name: "tag", type: "any", required: true},
                 {name: "position", type: "any", required: true},
-                {name: "group", type: "string", required: false, defaultValue: "null"}
+                {name: "group", type: "any", required: false, defaultValue: "null"}
             ],
             ['to', 'with'],
             "Change object order",
@@ -209,7 +209,7 @@ class ZSPatternGenerator {
             "call method",
             "callMethod",
             [
-                {name: "function", type: "string", required: true},
+                {name: "function", type: "any", required: true},
                 {name: "args", type: "table", required: false, defaultValue: "null"}
             ],
             ['with'],
@@ -235,8 +235,8 @@ class ZSPatternGenerator {
             "create instance",
             "createInstance",
             [
-                {name: "variable", type: "string", required: true},
-                {name: "class", type: "string", required: true},
+                {name: "variable", type: "any", required: true},
+                {name: "class", type: "any", required: true},
                 {name: "args", type: "table", required: false, defaultValue: "null"}
             ],
             ['with', 'and'],
@@ -248,8 +248,8 @@ class ZSPatternGenerator {
             "instance argument",
             "instanceArgument",
             [
-                {name: "instanceName", type: "string", required: true},
-                {name: "classVar", type: "string", required: false, defaultValue: ""}
+                {name: "instanceName", type: "any", required: true},
+                {name: "classVar", type: "any", required: false, defaultValue: ""}
             ],
             ['with'],
             "Instance argument",
@@ -318,8 +318,8 @@ class ZSPatternGenerator {
             "change object camera",
             "setObjectCamera",
             [
-                {name: "tag", type: "string", required: true},
-                {name: "camera", type: "string", required: false, defaultValue: "game"}
+                {name: "tag", type: "any", required: true},
+                {name: "camera", type: "any", required: false, defaultValue: "game"}
             ],
             ['to'],
             "Change object camera",
@@ -330,7 +330,7 @@ class ZSPatternGenerator {
             "change scroll factor of",
             "setScrollFactor",
             [
-                {name: "tag", type: "string", required: true},
+                {name: "tag", type: "any", required: true},
                 {name: "x", type: "any", required: true},
                 {name: "y", type: "any", required: true}
             ],
@@ -343,7 +343,7 @@ class ZSPatternGenerator {
             'scale',
             'scaleObject',
             [
-                {name: "tag", type: "string", required: true},
+                {name: "tag", type: "any", required: true},
                 {name: "x", type: "any", required: true},
                 {name: "y", type: "any", required: true},
                 {name: "updateHitbox", type: "boolean", required: false, defaultValue: "true"}
@@ -422,8 +422,8 @@ class ZSPatternGenerator {
             "read position x of",
             "getScreenPositionX",
             [
-                {name: "tag", type: "string", required: true},
-                {name: "camera", type: "string", required: false, defaultValue: "game"}
+                {name: "tag", type: "any", required: true},
+                {name: "camera", type: "any", required: false, defaultValue: "game"}
             ],
             ['by'],
             "Read screen position X",
@@ -433,8 +433,8 @@ class ZSPatternGenerator {
             "read position y of",
             "getScreenPositionY",
             [
-                {name: "tag", type: "string", required: true},
-                {name: "camera", type: "string", required: false, defaultValue: "game"}
+                {name: "tag", type: "any", required: true},
+                {name: "camera", type: "any", required: false, defaultValue: "game"}
             ],
             ['by'],
             "Read screen position Y",
@@ -455,6 +455,19 @@ class ZSPatternGenerator {
             category: "reflection"
         });
 
+        patterns.push({
+            pattern: "read ([^ ,]+)",
+            replacement: 'getProperty($1)',
+            description: "Read a property (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read “([^”]+)”",
+            replacement: 'getProperty("$1")',
+            description: "Read a property (nested quoted)",
+            category: "reflection"
+        });
+
         patterns = patterns.concat(generateBoolPatterns(
             "read (.+?)",
             'getProperty($1',
@@ -464,7 +477,7 @@ class ZSPatternGenerator {
         ));
 
         patterns = patterns.concat(generateTwoBoolPatterns(
-            'change (.+?) to (.+?)',
+            'change (.+?) to (.+)',
             'setProperty($1, $2',
             {name: "allowMaps", type: "boolean", required: false, defaultValue: "false"},
             {name: "allowInstances", type: "boolean", required: false, defaultValue: "false"},
@@ -495,7 +508,7 @@ class ZSPatternGenerator {
             "makeLuaSprite",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "image", type: "string", required: false, defaultValue: "null"},
+                {name: "image", type: "any", required: false, defaultValue: "null"},
                 {name: "x", type: "any", required: false, defaultValue: "0"},
                 {name: "y", type: "any", required: false, defaultValue: "0"}
             ],
@@ -509,10 +522,10 @@ class ZSPatternGenerator {
             "makeAnimatedLuaSprite",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "image", type: "string", required: false, defaultValue: "null"},
+                {name: "image", type: "any", required: false, defaultValue: "null"},
                 {name: "x", type: "any", required: false, defaultValue: "0"},
                 {name: "y", type: "any", required: false, defaultValue: "0"},
-                {name: "type", type: "string", required: false, defaultValue: "auto"}
+                {name: "type", type: "any", required: false, defaultValue: "auto"}
             ],
             ['path', 'with position', 'and', 'type'],
             "Create an animated sprite",
@@ -526,7 +539,7 @@ class ZSPatternGenerator {
                 {name: "tag", type: "any", required: true},
                 {name: "width", type: "any", required: false, defaultValue: "256"},
                 {name: "height", type: "any", required: false, defaultValue: "256"},
-                {name: "color", type: "string", required: false, defaultValue: "FFFFFF"}
+                {name: "color", type: "any", required: false, defaultValue: "FFFFFF"}
             ],
             ['with size', 'and', 'color'],
             "Create a graphic",
@@ -538,7 +551,7 @@ class ZSPatternGenerator {
             "loadGraphic",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "image", type: "string", required: true},
+                {name: "image", type: "any", required: true},
                 {name: "gridX", type: "any", required: false, defaultValue: "0"},
                 {name: "gridY", type: "any", required: false, defaultValue: "0"}
             ],
@@ -552,8 +565,8 @@ class ZSPatternGenerator {
             "loadFrames",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "image", type: "string", required: true},
-                {name: "type", type: "string", required: false, defaultValue: "auto"}
+                {name: "image", type: "any", required: true},
+                {name: "type", type: "any", required: false, defaultValue: "auto"}
             ],
             ['path', 'type'],
             "Load frames",
@@ -592,7 +605,7 @@ class ZSPatternGenerator {
             "removeLuaSprite",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "group", type: "string", required: false, defaultValue: "null"},
+                {name: "group", type: "any", required: false, defaultValue: "null"},
                 {name: "destroy", type: "boolean", required: false, defaultValue: "true"}
             ],
             ['from', 'with'],
@@ -662,7 +675,7 @@ class ZSPatternGenerator {
             'addAnimation',
             [
                 {name: "tag", type: "any", required: true},
-                {name: "name", type: "string", required: true},
+                {name: "name", type: "any", required: true},
                 {name: "frames", type: "any", required: true},
                 {name: "rate", type: "any", required: false, defaultValue: "24"}
             ],
@@ -676,8 +689,8 @@ class ZSPatternGenerator {
             'addAnimationByPrefix',
             [
                 {name: "tag", type: "any", required: true},
-                {name: "name", type: "string", required: true},
-                {name: "prefix", type: "string", required: true},
+                {name: "name", type: "any", required: true},
+                {name: "prefix", type: "any", required: true},
                 {name: "rate", type: "any", required: false, defaultValue: "24"}
             ],
             ['name', 'by prefix', 'rate'],
@@ -751,7 +764,7 @@ class ZSPatternGenerator {
             "makeLuaText",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "content", type: "string", required: false, defaultValue: "''"},
+                {name: "content", type: "any", required: false, defaultValue: "''"},
                 {name: "width", type: "any", required: false, defaultValue: "0"},
                 {name: "x", type: "any", required: false, defaultValue: "0"},
                 {name: "y", type: "any", required: false, defaultValue: "0"}
@@ -809,8 +822,8 @@ class ZSPatternGenerator {
             [
                 {name: "tag", type: "any", required: true},
                 {name: "size", type: "any", required: true},
-                {name: "color", type: "string", required: true},
-                {name: "style", type: "string", required: false, defaultValue: "outline"}
+                {name: "color", type: "any", required: true},
+                {name: "style", type: "any", required: false, defaultValue: "outline"}
             ],
             ['to size', 'color', 'style'],
             "Change border of text",
@@ -862,7 +875,7 @@ class ZSPatternGenerator {
             "setTextAlignment",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "alignment", type: "string", required: false, defaultValue: "left"}
+                {name: "alignment", type: "any", required: false, defaultValue: "left"}
             ],
             ['to alignment'],
             "Change text alignment",
@@ -904,9 +917,9 @@ class ZSPatternGenerator {
             "play sound",
             "playSound",
             [
-                {name: "sound", type: "string", required: true},
+                {name: "sound", type: "any", required: true},
                 {name: "volume", type: "any", required: false, defaultValue: "1"},
-                {name: "tag", type: "string", required: false, defaultValue: "null"},
+                {name: "tag", type: "any", required: false, defaultValue: "null"},
                 {name: "loop", type: "boolean", required: false, defaultValue: "false"}
             ],
             ['with volume', 'name', 'with'],
@@ -918,7 +931,7 @@ class ZSPatternGenerator {
             "play music",
             "playMusic",
             [
-                {name: "music", type: "string", required: true},
+                {name: "music", type: "any", required: true},
                 {name: "volume", type: "any", required: false, defaultValue: "1"},
                 {name: "loop", type: "boolean", required: false, defaultValue: "false"}
             ],
@@ -931,7 +944,7 @@ class ZSPatternGenerator {
             "fade in",
             "soundFadeIn",
             [
-                {name: "tag", type: "string", required: true},
+                {name: "tag", type: "any", required: true},
                 {name: "duration", type: "any", required: true},
                 {name: "fromValue", type: "any", required: false, defaultValue: "0"},
                 {name: "toValue", type: "any", required: false, defaultValue: "1"}
@@ -945,7 +958,7 @@ class ZSPatternGenerator {
             "fade out",
             "soundFadeOut",
             [
-                {name: "tag", type: "string", required: true},
+                {name: "tag", type: "any", required: true},
                 {name: "duration", type: "any", required: true},
                 {name: "toValue", type: "any", required: false, defaultValue: "0"}
             ],
@@ -1164,7 +1177,7 @@ class ZSPatternGenerator {
             "shake camera",
             "cameraShake",
             [
-                {name: "camera", type: "string", required: true},
+                {name: "camera", type: "any", required: true},
                 {name: "intensity", type: "any", required: true},
                 {name: "duration", type: "any", required: true}
             ],
@@ -1225,7 +1238,7 @@ class ZSPatternGenerator {
             "read mouse x on",
             "getMouseX",
             [
-                {name: "camera", type: "string", required: false, defaultValue: "game"}
+                {name: "camera", type: "any", required: false, defaultValue: "game"}
             ],
             [],
             "Read mouse X on camera",
@@ -1235,7 +1248,7 @@ class ZSPatternGenerator {
             "read mouse y on",
             "getMouseY",
             [
-                {name: "camera", type: "string", required: false, defaultValue: "game"}
+                {name: "camera", type: "any", required: false, defaultValue: "game"}
             ],
             [],
             "Read mouse Y on camera",
@@ -1303,8 +1316,8 @@ class ZSPatternGenerator {
             "start tween tag",
             "startTween",
             [
-                {name: "twnTag", type: "string", required: true},
-                {name: "objTag", type: "string", required: true},
+                {name: "twnTag", type: "any", required: true},
+                {name: "objTag", type: "any", required: true},
                 {name: "value", type: "any", required: true},
                 {name: "duration", type: "any", required: true},
                 {name: "options", type: "table", required: false, defaultValue: "null"}
@@ -1320,11 +1333,11 @@ class ZSPatternGenerator {
                 "tween " + type + " tag",
                 "doTween" + (type.charAt(0).toUpperCase() + type.substr(1)),
                 [
-                    {name: "twnTag", type: "string", required: true},
-                    {name: "objTag", type: "string", required: true},
+                    {name: "twnTag", type: "any", required: true},
+                    {name: "objTag", type: "any", required: true},
                     {name: "value", type: "any", required: true},
                     {name: "duration", type: "any", required: true},
-                    {name: "ease", type: "string", required: false, defaultValue: "linear"}
+                    {name: "ease", type: "any", required: false, defaultValue: "linear"}
                 ],
                 ['for', 'value', 'duration', 'type'],
                 "Tween " + type,
@@ -1336,11 +1349,11 @@ class ZSPatternGenerator {
             "tween color tag",
             "doTweenColor",
             [
-                {name: "twnTag", type: "string", required: true},
-                {name: "objTag", type: "string", required: true},
-                {name: "color", type: "string", required: true},
+                {name: "twnTag", type: "any", required: true},
+                {name: "objTag", type: "any", required: true},
+                {name: "color", type: "any", required: true},
                 {name: "duration", type: "any", required: true},
-                {name: "ease", type: "string", required: false, defaultValue: "linear"}
+                {name: "ease", type: "any", required: false, defaultValue: "linear"}
             ],
             ['for', 'color', 'duration', 'type'],
             "Tween color",
@@ -1351,11 +1364,11 @@ class ZSPatternGenerator {
             "tween zoom tag",
             "doTweenZoom",
             [
-                {name: "twnTag", type: "string", required: true},
-                {name: "camera", type: "string", required: true},
+                {name: "twnTag", type: "any", required: true},
+                {name: "camera", type: "any", required: true},
                 {name: "value", type: "any", required: true},
                 {name: "duration", type: "any", required: true},
-                {name: "ease", type: "string", required: false, defaultValue: "linear"}
+                {name: "ease", type: "any", required: false, defaultValue: "linear"}
             ],
             ['camera', 'value', 'duration', 'type'],
             "Tween zoom",
@@ -1368,11 +1381,11 @@ class ZSPatternGenerator {
                 "tween " + type + " tag",
                 "noteTween" + (type.charAt(0).toUpperCase() + type.substr(1)),
                 [
-                    {name: "twnTag", type: "string", required: true},
+                    {name: "twnTag", type: "any", required: true},
                     {name: "note", type: "any", required: true},
                     {name: "value", type: "any", required: true},
                     {name: "duration", type: "any", required: true},
-                    {name: "ease", type: "string", required: false, defaultValue: "linear"}
+                    {name: "ease", type: "any", required: false, defaultValue: "linear"}
                 ],
                 ['note', 'value', 'duration', 'type'],
                 "Tween note " + type,
@@ -1397,7 +1410,7 @@ class ZSPatternGenerator {
             "run timer",
             "runTimer",
             [
-                {name: "tmrTag", type: "string", required: true},
+                {name: "tmrTag", type: "any", required: true},
                 {name: "time", type: "any", required: false, defaultValue: "1.0"},
                 {name: "loops", type: "any", required: false, defaultValue: "1"}
             ],
@@ -1464,8 +1477,8 @@ class ZSPatternGenerator {
             "register save data",
             "initSaveData",
             [
-                {name: "save", type: "string", required: true},
-                {name: "path", type: "string", required: false, defaultValue: "psychenginemods"}
+                {name: "save", type: "any", required: true},
+                {name: "path", type: "any", required: false, defaultValue: "psychenginemods"}
             ],
             ['path'],
             "Register save data",
@@ -1489,8 +1502,8 @@ class ZSPatternGenerator {
             "read save data",
             "getDataFromSave",
             [
-                {name: "save", type: "string", required: true},
-                {name: "property", type: "string", required: true},
+                {name: "save", type: "any", required: true},
+                {name: "property", type: "any", required: true},
                 {name: "value", type: "any", required: false, defaultValue: "null"}
             ],
             ['property', 'value'],
@@ -1502,8 +1515,8 @@ class ZSPatternGenerator {
             "change save data",
             "setDataFromSave",
             [
-                {name: "save", type: "string", required: true},
-                {name: "property", type: "string", required: true},
+                {name: "save", type: "any", required: true},
+                {name: "property", type: "any", required: true},
                 {name: "value", type: "any", required: true}
             ],
             ['property', 'value'],
@@ -1528,8 +1541,8 @@ class ZSPatternGenerator {
             "call script",
             "callScript",
             [
-                {name: "script", type: "string", required: true},
-                {name: "function", type: "string", required: true},
+                {name: "script", type: "any", required: true},
+                {name: "function", type: "any", required: true},
                 {name: "args", type: "table", required: false, defaultValue: "null"}
             ],
             ['property', 'with'],
@@ -1680,9 +1693,9 @@ class ZSPatternGenerator {
             "run Haxe code",
             "runHaxeCode",
             [
-                {name: "code", type: "string", required: true},
+                {name: "code", type: "any", required: true},
                 {name: "varsToBring", type: "table", required: false, defaultValue: "null"},
-                {name: "function", type: "string", required: false, defaultValue: "null"}
+                {name: "function", type: "any", required: false, defaultValue: "null"}
             ],
             ['with', 'property'],
             "Run Haxe code",
@@ -1718,7 +1731,7 @@ class ZSPatternGenerator {
             "run Haxe property",
             "runHaxeFunction",
             [
-                {name: "function", type: "string", required: true},
+                {name: "function", type: "any", required: true},
                 {name: "args", type: "table", required: false, defaultValue: "null"}
             ],
             ['with'],
@@ -1730,8 +1743,8 @@ class ZSPatternGenerator {
             "add Haxe library",
             "addHaxeLibrary",
             [
-                {name: "lib", type: "string", required: true},
-                {name: "package", type: "string", required: false, defaultValue: "''"}
+                {name: "lib", type: "any", required: true},
+                {name: "package", type: "any", required: false, defaultValue: "''"}
             ],
             ['package'],
             "Add Haxe library",
@@ -1782,8 +1795,8 @@ class ZSPatternGenerator {
             "add character",
             "addCharacterToList",
             [
-                {name: "character", type: "string", required: true},
-                {name: "type", type: "string", required: true}
+                {name: "character", type: "any", required: true},
+                {name: "type", type: "any", required: true}
             ],
             ['type'],
             "Add character to list",
@@ -1803,7 +1816,7 @@ class ZSPatternGenerator {
                 {name: "tag", type: "any", required: true},
                 {name: "x", type: "any", required: false, defaultValue: "0"},
                 {name: "y", type: "any", required: false, defaultValue: "0"},
-                {name: "path", type: "string", required: false, defaultValue: "null"}
+                {name: "path", type: "any", required: false, defaultValue: "null"}
             ],
             ['with position', 'and', 'path'],
             "Create FlxAnimate sprite",
@@ -1815,9 +1828,9 @@ class ZSPatternGenerator {
             "loadAnimateAtlas",
             [
                 {name: "tag", type: "any", required: true},
-                {name: "path", type: "string", required: true},
-                {name: "spritePath", type: "string", required: false, defaultValue: "null"},
-                {name: "animationPath", type: "string", required: false, defaultValue: "null"}
+                {name: "path", type: "any", required: true},
+                {name: "spritePath", type: "any", required: false, defaultValue: "null"},
+                {name: "animationPath", type: "any", required: false, defaultValue: "null"}
             ],
             ['path', 'sprite path', 'animation path'],
             "Load animate atlas",
@@ -1829,8 +1842,8 @@ class ZSPatternGenerator {
             'addAnimationBySymbol',
             [
                 {name: "tag", type: "any", required: true},
-                {name: "name", type: "string", required: true},
-                {name: "symbol", type: "string", required: false, defaultValue: "24"},
+                {name: "name", type: "any", required: true},
+                {name: "symbol", type: "any", required: false, defaultValue: "24"},
                 {name: "rate", type: "any", required: false, defaultValue: "24"},
                 {name: "loop", type: "boolean", required: false, defaultValue: "false"},
                 {name: "matX", type: "any", required: false, defaultValue: "0"},
@@ -1848,8 +1861,8 @@ class ZSPatternGenerator {
             'addAnimationBySymbolIndices',
             [
                 {name: "tag", type: "any", required: true},
-                {name: "name", type: "string", required: true},
-                {name: "symbol", type: "string", required: false, defaultValue: "24"},
+                {name: "name", type: "any", required: true},
+                {name: "symbol", type: "any", required: false, defaultValue: "24"},
                 {name: "indices", type: "any", required: false},
                 {name: "rate", type: "any", required: false, defaultValue: "24"},
                 {name: "loop", type: "boolean", required: false, defaultValue: "false"},
@@ -1969,6 +1982,73 @@ class ZSPatternGenerator {
             replacement: "close()",
             description: "Close script",
             category: "script"
+        });
+
+        patterns.push({
+            pattern: "\\bgive nothing\\b",
+            replacement: "return nil",
+            description: "Return nothing",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bgive back\\b",
+            replacement: "return",
+            description: "Return nothing (same as 'give')",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bgive\\b",
+            replacement: "return",
+            description: "Return nothing",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "give (.+?)",
+            replacement: "return ($1)",
+            description: "Return a value from a function",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "give back (.+?)",
+            replacement: "return ($1)",
+            description: "Return a value from a function (same as 'give')",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bgive nothing\\b",
+            replacement: "return",
+            description: "Return nothing",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bproceed\\b",
+            replacement: "return Function_Continue",
+            description: "Continue script execution",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bhalt\\b",
+            replacement: "return Function_Stop",
+            description: "Stop this script only",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bhaltLua\\b",
+            replacement: "return Function_StopLua",
+            description: "Stop Lua scripts",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bhaltScript\\b",
+            replacement: "return Function_StopHScript",
+            description: "Stop HScripts",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "\\bhaltAll\\b",
+            replacement: "return Function_StopAll",
+            description: "Stop all scripts",
+            category: "control"
         });
 
         return patterns;
