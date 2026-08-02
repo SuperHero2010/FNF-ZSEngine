@@ -56,9 +56,7 @@ class ZSTranspiler {
             var trimmedLine = trimStr(rawLine);
             var skipLine = false;
 
-            #if DEBUG
             if (zsDebugger) ZSDebugger.logTranspiler('Line $currentLine: $trimmedLine');
-            #end
 
 
             var valErrors = ZSParenthesisValidator.validateLine(rawLine, currentLine);

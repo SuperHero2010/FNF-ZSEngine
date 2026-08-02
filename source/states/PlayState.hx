@@ -3692,6 +3692,10 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			resetSubState();
 		}
 
+		#if ZS_ALLOWED
+		cleanupTranspiledFiles();
+		#end
+
 		#if LUA_ALLOWED
 		for (lua in luaArray)
 		{
@@ -3923,7 +3927,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
         if(OpenFlAssets.exists(zsToLoad))
         #end
         {
-            loadZSScript(zsToLoad);
+            loadZSEvent(zsToLoad);
             return true;
         }
         return false;
@@ -4078,18 +4082,16 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		try {
 			var zsContent = File.getContent(path);
 
-			#if DEBUG
 			trace('Loading ZS script: $path');
     		if (zsDebugger) ZSDebugger.log('Loading ZS script: $path');
-			#end
 
 			var luaContent = ZSTranspiler.transpile(zsContent);
 
 			if (luaContent != null) {
-				#if DEBUG
-				var debugPath = path.replace(".zs", "_debug.lua");
-				File.saveContent(debugPath, luaContent);
-				#end
+				if (zsDebugger) {
+					var debugPath = path.replace(".zs", "_debug.lua");
+					File.saveContent(debugPath, luaContent);
+				}
 
 				var tempDir = Sys.getEnv("TEMP");
 				#if windows
@@ -4098,7 +4100,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				if (tempDir == null) tempDir = "/tmp/";
 				#end
 
-				var tempFile = tempDir + "zs_" + Math.floor(Math.random() * 1000000) + ".lua";
+				var tempFile = tempDir + "_zs_" + Math.floor(Math.random() * 1000000) + ".lua";
 				File.saveContent(tempFile, luaContent);
 
 				var luaScript = new FunkinLua(tempFile);
@@ -4114,6 +4116,72 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			}
 		} catch(e:Dynamic) {
 			trace('Failed to load ZS script $path: $e');
+			if (zsDebugger) ZSDebugger.logError('Failed to load ZS script $path: $e');
+		}
+	}
+
+	function cleanupTranspiledFiles() {
+		#if ZS_ALLOWED
+		for (script in luaArray) {
+			var path = script.scriptName;
+			if (path.indexOf("-transpiled.lua") > -1) {
+				var luaPath = path;
+				var zsPath = path.replace("-transpiled.lua", ".zs");
+
+				if (FileSystem.exists(luaPath)) {
+					FileSystem.deleteFile(luaPath);
+				}
+
+				#if windows
+				Sys.command('attrib -H "' + zsPath + '"');
+				#elseif linux
+				var hiddenPath = zsPath.replace(".zs", ".zs.hidden");
+				if (FileSystem.exists(hiddenPath)) {
+					FileSystem.rename(hiddenPath, zsPath);
+				}
+				#elseif mac
+				Sys.command('chflags nohidden "' + zsPath + '"');
+				#end
+			}
+		}
+		#end
+	}
+
+	function loadZSEvent(path:String) {
+		try {
+			var zsContent = File.getContent(path);
+			var luaContent = ZSTranspiler.transpile(zsContent);
+
+			if (luaContent != null) {
+				var luaPath = path.replace(".zs", "-transpiled.lua");
+
+				trace('Loading ZS event script: $path');
+				if (zsDebugger) ZSDebugger.log('Loading ZS event script: $path');
+				trace('Transpiled Lua saved to: $luaPath');
+				if (zsDebugger) ZSDebugger.log('Transpiled Lua saved to: $luaPath');
+
+				File.saveContent(luaPath, luaContent);
+
+				#if windows
+				Sys.command('attrib +H "' + path + '"');
+				#elseif linux
+				var hiddenPath = path.replace(".zs", ".zs.hidden");
+				FileSystem.rename(path, hiddenPath);
+				#elseif mac
+				Sys.command('chflags hidden "' + path + '"');
+				#end
+
+				var luaScript = new FunkinLua(luaPath);
+				PlayState.instance.luaArray.push(luaScript);
+				if (zsDebugger) ZSDebugger.log('ZS event script loaded: $path');
+			} else {
+				for (err in ZSTranspiler.errors) {
+					trace('ZS Error in $path: $err');
+					if (zsDebugger) ZSDebugger.logError('ZS Error in $path: $err');
+				}
+			}
+		} catch(e:Dynamic) {
+			trace('Failed to load ZS event script $path: $e');
 			if (zsDebugger) ZSDebugger.logError('Failed to load ZS script $path: $e');
 		}
 	}
