@@ -2948,7 +2948,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			#if !switch
 			var percent:Float = ratingPercent;
 			if(Math.isNaN(percent)) percent = 0;
-			if (!cpuControlled || !practiceMode) Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
+			if (!cpuControlled && !practiceMode) Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
 			#end
 			playbackRate = 1;
 
@@ -2977,7 +2977,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					// if ()
 					if(!ClientPrefs.getGameplaySetting('practice') && !ClientPrefs.getGameplaySetting('botplay')) {
 						StoryMenuState.weekCompleted.set(WeekData.weeksList[storyWeek], true);
-						if (!cpuControlled || !practiceMode) Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
+						if (!cpuControlled && !practiceMode) Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
 
 						FlxG.save.data.weekCompleted = StoryMenuState.weekCompleted;
 						FlxG.save.flush();
