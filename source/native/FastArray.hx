@@ -4,7 +4,7 @@ import cpp.RawPointer;
 
 @:buildXml('
 <target id="haxe">
-    <source name="FastArray.cpp" />
+    <source name="native/FastArray.cpp" />
 </target>
 ')
 @:include("FastArray.h")
