@@ -152,6 +152,9 @@ class ZSParser {
                         subResult += n;
                         j++;
                     case Variable(v):
+                        if (subResult != "" && subResult.charAt(subResult.length - 1) != '(' && subResult.charAt(subResult.length - 1) != ' ') {
+                            subResult += " ";
+                        }
                         subResult += v;
                         j++;
                     case PropertyRef(p):

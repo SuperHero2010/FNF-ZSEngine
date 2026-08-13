@@ -295,9 +295,9 @@ class MergeChartState extends MusicBeatState
 
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
-						baseNotes = baseNotes.concat(newNotes);
+						baseNotes.push(...newNotes);
 						baseChart2.notes = baseNotes;
-						baseEvents = baseEvents.concat(newEvents);
+						baseEvents.push(...newEvents);
 						baseChart2.events = baseEvents;
 						updateUI('Merged ${newEvents.length} events\n');
 
@@ -334,9 +334,9 @@ class MergeChartState extends MusicBeatState
 
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
-					baseNotes = baseNotes.concat(newNotes);
+					baseNotes.push(...newNotes);
 					baseChart.notes = baseNotes;
-					baseEvents = baseEvents.concat(newEvents);
+					baseEvents.push(...newEvents);
 					baseChart.events = baseEvents;
 					updateUI('Merged ${newEvents.length} events\n');
 
@@ -1265,7 +1265,7 @@ class MergeChartState extends MusicBeatState
 					{
 						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
-						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
+						baseSection.sectionNotes.push(...nextSectionNotes);
 
 						parsedNotes += nextSectionNotes.length;
 						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
@@ -1289,7 +1289,7 @@ class MergeChartState extends MusicBeatState
 		{
 			var nextEvents:Array<Dynamic> = cast nextSong.events;
 			var baseEvents:Array<Dynamic> = cast baseSong.events;
-			baseSong.events = baseEvents.concat(nextEvents);
+			baseSong.events.push(...nextEvents);
 			parsedEvents += nextEvents.length;
 			showMergeProgress(false, true);
 		}

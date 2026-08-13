@@ -4485,7 +4485,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newNotesData.length > 0)
 		{
-			targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotesData);
+			targetSection.sectionNotes.push(...newNotesData);
 
 			for (noteData in newNotesData)
 			{
@@ -4497,7 +4497,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newEventsData.length > 0)
 		{
-			targetSection.sectionNotes = targetSection.sectionNotes.concat(newEventsData);
+			targetSection.sectionNotes.push(...newEventsData);
 
 			for (eventData in newEventsData)
 			{
@@ -4866,7 +4866,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 
-			sec.sectionNotes = sec.sectionNotes.concat(newNotes);
+			sec.sectionNotes.push(...newNotes);
 
 			newNotes = null;
 

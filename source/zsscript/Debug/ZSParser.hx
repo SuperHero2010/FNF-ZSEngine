@@ -116,7 +116,7 @@ class ZSParser {
         var globalHasStringLiteral = false;
         for (token in tokens) {
             switch (token) {
-                case StringLiteral(_): 
+                case StringLiteral(_):
                     globalHasStringLiteral = true;
                     trace('ZSParser: Found string literal, globalHasStringLiteral=true');
                 default:
@@ -157,6 +157,9 @@ class ZSParser {
                         trace('ZSParser: NumberLiteral added: "$n"');
                         j++;
                     case Variable(v):
+                        if (subResult != "" && subResult.charAt(subResult.length - 1) != '(' && subResult.charAt(subResult.length - 1) != ' ') {
+                            subResult += " ";
+                        }
                         subResult += v;
                         trace('ZSParser: Variable added: "$v"');
                         j++;

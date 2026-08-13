@@ -36,6 +36,7 @@ class ZSPatternGenerator {
         patterns = patterns.concat(generatePrintPatterns());
         patterns = patterns.concat(generateIfExceptionPatterns());
         patterns = patterns.concat(generateReflectionPatterns());
+        patterns = patterns.concat(generateNestedPatterns());
         patterns = patterns.concat(generateFallbackPatterns());
 
         return patterns;
@@ -209,7 +210,7 @@ class ZSPatternGenerator {
             "call method",
             "callMethod",
             [
-                {name: "function", type: "any", required: true},
+                {name: "function", type: "anyBeforeKeyNongreedy", required: true},
                 {name: "args", type: "table", required: false, defaultValue: "null"}
             ],
             ['with'],
@@ -246,7 +247,7 @@ class ZSPatternGenerator {
 
         patterns = patterns.concat(generateFunctionPatterns(
             "instance argument",
-            "instanceArgument",
+            "instanceArg",
             [
                 {name: "instanceName", type: "any", required: true},
                 {name: "classVar", type: "any", required: false, defaultValue: ""}
@@ -452,19 +453,6 @@ class ZSPatternGenerator {
             pattern: '^overlap (.+?) and (.+?)$',
             replacement: 'objectsOverlap($1, $2)',
             description: "Check overlap",
-            category: "reflection"
-        });
-
-        patterns.push({
-            pattern: "read ([^ ,]+)",
-            replacement: 'getProperty($1)',
-            description: "Read a property (nested)",
-            category: "reflection"
-        });
-        patterns.push({
-            pattern: "read “([^”]+)”",
-            replacement: 'getProperty("$1")',
-            description: "Read a property (nested quoted)",
             category: "reflection"
         });
 
@@ -1316,10 +1304,10 @@ class ZSPatternGenerator {
             "start tween tag",
             "startTween",
             [
-                {name: "twnTag", type: "any", required: true},
-                {name: "objTag", type: "any", required: true},
-                {name: "value", type: "any", required: true},
-                {name: "duration", type: "any", required: true},
+                {name: "twnTag", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "objTag", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "value", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "duration", type: "anyBeforeKeyNongreedy", required: true},
                 {name: "options", type: "table", required: false, defaultValue: "null"}
             ],
             ['for', 'value', 'duration', 'options'],
@@ -1333,10 +1321,10 @@ class ZSPatternGenerator {
                 "tween " + type + " tag",
                 "doTween" + (type.charAt(0).toUpperCase() + type.substr(1)),
                 [
-                    {name: "twnTag", type: "any", required: true},
-                    {name: "objTag", type: "any", required: true},
-                    {name: "value", type: "any", required: true},
-                    {name: "duration", type: "any", required: true},
+                    {name: "twnTag", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "objTag", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "value", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "duration", type: "anyBeforeKeyNongreedy", required: true},
                     {name: "ease", type: "any", required: false, defaultValue: "linear"}
                 ],
                 ['for', 'value', 'duration', 'type'],
@@ -1349,10 +1337,10 @@ class ZSPatternGenerator {
             "tween color tag",
             "doTweenColor",
             [
-                {name: "twnTag", type: "any", required: true},
-                {name: "objTag", type: "any", required: true},
-                {name: "color", type: "any", required: true},
-                {name: "duration", type: "any", required: true},
+                {name: "twnTag", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "objTag", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "color", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "duration", type: "anyBeforeKeyNongreedy", required: true},
                 {name: "ease", type: "any", required: false, defaultValue: "linear"}
             ],
             ['for', 'color', 'duration', 'type'],
@@ -1364,13 +1352,13 @@ class ZSPatternGenerator {
             "tween zoom tag",
             "doTweenZoom",
             [
-                {name: "twnTag", type: "any", required: true},
-                {name: "camera", type: "any", required: true},
-                {name: "value", type: "any", required: true},
-                {name: "duration", type: "any", required: true},
+                {name: "twnTag", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "camera", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "value", type: "anyBeforeKeyNongreedy", required: true},
+                {name: "duration", type: "anyBeforeKeyNongreedy", required: true},
                 {name: "ease", type: "any", required: false, defaultValue: "linear"}
             ],
-            ['camera', 'value', 'duration', 'type'],
+            ['for', 'value', 'duration', 'type'],
             "Tween zoom",
             "tween"
         ));
@@ -1381,10 +1369,10 @@ class ZSPatternGenerator {
                 "tween " + type + " tag",
                 "noteTween" + (type.charAt(0).toUpperCase() + type.substr(1)),
                 [
-                    {name: "twnTag", type: "any", required: true},
-                    {name: "note", type: "any", required: true},
-                    {name: "value", type: "any", required: true},
-                    {name: "duration", type: "any", required: true},
+                    {name: "twnTag", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "note", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "value", type: "anyBeforeKeyNongreedy", required: true},
+                    {name: "duration", type: "anyBeforeKeyNongreedy", required: true},
                     {name: "ease", type: "any", required: false, defaultValue: "linear"}
                 ],
                 ['note', 'value', 'duration', 'type'],
@@ -2068,6 +2056,199 @@ class ZSPatternGenerator {
         return patterns;
     }
 
+    static function generateNestedPatterns():Array<Pattern> {
+        var patterns = [];
+
+        patterns.push({
+            pattern: "read ([^ ,]+)",
+            replacement: 'getProperty($1)',
+            description: "Read a property (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read from group ([^ ,]+) at ([^ ,]+) property ([^ ,]+)",
+            replacement: 'getPropertyFromGroup($1, $2, $3)',
+            description: "Read from group (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read from class ([^ ,]+) variable ([^ ,]+)",
+            replacement: 'getPropertyFromClass($1, $2)',
+            description: "Read from class (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "instance argument ([^ ,]+)",
+            replacement: 'instanceArg($1)',
+            description: "Instance argument (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read order of ([^ ,]+)",
+            replacement: 'getObjectOrder($1)',
+            description: "Read object order (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read midPoint x of ([^ ,]+)",
+            replacement: 'getMidpointX($1)',
+            description: "Read midpoint X (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read midPoint y of ([^ ,]+)",
+            replacement: 'getMidpointY($1)',
+            description: "Read midpoint Y (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read graphic midPoint x of ([^ ,]+)",
+            replacement: 'getGraphicMidpointX($1)',
+            description: "Read graphic midpoint X (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read graphic midPoint y of ([^ ,]+)",
+            replacement: 'getGraphicMidpointY($1)',
+            description: "Read graphic midpoint Y (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read position x of ([^ ,]+)",
+            replacement: 'getScreenPositionX($1)',
+            description: "Read screen position X (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read position y of ([^ ,]+)",
+            replacement: 'getScreenPositionY($1)',
+            description: "Read screen position Y (nested)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read pixel of ([^ ,]+) with ([^ ,]+) and ([^ ,]+)",
+            replacement: 'getPixelColor($1, $2, $3)',
+            description: "Read pixel color (nested)",
+            category: "reflection"
+        });
+
+        patterns.push({
+            pattern: "read content of text ([^ ,]+)",
+            replacement: 'getTextString($1)',
+            description: "Read text content (nested)",
+            category: "text"
+        });
+        patterns.push({
+            pattern: "read size of text ([^ ,]+)",
+            replacement: 'getTextSize($1)',
+            description: "Read text size (nested)",
+            category: "text"
+        });
+        patterns.push({
+            pattern: "read font of text ([^ ,]+)",
+            replacement: 'getTextFont($1)',
+            description: "Read text font (nested)",
+            category: "text"
+        });
+        patterns.push({
+            pattern: "read width of text ([^ ,]+)",
+            replacement: 'getTextWidth($1)',
+            description: "Read text width (nested)",
+            category: "text"
+        });
+
+        patterns.push({
+            pattern: "read volume of sound ([^ ,]+)",
+            replacement: 'getSoundVolume($1)',
+            description: "Read sound volume (nested)",
+            category: "sound"
+        });
+        patterns.push({
+            pattern: "read time of sound ([^ ,]+)",
+            replacement: 'getSoundTime($1)',
+            description: "Read sound time (nested)",
+            category: "sound"
+        });
+        patterns.push({
+            pattern: "read pitch of sound ([^ ,]+)",
+            replacement: 'getSoundPitch($1)',
+            description: "Read sound pitch (nested)",
+            category: "sound"
+        });
+
+        patterns.push({
+            pattern: "read camera scroll x",
+            replacement: 'getCameraScrollX()',
+            description: "Read camera scroll X (nested)",
+            category: "camera"
+        });
+        patterns.push({
+            pattern: "read camera scroll y",
+            replacement: 'getCameraScrollY()',
+            description: "Read camera scroll Y (nested)",
+            category: "camera"
+        });
+        patterns.push({
+            pattern: "read camera follow x",
+            replacement: 'getCameraFollowX()',
+            description: "Read camera follow X (nested)",
+            category: "camera"
+        });
+        patterns.push({
+            pattern: "read camera follow y",
+            replacement: 'getCameraFollowY()',
+            description: "Read camera follow Y (nested)",
+            category: "camera"
+        });
+
+        patterns.push({
+            pattern: "read mouse x",
+            replacement: 'getMouseX()',
+            description: "Read mouse X (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "read mouse y",
+            replacement: 'getMouseY()',
+            description: "Read mouse Y (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "read mouse x on ([^ ,]+)",
+            replacement: 'getMouseX($1)',
+            description: "Read mouse X on camera (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "read mouse y on ([^ ,]+)",
+            replacement: 'getMouseY($1)',
+            description: "Read mouse Y on camera (nested)",
+            category: "input"
+        });
+
+        patterns.push({
+            pattern: "read running scripts",
+            replacement: 'getRunningScripts()',
+            description: "Read running scripts (nested)",
+            category: "script"
+        });
+
+        patterns.push({
+            pattern: "read songPosition",
+            replacement: 'getSongPosition()',
+            description: "Read song position (nested)",
+            category: "playstate"
+        });
+        patterns.push({
+            pattern: "read health",
+            replacement: 'getHealth()',
+            description: "Read health (nested)",
+            category: "score"
+        });
+
+        return patterns;
+    }
+
     static function generateFunctionPatterns(
         command:String,
         luaFunction:String,
@@ -2127,6 +2308,12 @@ class ZSPatternGenerator {
                     captureGroups.push("$" + paramIndex);
                 } else if (p.type == "table") {
                     zsPattern += "({[^}]*})";
+                    captureGroups.push("$" + paramIndex);
+                } else if (p.type == "anyBeforeKeyword") {
+                    zsPattern += "(.+)";
+                    captureGroups.push("$" + paramIndex);
+                } else if (p.type == "anyBeforeKeyNongreedy") {
+                    zsPattern += "(.+?)";
                     captureGroups.push("$" + paramIndex);
                 } else {
                     zsPattern += "([^ ]+)";
@@ -2210,6 +2397,12 @@ class ZSPatternGenerator {
                         nounCaptureGroups.push("$" + nounParamIndex);
                     } else if (param.type == "table") {
                         nounPattern += "({[^}]*})";
+                        nounCaptureGroups.push("$" + nounParamIndex);
+                    } else if (param.type == "anyBeforeKeyword") {
+                        nounPattern += "(.+)";
+                        nounCaptureGroups.push("$" + nounParamIndex);
+                    } else if (param.type == "anyBeforeKeyNongreedy") {
+                        nounPattern += "(.+?)";
                         nounCaptureGroups.push("$" + nounParamIndex);
                     } else {
                         nounPattern += "([^ ]+)";
@@ -2432,6 +2625,12 @@ class ZSPatternGenerator {
                 } else if (p.type == "table") {
                     zsPattern += "({[^}]*})";
                     captureGroups.push("$" + paramIndex);
+                } else if (p.type == "anyBeforeKeyword") {
+                    zsPattern += "(.+)";
+                    captureGroups.push("$" + paramIndex);
+                } else if (p.type == "anyBeforeKeyNongreedy") {
+                    zsPattern += "(.+?)";
+                    captureGroups.push("$" + paramIndex);
                 } else {
                     zsPattern += "([^ ]+)";
                     captureGroups.push("$" + paramIndex);
@@ -2518,6 +2717,12 @@ class ZSPatternGenerator {
                     } else if (param.type == "table") {
                         nounPattern += "({[^}]*})";
                         nounCaptureGroups.push("$" + nounParamIndex);
+                    } else if (param.type == "anyBeforeKeyword") {
+                        nounPattern += "(.+)";
+                        nounCaptureGroups.push("$" + nounParamIndex);
+                    } else if (param.type == "anyBeforeKeyNongreedy") {
+                        nounPattern += "(.+?)";
+                        nounCaptureGroups.push("$" + nounParamIndex);
                     } else {
                         nounPattern += "([^ ]+)";
                         nounCaptureGroups.push("$" + nounParamIndex);
@@ -2562,6 +2767,7 @@ class ZSPatternGenerator {
             }
             combos = newCombos;
         }
+        combos.reverse();
         return combos;
     }
 

@@ -6,9 +6,297 @@ import zsscript.ZSPatternGenerator.Pattern;
 class ZSTranspiler {
     public static var errors:Array<String> = [];
     public static var currentLine:Int = 0;
+    public static var userDefinedFunctions:Array<String> = [];
+    public static var nounExceptions:Array<String> = [
+        "luaDebugMode",
+        "luaDeprecatedWarnings",
+        "scriptName",
+        "modFolder",
+        "currentModDirectory",
+
+        "version",
+        "buildTarget",
+
+        "Function_StopLua",
+        "Function_StopHScript",
+        "Function_StopAll",
+        "Function_Stop",
+        "Function_Continue",
+
+        "screenWidth",
+        "screenHeight",
+
+        "songName",
+        "songPath",
+        "loadedSongName",
+        "loadedSongPath",
+        "bpm",
+        "songLength",
+        "startedCountdown",
+        "seenCutscene",
+        "inGameOver",
+
+        "chartPath",
+        "curStage",
+        "scrollSpeed",
+        "hasVocals",
+
+        "difficulty",
+        "difficultyName",
+        "difficultyPath",
+        "difficultyNameTranslation",
+
+        "isStoryMode",
+        "weekRaw",
+        "week",
+
+        "curBpm",
+        "curSection",
+        "curBeat",
+        "curStep",
+        "curDecBeat",
+        "curDecStep",
+        "crochet",
+        "stepCrochet",
+        "mustHitSection",
+        "altAnim",
+        "gfSection",
+
+        "score",
+        "misses",
+        "hits",
+        "combo",
+        "deaths",
+        "rating",
+        "ratingName",
+        "ratingFC",
+        "totalPlayed",
+        "totalNotesHit",
+
+        "playbackRate",
+        "healthGainMult",
+        "healthLossMult",
+        "instakillOnMiss",
+        "practice",
+        "botPlay",
+
+        "defaultPlayerStrumX0",
+        "defaultPlayerStrumY0",
+        "defaultPlayerStrumX1",
+        "defaultPlayerStrumY1",
+        "defaultPlayerStrumX2",
+        "defaultPlayerStrumY2",
+        "defaultPlayerStrumX3",
+        "defaultPlayerStrumY3",
+        "defaultOpponentStrumX0",
+        "defaultOpponentStrumY0",
+        "defaultOpponentStrumX1",
+        "defaultOpponentStrumY1",
+        "defaultOpponentStrumX2",
+        "defaultOpponentStrumY2",
+        "defaultOpponentStrumX3",
+        "defaultOpponentStrumY3",
+
+        "defaultBoyfriendX",
+        "defaultBoyfriendY",
+        "defaultOpponentX",
+        "defaultOpponentY",
+        "defaultGirlfriendX",
+        "defaultGirlfriendY",
+        "boyfriendName",
+        "dadName",
+        "gfName",
+
+        "downscroll",
+        "middlescroll",
+        "framerate",
+        "ghostTapping",
+        "hideHud",
+        "timeBarType",
+        "scoreZoom",
+        "cameraZoomOnBeat",
+        "flashingLights",
+        "noteOffset",
+        "healthBarAlpha",
+        "noResetButton",
+        "lowQuality",
+        "shadersEnabled",
+        "guitarHeroSustains",
+        "noteSkin",
+        "splashSkin",
+        "splashAlpha",
+        "noteSkinPostfix",
+        "splashSkinPostfix"
+    ];
+
+    public static function extractUserDefinedFunctions(zsSource:String):Array<String> {
+        var functions = [];
+        var lines = zsSource.split("\n");
+
+        for (line in lines) {
+            var trimmed = trimStr(line);
+            if (trimmed.indexOf("<") > -1 && trimmed.charAt(trimmed.length - 1) == ":") {
+                var colonPos = trimmed.indexOf(":");
+                var beforeColon = trimmed.substring(0, colonPos);
+                var funcName = beforeColon.split("<")[0];
+                if (funcName.length > 0 && !functions.contains(funcName)) {
+                    functions.push(funcName);
+                }
+            }
+        }
+
+        return functions;
+    }
+
+    public static function extractKeywordsFromPatterns():Array<String> {
+        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back"];
+        var allPatterns = ZSPatterns.getPatterns();
+
+        for (pattern in allPatterns) {
+            var patternStr = pattern.pattern;
+            var replacementStr = pattern.replacement;
+
+            if (patternStr.indexOf("^") == 0) {
+                var spacePos = patternStr.indexOf(" ");
+                if (spacePos > 0) {
+                    var keyword = patternStr.substring(1, spacePos);
+                    if (keyword.length > 0 && !keywords.contains(keyword) && keyword != "nil" && keyword != "return" && keyword != "elseif" && keyword != "function") {
+                        keywords.push(keyword);
+                    }
+                }
+            }
+
+            var parenPos = replacementStr.indexOf("(");
+            if (parenPos > 0) {
+                var funcName = replacementStr.substring(0, parenPos);
+                if (funcName.length > 0 && !keywords.contains(funcName) && funcName != "nil" && funcName != "return" && funcName != "elseif" && funcName != "function") {
+                    keywords.push(funcName);
+                }
+            }
+
+            var literalWords = patternStr.split(" ");
+            for (word in literalWords) {
+                var cleanWord = word;
+                if (cleanWord.indexOf("^") == 0) cleanWord = cleanWord.substring(1);
+                if (cleanWord.indexOf("(") == 0) cleanWord = cleanWord.substring(1);
+                if (cleanWord.indexOf(")") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf(")"));
+                if (cleanWord.indexOf("?") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("?"));
+                if (cleanWord.indexOf("$") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("$"));
+                if (cleanWord.indexOf("[") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("["));
+                if (cleanWord.indexOf("+") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("+"));
+                if (cleanWord.indexOf("*") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("{"));
+                if (cleanWord.indexOf(".") > -1) cleanWord = cleanWord.substring(0, cleanWord.indexOf("."));
+
+                cleanWord = trimStr(cleanWord);
+
+                if (cleanWord.length > 0 && !keywords.contains(cleanWord) && cleanWord != "nil" && cleanWord != "return" && cleanWord != "elseif" && cleanWord != "function" && cleanWord != "^" && cleanWord != "$" && cleanWord != "?" && cleanWord != "+" && cleanWord != "*") {
+                    keywords.push(cleanWord);
+                }
+            }
+        }
+
+        return keywords;
+    }
+
+    public static function validateNouns(zsSource:String):Array<String> {
+        var validationErrors:Array<String> = [];
+        var lines = zsSource.split("\n");
+
+        var validKeywords = extractKeywordsFromPatterns();
+
+        for (i in 0...lines.length) {
+            var line = trimStr(lines[i]);
+            if (line == "" || line.indexOf("-/") == 0) continue;
+            if (line == "! ZS-LUA") continue;
+
+            if (line.indexOf("*/-") == 0 || line.indexOf("/-*") >= 0) continue;
+
+            if (line.charAt(line.length - 1) == ":") continue;
+
+            if (line.indexOf(" -/") > -1) {
+                line = trimStr(line.substring(0, line.indexOf(" -/")));
+            }
+
+            var words = line.split(" ");
+            for (j in 0...words.length) {
+                var word = words[j];
+                var cleanWord = trimStr(word);
+
+                var wordToCheck = cleanWord;
+                var lastChar = wordToCheck.charAt(wordToCheck.length - 1);
+                if (lastChar == ":" || lastChar == "," || lastChar == "." || lastChar == ";" || lastChar == "(" || lastChar == ")") {
+                    wordToCheck = wordToCheck.substring(0, wordToCheck.length - 1);
+                }
+
+                if (wordToCheck == "" || wordToCheck.indexOf("<") >= 0 || wordToCheck.indexOf(">") >= 0) continue;
+
+                if (validKeywords.contains(wordToCheck)) continue;
+
+                if (nounExceptions.contains(wordToCheck)) continue;
+                var isNumber = true;
+                for (k in 0...wordToCheck.length) {
+                    var c = wordToCheck.charAt(k);
+                    if (!((c >= '0' && c <= '9') || c == '.' || c == '-')) {
+                        isNumber = false;
+                        break;
+                    }
+                }
+                if (isNumber && wordToCheck.length > 0) continue;
+
+                if (wordToCheck.indexOf("'") >= 0 || wordToCheck.indexOf('"') >= 0 || wordToCheck.indexOf("“") >= 0 || wordToCheck.indexOf("”") >= 0 || wordToCheck.indexOf("‘") >= 0 || wordToCheck.indexOf("’") >= 0) continue;
+
+                if (wordToCheck == "true" || wordToCheck == "false") continue;
+
+                if (wordToCheck == "+" || wordToCheck == "-" || wordToCheck == "×" || wordToCheck == "÷" ||
+                    wordToCheck == "−" || wordToCheck == "=" || wordToCheck == "≠" || wordToCheck == "≤" ||
+                    wordToCheck == "≥" || wordToCheck == "<" || wordToCheck == ">") continue;
+
+                var isNounCandidate = false;
+                if (wordToCheck.length > 0) {
+                    var firstChar = wordToCheck.charAt(0);
+                    if ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || firstChar == '_') {
+                        isNounCandidate = true;
+                        for (k in 0...wordToCheck.length) {
+                            var c = wordToCheck.charAt(k);
+                            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_')) {
+                                isNounCandidate = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (isNounCandidate) {
+                    var isFunctionCall = false;
+
+                    if (j + 1 < words.length) {
+                        var nextWord = trimStr(words[j + 1]);
+                        if (nextWord.charAt(0) == '<' || nextWord == "read" || nextWord == "with" || nextWord == "to" || nextWord == "for") {
+                            isFunctionCall = true;
+                        }
+                    }
+
+                    if (!isFunctionCall && j > 0) {
+                        var prevWord = trimStr(words[j - 1]);
+                        if (prevWord == "change" || prevWord == "call" || prevWord == "to" || prevWord == "with" || prevWord == "for") {
+                            isFunctionCall = true;
+                        }
+                    }
+
+                    if (isFunctionCall) continue;
+
+                    validationErrors.push('Error at line ${i + 1}: Noun "$wordToCheck" missing <> wrapper');
+                    validationErrors.push('  → Use "<$wordToCheck>" instead');
+                }
+            }
+        }
+
+        return validationErrors;
+    }
 
     public static function transpile(zsSource:String):Null<String> {
         errors = [];
+        userDefinedFunctions = extractUserDefinedFunctions(zsSource);
         var luaCode = new StringBuf();
         var lines = zsSource.split("\n");
         var directiveFound = false;
@@ -19,6 +307,12 @@ class ZSTranspiler {
         var libErrors = ZSLibValidator.validate(zsSource);
         if (libErrors.length > 0) {
             errors = libErrors;
+            return null;
+        }
+
+        var nounErrors = validateNouns(zsSource);
+        if (nounErrors.length > 0) {
+            errors = nounErrors;
             return null;
         }
 
@@ -47,6 +341,8 @@ class ZSTranspiler {
         var blockTypeStack:Array<String> = [];
         var lastIndent = 0;
         var inBlockComment = false;
+        var inString:Bool = false;
+        var stringChar:String = "";
         var i = 0;
 
         while (i < lines.length) {
@@ -182,7 +478,19 @@ class ZSTranspiler {
                 trimmedLine = trimStr(trimmedLine.substring(0, commentPos));
             }
 
-            if (!inBlockComment) {
+            inString = false;
+            stringChar = "";
+            for (i in 0...trimmedLine.length) {
+                var c = trimmedLine.charAt(i);
+                if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’")) {
+                    inString = true;
+                    stringChar = c;
+                } else if (inString && c == stringChar) {
+                    inString = false;
+                }
+            }
+
+            if (!inBlockComment && !inString) {
                 var codeToCheck = trimmedLine;
                 if (codeToCheck.indexOf('nil') > -1) {
                     errors.push('Error at line $currentLine: \'nil\' is prohibited in ZS');
@@ -190,6 +498,10 @@ class ZSTranspiler {
                 }
                 if (codeToCheck.indexOf('return') > -1) {
                     errors.push('Error at line $currentLine: \'return\' is prohibited in ZS');
+                    return null;
+                }
+                if (codeToCheck.indexOf('function') > -1) {
+                    errors.push('Error at line $currentLine: \'function\' is prohibited in ZS');
                     return null;
                 }
                 if (codeToCheck.indexOf('"') > -1) {
@@ -250,19 +562,70 @@ class ZSTranspiler {
                     return null;
                 }
 
+                if (codeToCheck.indexOf("local ") == 0 && codeToCheck.indexOf("local <") != 0) {
+                    errors.push('Error at line $currentLine: "local" must be followed by noun wrapper "<...>"');
+                    errors.push('  Found: "$codeToCheck"');
+                    errors.push('  Use "local <name> = value"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("global ") == 0 && codeToCheck.indexOf("global <") != 0) {
+                    errors.push('Error at line $currentLine: "global" must be followed by noun wrapper "<...>"');
+                    errors.push('  Found: "$codeToCheck"');
+                    errors.push('  Use "global <name> = value"');
+                    return null;
+                }
+                if (codeToCheck.indexOf("=") > -1 && codeToCheck.indexOf("<") == -1) {
+                    var isRawAssignment = ~/^[a-zA-Z_][a-zA-Z0-9_]* =/;
+                    if (isRawAssignment.match(codeToCheck)) {
+                        errors.push('Error at line $currentLine: Raw Lua assignment detected');
+                        errors.push('  Found: "$codeToCheck"');
+                        errors.push('  Use "change <property> to value" instead');
+                        return null;
+                    }
+                }
+                if (codeToCheck.indexOf("(") > -1 && codeToCheck.indexOf("<") == -1) {
+                    var isRawCall = ~/^[a-zA-Z_][a-zA-Z0-9_]*\(/;
+                    if (isRawCall.match(codeToCheck)) {
+                        errors.push('Error at line $currentLine: Raw Lua function call detected');
+                        errors.push('  Found: "$codeToCheck"');
+                        errors.push('  Use natural ZS syntax instead (e.g., "call method", "play sound", etc.)');
+                        return null;
+                    }
+                }
+                if (codeToCheck.indexOf(";") > -1) {
+                    errors.push('Error at line $currentLine: Semicolon ";" is not allowed in ZS');
+                    errors.push('  → ZS uses natural line breaks, not semicolons');
+                    return null;
+                }
+
                 var patterns = [
                     ~/[0-9] *- *[0-9]/, ~/[0-9]-[0-9]/, ~/[0-9] *-[0-9]/, ~/[0-9]- *[0-9]/,
                     ~/> *- *</, ~/>-</, ~/> *-</, ~/>- *</,
                     ~/[0-9] *- *</, ~/[0-9]-</, ~/[0-9]- *</, ~/[0-9] *-</,
                     ~/> *- *[0-9]/, ~/>-[0-9]/, ~/>- *[0-9]/, ~/> *-[0-9]/,
+                    ~/\) *- *[0-9]/, ~/\)-[0-9]/, ~/\) *-[0-9]/, ~/\)- *[0-9]/,
+                    ~/[0-9] *- *\(/, ~/[0-9]-\(/, ~/[0-9] *-\(/, ~/[0-9]- *\(/,
+                    ~/\) *- *</, ~/\)-</, ~/\) *-</, ~/\)- *</,
+                    ~/> *- *\(/, ~/>\-\(/, ~/> *-\(/, ~/>\- *\(/,
+                    ~/\) *-\(/, ~/\)\-\(/,
                     ~/[0-9] *\* *[0-9]/, ~/[0-9]\*[0-9]/, ~/[0-9] *\*[0-9]/, ~/[0-9]\* *[0-9]/,
                     ~/> *\* *</, ~/>\*</, ~/> *\*</, ~/>\* *</,
                     ~/[0-9] *\* *</, ~/[0-9]\* *</, ~/[0-9]\*</, ~/[0-9] *\*</,
                     ~/> *\* *[0-9]/, ~/>\*[0-9]/, ~/>\* *[0-9]/, ~/> *\*[0-9]/,
+                    ~/\) *\* *[0-9]/, ~/\)\*[0-9]/, ~/\) *\*[0-9]/, ~/\)\* *[0-9]/,
+                    ~/[0-9] *\* *\(/, ~/[0-9]\*\(/, ~/[0-9] *\*\(/, ~/[0-9]\* *\(/,
+                    ~/\) *\* *</, ~/\)\*</, ~/\) *\*</, ~/\)\* *</,
+                    ~/> *\* *\(/, ~/>\*\(/, ~/> *\*\(/, ~/>\* *\(/,
+                    ~/\) *\*\(/, ~/\)\*\(/,
                     ~/[0-9] *\/ *[0-9]/, ~/[0-9]\/[0-9]/, ~/[0-9] *\/[0-9]/, ~/[0-9]\/ *[0-9]/,
                     ~/> *\/ *</, ~/>\/</, ~/> *\/</, ~/>\/ *</,
                     ~/[0-9] *\/ *</, ~/[0-9]\/ *</, ~/[0-9]\/</, ~/[0-9] *\/</,
-                    ~/> *\/ *[0-9]/, ~/>\/[0-9]/, ~/>\/ *[0-9]/, ~/> *\/[0-9]/
+                    ~/> *\/ *[0-9]/, ~/>\/[0-9]/, ~/>\/ *[0-9]/, ~/> *\/[0-9]/,
+                    ~/\) *\/ *[0-9]/, ~/\)\/[0-9]/, ~/\) *\/[0-9]/, ~/\)\/ *[0-9]/,
+                    ~/[0-9] *\/ *\(/, ~/[0-9]\/\(/, ~/[0-9] *\/\(/, ~/[0-9]\/ *\(/,
+                    ~/\) *\/ *</, ~/\)\/</, ~/\) *\/</, ~/\)\/ *</,
+                    ~/> *\/ *\(/, ~/>\//, ~/> *\/\(/, ~/>\//,
+                    ~/\) *\/\(/, ~/\)\/\(/
                 ];
 
                 for (pattern in patterns) {
@@ -341,12 +704,26 @@ class ZSTranspiler {
 
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
+
+            if (trimmedLine.indexOf("read") > -1) {
+                for (pattern in allPatterns) {
+                    var regex = new EReg(pattern.pattern, "g");
+                    if (regex.match(trimmedLine)) {
+                        var matchPos = regex.matchedPos().pos;
+                        if (matchPos > 0) {
+                            luaLine = replaceMultiPattern(regex, pattern, luaLine, trimmedLine);
+                            break;
+                        }
+                    }
+                }
+            }
+
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
-                if (regex.match(trimmedLine)) {
+                if (regex.match(luaLine)) {
                     var matchPos = regex.matchedPos().pos;
                     if (matchPos == 0) {
-                        luaLine = replaceMultiPattern(regex, pattern, luaLine, trimmedLine);
+                        luaLine = replaceMultiPattern(regex, pattern, luaLine, luaLine);
                         break;
                     }
                 }
@@ -394,13 +771,22 @@ class ZSTranspiler {
                 }
 
                 if (luaLine.indexOf("<") == -1) {
-                    var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) ([a-zA-Z_][a-zA-Z0-9_]*)$/;
+                    var funcCallDirectPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*) (.+)$/;
                     if (funcCallDirectPattern.match(luaLine)) {
                         var funcName = funcCallDirectPattern.matched(1);
                         var args = funcCallDirectPattern.matched(2);
                         var keywords = ["if", "else", "else if", "then", "end", "while", "do", "repeat", "until", "for", "in", "function", "local", "global", "return", "break", "and", "or", "not", "true", "false", "nil"];
-                        if (!keywords.contains(funcName) && !keywords.contains(args)) {
-                            luaLine = funcName + "(" + args + ")";
+
+                        if (!keywords.contains(funcName)) {
+                            var processedArgs = args;
+                            for (pattern in allPatterns) {
+                                var pRegex = new EReg(pattern.pattern, "g");
+                                if (pRegex.match(processedArgs)) {
+                                    processedArgs = pRegex.replace(processedArgs, pattern.replacement);
+                                }
+                            }
+                            processedArgs = convertEmptyToNil(processedArgs);
+                            luaLine = funcName + "(" + processedArgs + ")";
                         }
                     }
                 }
@@ -459,13 +845,31 @@ class ZSTranspiler {
                             var isTableLiteral = (trimmedArg.indexOf("{") == 0 && trimmedArg.lastIndexOf("}") == trimmedArg.length - 1);
                             var isListLiteral = (trimmedArg.indexOf("[") == 0 && trimmedArg.lastIndexOf("]") == trimmedArg.length - 1);
 
-                            if (isTableLiteral || isListLiteral) {
+                            if (isTableLiteral) {
+                                args[j] = processTableLiteral(arg);
+                            } else if (isListLiteral) {
                                 args[j] = arg;
-                                trace('Argument $j is literal, keeping: "${args[j]}"');
+                            } else if (trimmedArg == "") {
+                                args[j] = "nil";
                             } else {
-                                trace('Argument $j before parse: "${args[j]}"');
-                                args[j] = ZSParser.parseExpression(args[j]);
-                                trace('Argument $j after parse: "${args[j]}"');
+                                var originalArg = args[j];
+                                var parsed = ZSParser.parseExpression(args[j]);
+                                args[j] = parsed;
+
+                                var parts = originalArg.split(" ");
+                                if (parts.length > 1) {
+                                    var firstWord = parts[0];
+                                    var rest = originalArg.substring(firstWord.length + 1);
+                                    var firstChar = trimStr(rest).charAt(0);
+
+                                    var hasComma = rest.indexOf(",") > -1;
+                                    if (hasComma && isKnownFunction(firstWord)) {
+                                        args[j] = firstWord + "(" + rest + ")";
+                                    } else if (firstChar != "+" && firstChar != "-" && firstChar != "*" && firstChar != "/") {
+                                        args[j] = firstWord + "(" + rest + ")";
+                                    } else {
+                                    }
+                                }
                             }
                         }
                         var parsedContent = args.join(", ");
@@ -626,7 +1030,7 @@ class ZSTranspiler {
         var subNoSpace = ~/([0-9>][^ ]*)-([0-9<][^ ]*)/g;
         line = subNoSpace.replace(line, "$1−$2");
         var negRegex = ~/(^|[=\(\{,;+*\/÷−]) *- *([0-9<][^ ]*)/g;
-        line = negRegex.replace(line, "$1 -$2");
+        line = negRegex.replace(line, "$1-$2");
         var subRegex2 = ~/([0-9>][^ ]*)- *([0-9<][^ ]*)/g;
         line = subRegex2.replace(line, "$1− $2");
         var subRegex3 = ~/([0-9>][^ ]*) *-([0-9<][^ ]*)/g;
@@ -681,8 +1085,28 @@ class ZSTranspiler {
                 depth--;
                 current += c;
             } else if (!inQuote && depth == 0 && c == ',') {
+                var trimmedCurrent = trimStr(current);
+                var firstWord = trimmedCurrent.split(" ")[0];
+                if (isKnownFunction(firstWord)) {
+                    current += c;
+                } else {
+                    args.push(current);
+                    current = "";
+                }
+            } else if (!inQuote && depth == 0 && c == '-' && i + 1 < content.length && isDigit(content.charAt(i + 1)) && StringTools.trim(current) != "") {
+                args.push(current);
+                current = "-";
+                i++;
+                while (i < content.length && isDigit(content.charAt(i))) {
+                    current += content.charAt(i);
+                    i++;
+                }
                 args.push(current);
                 current = "";
+                continue;
+            } else if (!inQuote && depth == 0 && c == ' ' && current == "") {
+                i++;
+                continue;
             } else {
                 current += c;
             }
@@ -690,6 +1114,33 @@ class ZSTranspiler {
         }
         if (current != "") args.push(current);
         return args;
+    }
+
+    static function isDigit(c:String):Bool {
+        return c >= '0' && c <= '9';
+    }
+
+    static function isKnownFunction(keyword:String):Bool {
+        for (func in userDefinedFunctions) {
+            if (keyword == func || keyword.indexOf(func) == 0) {
+                return true;
+            }
+        }
+
+        var knownFunctions = [
+            "read", "instance", "change", "add", "remove", "scale", "center",
+            "create", "load", "play", "fade", "shake", "flash", "trigger",
+            "start", "cancel", "call", "run", "register", "flush", "erase",
+            "precache", "tween"
+        ];
+
+        for (func in knownFunctions) {
+            if (keyword == func || keyword.indexOf(func) == 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     static function isMultiConditionCheck(line:String):Bool {
@@ -711,11 +1162,109 @@ class ZSTranspiler {
     }
 
     static function addOperatorSpacing(line:String):String {
-        line = ~/([0-9a-zA-Z_\)\]\} ]) *- *([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 - $2");
-        line = ~/([0-9a-zA-Z_\)\]\} ])\*([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 * $2");
-        line = ~/([0-9a-zA-Z_\)\]\} ])\/([0-9a-zA-Z_\(\[\{ ])/g.replace(line, "$1 / $2");
+        line = ~/([0-9a-zA-Z_\)\]\}]) *- *(?=[0-9a-zA-Z_\(\[\{])/g.replace(line, "$1 - ");
+        line = ~/([0-9a-zA-Z_\)\]\}])\*([0-9a-zA-Z_\(\[\{])/g.replace(line, "$1 * $2");
+        line = ~/([0-9a-zA-Z_\)\]\}])\/([0-9a-zA-Z_\(\[\{])/g.replace(line, "$1 / $2");
 
         return line;
+    }
+
+    static function processTableLiteral(table:String):String {
+        trace('=== processTableLiteral INPUT: "$table" ===');
+        var result = "";
+        var inString = false;
+        var stringChar = "";
+        var depth = 0;
+        var i = 0;
+        var currentValue = "";
+
+        while (i < table.length) {
+            var c = table.charAt(i);
+            trace('  pos $i: char="$c", depth=$depth, inString=$inString, currentValue="$currentValue", result="$result"');
+
+            if (!inString && (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”")) {
+                inString = true;
+                stringChar = c;
+                currentValue += c;
+                i++;
+                continue;
+            }
+
+            if (inString && c == stringChar) {
+                inString = false;
+                currentValue += c;
+                i++;
+                continue;
+            }
+
+            if (!inString && (c == '{' || c == '[' || c == '(')) {
+                depth++;
+                currentValue += c;
+                i++;
+                continue;
+            }
+
+            if (!inString && (c == '}' || c == ']' || c == ')')) {
+                currentValue += c;
+                depth--;
+                if (depth == 0 && trimStr(currentValue) == "") {
+                    result += "nil";
+                    currentValue = "";
+                } else if (depth == 0) {
+                    result += currentValue;
+                    currentValue = "";
+                }
+                i++;
+                continue;
+            }
+
+            if (!inString && depth == 0 && c == ',') {
+                if (trimStr(currentValue) == "") {
+                    result += "nil";
+                } else {
+                    result += currentValue;
+                }
+                result += c;
+                currentValue = "";
+                i++;
+                continue;
+            }
+
+            if (!inString && depth > 0 && c == ',') {
+                trace('    -> depth > 0 comma, currentValue="$currentValue"');
+                var trimmedValue = trimStr(currentValue);
+                if (trimmedValue == "") {
+                    var lastChar = result.length > 0 ? result.charAt(result.length - 1) : "";
+                    if (lastChar == ')' || lastChar == ']' || lastChar == '}') {
+                        trace('    -> empty value after closing bracket, skipping nil insertion');
+                        result += c + " ";
+                    } else {
+                        trace('    -> empty value, adding nil, comma and space to result');
+                        result += "nil" + c;
+                    }
+                } else {
+                    trace('    -> adding trimmed value + comma + space: "$trimmedValue" + "$c" + " "');
+                    result += trimmedValue + c + " ";
+                }
+                currentValue = "";
+                i++;
+                continue;
+            }
+
+            currentValue += c;
+            i++;
+        }
+
+        if (currentValue != "") {
+            if (trimStr(currentValue) == "") {
+                result += "nil";
+            } else {
+                result += currentValue;
+            }
+        }
+
+        trace('=== processTableLiteral OUTPUT: "$result" ===');
+        return result;
     }
 
     static function convertGroupingBrackets(line:String):String {
@@ -811,6 +1360,97 @@ class ZSTranspiler {
                 i++;
             }
         }
+        return result;
+    }
+
+    static function convertEmptyToNil(str:String):String {
+        var result = "";
+        var inString = false;
+        var stringChar = "";
+        var inBrackets = 0;
+        var i = 0;
+
+        while (i < str.length) {
+            var c = str.charAt(i);
+
+            if (!inString && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”")) {
+                inString = true;
+                stringChar = c;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inString && c == stringChar) {
+                inString = false;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inString) {
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (c == '(' || c == '[' || c == '{') {
+                inBrackets++;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (c == ')' || c == ']' || c == '}') {
+                inBrackets--;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inBrackets > 0 && c == ',') {
+                var j = i + 1;
+                var spaceCount = 0;
+                while (j < str.length && str.charAt(j) == ' ') {
+                    spaceCount++;
+                    j++;
+                }
+                if (j < str.length && (str.charAt(j) == ',' || str.charAt(j) == ')' || str.charAt(j) == ']' || str.charAt(j) == '}')) {
+                    result += ", nil";
+                    if (str.charAt(j) == ',') {
+                        result += ",";
+                        i = j;
+                    } else {
+                        i = j - 1;
+                    }
+                    continue;
+                }
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (inBrackets > 0 && c == ' ') {
+                var j = i + 1;
+                while (j < str.length && str.charAt(j) == ' ') {
+                    j++;
+                }
+                if (j < str.length && (str.charAt(j) == ',' || str.charAt(j) == ')' || str.charAt(j) == ']' || str.charAt(j) == '}')) {
+                    var prevChar = result.length > 0 ? result.charAt(result.length - 1) : '';
+                    if (prevChar != ',' && prevChar != '(' && prevChar != '[' && prevChar != '{') {
+                        result += ", nil";
+                    } else {
+                        result += " nil";
+                    }
+                    i = j - 1;
+                    continue;
+                }
+            }
+
+            result += c;
+            i++;
+        }
+
         return result;
     }
 

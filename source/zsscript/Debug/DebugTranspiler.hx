@@ -407,8 +407,8 @@ onCreate:
     tween color tag “twnTag” for “objTag” color “color” duration 1
     tween color tag “twnTag” for “objTag” color “color” duration 1 type “ease”
 
-    tween zoom tag “twnTag” camera “objTag” value {} duration 1
-    tween zoom tag “twnTag” camera “objTag” value {} duration 1 type “ease”
+    tween zoom tag “twnTag” for “objTag” value {} duration 1
+    tween zoom tag “twnTag” for “objTag” value {} duration 1 type “ease”
 
     tween x tag “twnTag” note 1 value {} duration 1
     tween x tag “twnTag” note 1 value {} duration 1 type “ease”
