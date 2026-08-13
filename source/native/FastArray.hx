@@ -2,12 +2,7 @@ package native;
 #if cpp
 import cpp.RawPointer;
 
-@:buildXml('
-<target id="haxe">
-    <source name="native/FastArray.cpp" />
-</target>
-')
-@:include("FastArray.h")
+@:include("include/FastArray.h")
 @:native("fast_array_concat_push")
 extern function fastArrayConcatPush<T>(arr:Array<T>, items:Array<T>):Void;
 
