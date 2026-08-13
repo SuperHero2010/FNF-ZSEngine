@@ -13,6 +13,7 @@ import flixel.FlxSubState;
 import backend.Song;
 import backend.SongJson;
 import backend.MemoryUtil;
+import native.FastArray;
 import backend.ui.*;
 import states.editors.content.*;
 import states.editors.content.Prompt;
@@ -295,9 +296,9 @@ class MergeChartState extends MusicBeatState
 
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
-						baseNotes.push(...newNotes);
+						FastArray.concatPush(baseNotes, newNotes);
 						baseChart2.notes = baseNotes;
-						baseEvents.push(...newEvents);
+						FastArray.concatPush(baseEvents, newEvents);
 						baseChart2.events = baseEvents;
 						updateUI('Merged ${newEvents.length} events\n');
 
@@ -334,9 +335,9 @@ class MergeChartState extends MusicBeatState
 
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
-					baseNotes.push(...newNotes);
+					FastArray.concatPush(baseNotes, newNotes);
 					baseChart.notes = baseNotes;
-					baseEvents.push(...newEvents);
+					FastArray.concatPush(baseEvents, newEvents);
 					baseChart.events = baseEvents;
 					updateUI('Merged ${newEvents.length} events\n');
 
@@ -1265,7 +1266,8 @@ class MergeChartState extends MusicBeatState
 					{
 						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
-						baseSection.sectionNotes.push(...nextSectionNotes);
+						FastArray.concatPush(baseSectionNotes, nextSectionNotes);
+						baseSection.sectionNotes = baseSectionNotes;
 
 						parsedNotes += nextSectionNotes.length;
 						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
@@ -1289,7 +1291,8 @@ class MergeChartState extends MusicBeatState
 		{
 			var nextEvents:Array<Dynamic> = cast nextSong.events;
 			var baseEvents:Array<Dynamic> = cast baseSong.events;
-			baseSong.events.push(...nextEvents);
+			FastArray.concatPush(baseEvents, nextEvents);
+			baseSong.events = baseEvents;
 			parsedEvents += nextEvents.length;
 			showMergeProgress(false, true);
 		}
@@ -1375,7 +1378,7 @@ class MergeChartState extends MusicBeatState
 				syncTime = currentTime;
 			}
 		}
-		else if (force) 
+		else if (force)
 		{
 			var totalNotes = parsedNotes;
 			var totalEvents = parsedEvents;

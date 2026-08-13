@@ -20,6 +20,7 @@ import haxe.io.Bytes;
 import haxe.io.Path;
 
 import backend.MemoryUtil;
+import native.FastArray;
 import states.editors.content.MetaNote;
 import states.editors.content.VSlice;
 import states.editors.content.Prompt;
@@ -1741,7 +1742,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 				// Count section notes from the notes array filtered by current section
 				var sec = getCurChartSection();
-				if(sec != null) 
+				if(sec != null)
 				{
 					var minTime:Float = cachedSectionTimes[curSec];
 					var maxTime:Float = (curSec < cachedSectionTimes.length - 1) ? cachedSectionTimes[curSec + 1] : minTime + (Conductor.calculateCrochet(Conductor.bpm) * 4);
@@ -2776,7 +2777,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	private var parsedNotes:Int = 0;
 	private var loadTime:Float = 0;
 
-	function showProgress(force:Bool = false) 
+	function showProgress(force:Bool = false)
 	{
 		if (Main.isConsoleAvailable)
 		{
@@ -2788,7 +2789,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				syncTime = currentTime;
 			}
 		}
-		else if (isDesktop && force) 
+		else if (isDesktop && force)
 		{
 			Sys.println('Loading $cnt/${PlayState.SONG.notes.length} ($parsedNotes notes)');
 		}
@@ -4485,7 +4486,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newNotesData.length > 0)
 		{
-			targetSection.sectionNotes.push(...newNotesData);
+			FastArray.concatPush(targetSection.sectionNotes, newNotesData);
 
 			for (noteData in newNotesData)
 			{
@@ -4497,7 +4498,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newEventsData.length > 0)
 		{
-			targetSection.sectionNotes.push(...newEventsData);
+			FastArray.concatPush(targetSection.sectionNotes, newEventsData);
 
 			for (eventData in newEventsData)
 			{
@@ -4866,7 +4867,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 
-			sec.sectionNotes.push(...newNotes);
+			FastArray.concatPush(sec.sectionNotes, newNotes);
 
 			newNotes = null;
 
@@ -5266,7 +5267,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			openfl.system.System.gc();
 			#if cpp
-			if(expectedCount > 1000000) 
+			if(expectedCount > 1000000)
 			{
 				cpp.vm.Gc.enable(false);
 				cpp.vm.Gc.enable(true);
