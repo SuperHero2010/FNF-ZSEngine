@@ -1197,7 +1197,7 @@ class ZSPatternGenerator {
     static function generateInputPatterns():Array<Pattern> {
         var patterns = [];
 
-        var mouseButtons = ["“left”", "“right”"];
+        var mouseButtons = ["“left”", "“middle”", "“right”"];
         var mouseActions = ["clicked", "pressed", "released"];
         for (button in mouseButtons) {
             for (action in mouseActions) {
