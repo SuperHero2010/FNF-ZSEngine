@@ -13,7 +13,6 @@ import flixel.FlxSubState;
 import backend.Song;
 import backend.SongJson;
 import backend.MemoryUtil;
-import native.FastArray;
 import backend.ui.*;
 import states.editors.content.*;
 import states.editors.content.Prompt;
@@ -296,9 +295,9 @@ class MergeChartState extends MusicBeatState
 
 						var baseNotes:Array<Dynamic> = cast baseChart2.notes;
 						var baseEvents:Array<Dynamic> = cast baseChart2.events;
-						FastArray.concatPush(baseNotes, newNotes);
+						baseNotes = baseNotes.concat(newNotes);
 						baseChart2.notes = baseNotes;
-						FastArray.concatPush(baseEvents, newEvents);
+						baseEvents = baseEvents.concat(newEvents);
 						baseChart2.events = baseEvents;
 						updateUI('Merged ${newEvents.length} events\n');
 
@@ -335,9 +334,9 @@ class MergeChartState extends MusicBeatState
 
 					var baseNotes:Array<Dynamic> = cast baseChart.notes;
 					var baseEvents:Array<Dynamic> = cast baseChart.events;
-					FastArray.concatPush(baseNotes, newNotes);
+					baseNotes = baseNotes.concat(newNotes);
 					baseChart.notes = baseNotes;
-					FastArray.concatPush(baseEvents, newEvents);
+					baseEvents = baseEvents.concat(newEvents);
 					baseChart.events = baseEvents;
 					updateUI('Merged ${newEvents.length} events\n');
 
@@ -1266,8 +1265,7 @@ class MergeChartState extends MusicBeatState
 					{
 						var nextSectionNotes:Array<Dynamic> = cast nextSection.sectionNotes;
 						var baseSectionNotes:Array<Dynamic> = cast baseSection.sectionNotes;
-						FastArray.concatPush(baseSectionNotes, nextSectionNotes);
-						baseSection.sectionNotes = baseSectionNotes;
+						baseSection.sectionNotes = baseSectionNotes.concat(nextSectionNotes);
 
 						parsedNotes += nextSectionNotes.length;
 						if (sectionIndex == nextNotes.length) showMergeProgress(false, true);
@@ -1291,8 +1289,7 @@ class MergeChartState extends MusicBeatState
 		{
 			var nextEvents:Array<Dynamic> = cast nextSong.events;
 			var baseEvents:Array<Dynamic> = cast baseSong.events;
-			FastArray.concatPush(baseEvents, nextEvents);
-			baseSong.events = baseEvents;
+			baseSong.events = baseEvents.concat(nextEvents);
 			parsedEvents += nextEvents.length;
 			showMergeProgress(false, true);
 		}

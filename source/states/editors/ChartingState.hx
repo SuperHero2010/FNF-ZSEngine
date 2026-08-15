@@ -20,7 +20,6 @@ import haxe.io.Bytes;
 import haxe.io.Path;
 
 import backend.MemoryUtil;
-import native.FastArray;
 import states.editors.content.MetaNote;
 import states.editors.content.VSlice;
 import states.editors.content.Prompt;
@@ -4486,7 +4485,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newNotesData.length > 0)
 		{
-			FastArray.concatPush(targetSection.sectionNotes, newNotesData);
+			targetSection.sectionNotes = targetSection.sectionNotes.concat(newNotesData);
 
 			for (noteData in newNotesData)
 			{
@@ -4498,7 +4497,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (newEventsData.length > 0)
 		{
-			FastArray.concatPush(targetSection.sectionNotes, newEventsData);
+			targetSection.sectionNotes = targetSection.sectionNotes.concat(newEventsData);
 
 			for (eventData in newEventsData)
 			{
@@ -4867,7 +4866,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 
-			FastArray.concatPush(sec.sectionNotes, newNotes);
+			sec.sectionNotes = sec.sectionNotes.concat(newNotes);
 
 			newNotes = null;
 

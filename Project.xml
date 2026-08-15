@@ -64,7 +64,6 @@
 	<set name="BUILD_DIR" value="export/32bit" if="32bits" />
 
 	<classpath name="source" />
-	<source name="native" if="cpp" />
 
 	<!-- __________________________ Game Assets & Etc. __________________________ -->
 
