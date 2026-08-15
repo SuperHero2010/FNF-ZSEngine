@@ -13,4 +13,4 @@ void fast_array_concat_push(value arr, value items);
 }
 #endif
 
-#endif // FAST_ARRAY_H
+#endif

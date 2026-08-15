@@ -3,8 +3,11 @@
 #include <stdlib.h>
 
 extern "C" {
-    void fast_array_concat_push(value arr, value items)
+    DEFINE_PRIM(void, fast_array_concat_push, 2)
     {
+        value arr = val_arg1;
+        value items = val_arg2;
+
         if (val_is_null(arr) || val_is_null(items)) return;
 
         int arrLen = val_array_size(arr);
