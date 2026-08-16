@@ -705,26 +705,32 @@ class ZSTranspiler {
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
 
-            if (trimmedLine.indexOf("read") > -1) {
-                for (pattern in allPatterns) {
-                    var regex = new EReg(pattern.pattern, "g");
-                    if (regex.match(trimmedLine)) {
-                        var matchPos = regex.matchedPos().pos;
-                        if (matchPos > 0) {
-                            luaLine = replaceMultiPattern(regex, pattern, luaLine, trimmedLine);
-                            break;
-                        }
-                    }
-                }
-            }
-
+            var matchedAtStart = false;
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
                 if (regex.match(luaLine)) {
                     var matchPos = regex.matchedPos().pos;
                     if (matchPos == 0) {
                         luaLine = replaceMultiPattern(regex, pattern, luaLine, luaLine);
+                        matchedAtStart = true;
                         break;
+                    }
+                }
+            }
+
+            if (!matchedAtStart) {
+                var changed = true;
+                while (changed) {
+                    changed = false;
+                    for (pattern in allPatterns) {
+                        var regex = new EReg(pattern.pattern, "g");
+                        if (regex.match(luaLine)) {
+                            var before = luaLine;
+                            luaLine = regex.replace(luaLine, pattern.replacement);
+                            if (before != luaLine) {
+                                changed = true;
+                            }
+                        }
                     }
                 }
             }
@@ -847,10 +853,13 @@ class ZSTranspiler {
 
                             if (isTableLiteral) {
                                 args[j] = processTableLiteral(arg);
+                                continue;
                             } else if (isListLiteral) {
                                 args[j] = arg;
+                                continue;
                             } else if (trimmedArg == "") {
                                 args[j] = "nil";
+                                continue;
                             } else {
                                 var originalArg = args[j];
                                 var parsed = ZSParser.parseExpression(args[j]);
@@ -1274,6 +1283,7 @@ class ZSTranspiler {
         var inString = false;
         var stringChar = "";
         var inComment = false;
+        var parenDepth = 0;
 
         while (i < len) {
             var c = line.charAt(i);
@@ -1317,6 +1327,20 @@ class ZSTranspiler {
                 continue;
             }
 
+            if (c == '(') {
+                parenDepth++;
+                result += c;
+                i++;
+                continue;
+            }
+
+            if (c == ')') {
+                parenDepth--;
+                result += c;
+                i++;
+                continue;
+            }
+
             if (c == '[' || c == '{') {
                 var openChar = c;
                 var closeChar = (openChar == '[') ? ']' : '}';
@@ -1350,7 +1374,11 @@ class ZSTranspiler {
                 var isEmptyList = (openChar == '[' && trimStr(inner) == "");
 
                 if (isLiteral || isListAccess || isEmptyTable || isEmptyList) {
-                    result += openChar + inner + closeChar;
+                    var processedInner = convertEmptyToNil(inner);
+                    result += openChar + processedInner + closeChar;
+                } else if (parenDepth > 0) {
+                    var processedInner = convertEmptyToNil(inner);
+                    result += openChar + processedInner + closeChar;
                 } else {
                     result += "(" + convertGroupingBrackets(inner) + ")";
                 }
@@ -1476,24 +1504,18 @@ class ZSTranspiler {
         var result = trimmedLine;
         var allPatterns = ZSPatterns.getPatterns();
 
-        var hasNestedPatterns = false;
-        for (p in allPatterns) {
-            var pRegex = new EReg(p.pattern, "g");
-            if (pRegex.match(result)) {
-                var matchPos = pRegex.matchedPos().pos;
-                if (matchPos > 0) {
-                    hasNestedPatterns = true;
-                    break;
-                }
+        var mainMatchesAtStart = false;
+        if (regex.match(result)) {
+            var matchPos = regex.matchedPos().pos;
+            if (matchPos == 0) {
+                mainMatchesAtStart = true;
             }
         }
 
-        if (!hasNestedPatterns) {
-            return regex.replace(luaLine, pattern.replacement);
+        if (mainMatchesAtStart) {
+            var mainRegex = new EReg(pattern.pattern, "g");
+            result = mainRegex.replace(result, pattern.replacement);
         }
-
-        var mainRegex = new EReg(pattern.pattern, "g");
-        result = mainRegex.replace(result, pattern.replacement);
 
         var changed = true;
         var maxIterations = 10;
@@ -1507,7 +1529,7 @@ class ZSTranspiler {
                 var pRegex = new EReg(p.pattern, "g");
                 if (pRegex.match(result)) {
                     var matchPos = pRegex.matchedPos().pos;
-                    if (matchPos > 0) {
+                    if (matchPos > 0 || !mainMatchesAtStart) {
                         var before = result;
                         result = pRegex.replace(result, p.replacement);
                         if (before != result) {

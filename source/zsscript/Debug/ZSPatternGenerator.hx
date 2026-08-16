@@ -2033,6 +2033,13 @@ class ZSPatternGenerator {
             category: "control"
         });
 
+        patterns.push({
+            pattern: "global <([^>]+)> = (.+)",
+            replacement: "$1 = $2",
+            description: "Global variable",
+            category: "variable"
+        });
+
         return patterns;
     }
 
@@ -2060,11 +2067,74 @@ class ZSPatternGenerator {
         var patterns = [];
 
         patterns.push({
-            pattern: "read ([^ ,]+)",
-            replacement: 'getProperty($1)',
-            description: "Read a property (nested)",
-            category: "reflection"
+            pattern: "keyboard (.+) just pressed",
+            replacement: 'keyboardJustPressed($1)',
+            description: "Keyboard just pressed (nested)",
+            category: "input"
         });
+        patterns.push({
+            pattern: "keyboard (.+) pressed",
+            replacement: 'keyboardPressed($1)',
+            description: "Keyboard pressed (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "keyboard (.+) released",
+            replacement: 'keyboardReleased($1)',
+            description: "Keyboard released (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "key (.+) just pressed",
+            replacement: 'keyJustPressed($1)',
+            description: "Key just pressed (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "key (.+) pressed",
+            replacement: 'keyPressed($1)',
+            description: "Key pressed (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "key (.+) released",
+            replacement: 'keyReleased($1)',
+            description: "Key released (nested)",
+            category: "input"
+        });
+
+        var mouseButtons = ["“left”", "“middle”", "“right”"];
+        var mouseActions = ["clicked", "pressed", "released"];
+        for (button in mouseButtons) {
+            for (action in mouseActions) {
+                patterns.push({
+                    pattern: 'mouse ' + button + ' ' + action,
+                    replacement: 'mouse' + (action.charAt(0).toUpperCase() + action.substr(1)) + '(' + button + ')',
+                    description: 'Mouse ' + button + ' ' + action + ' (nested)',
+                    category: "input"
+                });
+            }
+        }
+
+        patterns.push({
+            pattern: "gamepad id (.+?) button (.+?) just pressed",
+            replacement: 'gamepadJustPressed($1, $2)',
+            description: "Gamepad just pressed (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "gamepad id (.+?) button (.+?) pressed",
+            replacement: 'gamepadPressed($1, $2)',
+            description: "Gamepad pressed (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "gamepad id (.+?) button (.+?) released",
+            replacement: 'gamepadReleased($1, $2)',
+            description: "Gamepad released (nested)",
+            category: "input"
+        });
+
         patterns.push({
             pattern: "read from group ([^ ,]+) at ([^ ,]+) property ([^ ,]+)",
             replacement: 'getPropertyFromGroup($1, $2, $3)',
@@ -2227,6 +2297,19 @@ class ZSPatternGenerator {
         });
 
         patterns.push({
+            pattern: "gamepad id (.+?) analog x",
+            replacement: 'gamepadAnalogX($1, true)',
+            description: "Gamepad analog X (nested)",
+            category: "input"
+        });
+        patterns.push({
+            pattern: "gamepad id (.+?) analog y",
+            replacement: 'gamepadAnalogY($1, true)',
+            description: "Gamepad analog Y (nested)",
+            category: "input"
+        });
+
+        patterns.push({
             pattern: "read running scripts",
             replacement: 'getRunningScripts()',
             description: "Read running scripts (nested)",
@@ -2244,6 +2327,20 @@ class ZSPatternGenerator {
             replacement: 'getHealth()',
             description: "Read health (nested)",
             category: "score"
+        });
+
+        patterns.push({
+            pattern: "update score text",
+            replacement: "updateScoreText()",
+            description: "Update score text (nested)",
+            category: "score"
+        });
+
+        patterns.push({
+            pattern: "read ([^ ,]+)",
+            replacement: 'getProperty($1)',
+            description: "Read a property (nested)",
+            category: "reflection"
         });
 
         return patterns;
