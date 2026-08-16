@@ -620,6 +620,12 @@ class ZSTranspiler {
                     errors.push('  → ZS uses natural line breaks, not semicolons');
                     return null;
                 }
+                if (codeToCheck.indexOf("#") > -1) {
+                    errors.push('Error at line $currentLine: Length operator "#" is not allowed in ZS');
+                    errors.push('  Found: "$codeToCheck"');
+                    errors.push('  Use: "read length of <variable>" or "read length of value" instead');
+                    return null;
+                }
 
                 if (codeToCheck.indexOf("for ") == 0) {
                     var luaForPattern = ~/^for [a-zA-Z_][a-zA-Z0-9_]* =/;
