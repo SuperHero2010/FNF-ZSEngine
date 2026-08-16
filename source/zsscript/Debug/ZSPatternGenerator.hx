@@ -2040,6 +2040,25 @@ class ZSPatternGenerator {
             category: "variable"
         });
 
+        patterns.push({
+            pattern: "read length of (.+?)",
+            replacement: '#$1',
+            description: "Read length of value (converted to #value)",
+            category: "operators"
+        });
+        patterns.push({
+            pattern: "for <([^>]+)> from ([^ ]+) to ([^ ]+) step ([^ ]+) do",
+            replacement: "for $1 = $2, $3, $4 do",
+            description: "For loop with step",
+            category: "control"
+        });
+        patterns.push({
+            pattern: "for <([^>]+)> from ([^ ]+) to ([^ ]+) do",
+            replacement: "for $1 = $2, $3 do",
+            description: "For loop without step",
+            category: "control"
+        });
+
         return patterns;
     }
 

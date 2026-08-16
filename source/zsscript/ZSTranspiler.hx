@@ -583,6 +583,17 @@ class ZSTranspiler {
                         return null;
                     }
                 }
+                if (codeToCheck.indexOf("(") > -1 && codeToCheck.indexOf(")") > -1) {
+                    var luaFuncPattern = ~/^[a-zA-Z_][a-zA-Z0-9_]*\(/;
+                    if (luaFuncPattern.match(codeToCheck)) {
+                        if (codeToCheck.indexOf("print(debug)") == -1 && codeToCheck.indexOf("print()") == -1) {
+                            errors.push('Error at line $currentLine: Lua-style function call "()" is not allowed');
+                            errors.push('  Found: "$codeToCheck"');
+                            errors.push('  Use: "func<arg1>, <arg2>" or "func arg1, arg2" instead');
+                            return null;
+                        }
+                    }
+                }
                 if (codeToCheck.indexOf("(") > -1 && codeToCheck.indexOf("<") == -1) {
                     var isRawCall = ~/^[a-zA-Z_][a-zA-Z0-9_]*\(/;
                     if (isRawCall.match(codeToCheck)) {
@@ -596,6 +607,23 @@ class ZSTranspiler {
                     errors.push('Error at line $currentLine: Semicolon ";" is not allowed in ZS');
                     errors.push('  → ZS uses natural line breaks, not semicolons');
                     return null;
+                }
+
+                if (codeToCheck.indexOf("for ") == 0) {
+                    var luaForPattern = ~/^for [a-zA-Z_][a-zA-Z0-9_]* =/;
+                    if (luaForPattern.match(codeToCheck)) {
+                        errors.push('Error at line $currentLine: Lua-style "for" loop is not allowed');
+                        errors.push('  Found: "$codeToCheck"');
+                        errors.push('  Use: "for <i> from 1 to 10 do" instead');
+                        return null;
+                    }
+
+                    if (codeToCheck.indexOf("for <") != 0) {
+                        errors.push('Error at line $currentLine: "for" must use noun wrapper "<...>"');
+                        errors.push('  Found: "$codeToCheck"');
+                        errors.push('  Use: "for <i> from 1 to 10 do" instead');
+                        return null;
+                    }
                 }
 
                 var patterns = [
@@ -631,9 +659,9 @@ class ZSTranspiler {
                 for (pattern in patterns) {
                     if (pattern.match(codeToCheck)) {
                         var opType = "operator";
-                        if (trimmedLine.indexOf("-") > -1) opType = "subtraction";
-                        else if (trimmedLine.indexOf("*") > -1) opType = "multiplication";
-                        else if (trimmedLine.indexOf("/") > -1) opType = "division";
+                        if (codeToCheck.indexOf("-") > -1) opType = "subtraction";
+                        else if (codeToCheck.indexOf("*") > -1) opType = "multiplication";
+                        else if (codeToCheck.indexOf("/") > -1) opType = "division";
                         var correctSymbol = opType == "subtraction" ? "−" : (opType == "multiplication" ? "×" : "÷");
                         errors.push('Error at line $currentLine: "$opType" operator is not allowed');
                         errors.push('  → Use "$correctSymbol" instead');
