@@ -644,47 +644,8 @@ class ZSTranspiler {
                     }
                 }
 
-                var patterns = [
-                    ~/[0-9] *- *[0-9]/, ~/[0-9]-[0-9]/, ~/[0-9] *-[0-9]/, ~/[0-9]- *[0-9]/,
-                    ~/> *- *</, ~/>-</, ~/> *-</, ~/>- *</,
-                    ~/[0-9] *- *</, ~/[0-9]-</, ~/[0-9]- *</, ~/[0-9] *-</,
-                    ~/> *- *[0-9]/, ~/>-[0-9]/, ~/>- *[0-9]/, ~/> *-[0-9]/,
-                    ~/\) *- *[0-9]/, ~/\)-[0-9]/, ~/\) *-[0-9]/, ~/\)- *[0-9]/,
-                    ~/[0-9] *- *\(/, ~/[0-9]-\(/, ~/[0-9] *-\(/, ~/[0-9]- *\(/,
-                    ~/\) *- *</, ~/\)-</, ~/\) *-</, ~/\)- *</,
-                    ~/> *- *\(/, ~/>\-\(/, ~/> *-\(/, ~/>\- *\(/,
-                    ~/\) *-\(/, ~/\)\-\(/,
-                    ~/[0-9] *\* *[0-9]/, ~/[0-9]\*[0-9]/, ~/[0-9] *\*[0-9]/, ~/[0-9]\* *[0-9]/,
-                    ~/> *\* *</, ~/>\*</, ~/> *\*</, ~/>\* *</,
-                    ~/[0-9] *\* *</, ~/[0-9]\* *</, ~/[0-9]\*</, ~/[0-9] *\*</,
-                    ~/> *\* *[0-9]/, ~/>\*[0-9]/, ~/>\* *[0-9]/, ~/> *\*[0-9]/,
-                    ~/\) *\* *[0-9]/, ~/\)\*[0-9]/, ~/\) *\*[0-9]/, ~/\)\* *[0-9]/,
-                    ~/[0-9] *\* *\(/, ~/[0-9]\*\(/, ~/[0-9] *\*\(/, ~/[0-9]\* *\(/,
-                    ~/\) *\* *</, ~/\)\*</, ~/\) *\*</, ~/\)\* *</,
-                    ~/> *\* *\(/, ~/>\*\(/, ~/> *\*\(/, ~/>\* *\(/,
-                    ~/\) *\*\(/, ~/\)\*\(/,
-                    ~/[0-9] *\/ *[0-9]/, ~/[0-9]\/[0-9]/, ~/[0-9] *\/[0-9]/, ~/[0-9]\/ *[0-9]/,
-                    ~/> *\/ *</, ~/>\/</, ~/> *\/</, ~/>\/ *</,
-                    ~/[0-9] *\/ *</, ~/[0-9]\/ *</, ~/[0-9]\/</, ~/[0-9] *\/</,
-                    ~/> *\/ *[0-9]/, ~/>\/[0-9]/, ~/>\/ *[0-9]/, ~/> *\/[0-9]/,
-                    ~/\) *\/ *[0-9]/, ~/\)\/[0-9]/, ~/\) *\/[0-9]/, ~/\)\/ *[0-9]/,
-                    ~/[0-9] *\/ *\(/, ~/[0-9]\/\(/, ~/[0-9] *\/\(/, ~/[0-9]\/ *\(/,
-                    ~/\) *\/ *</, ~/\)\/</, ~/\) *\/</, ~/\)\/ *</,
-                    ~/> *\/ *\(/, ~/>\//, ~/> *\/\(/, ~/>\//,
-                    ~/\) *\/\(/, ~/\)\/\(/
-                ];
-
-                for (pattern in patterns) {
-                    if (pattern.match(codeToCheck)) {
-                        var opType = "operator";
-                        if (codeToCheck.indexOf("-") > -1) opType = "subtraction";
-                        else if (codeToCheck.indexOf("*") > -1) opType = "multiplication";
-                        else if (codeToCheck.indexOf("/") > -1) opType = "division";
-                        var correctSymbol = opType == "subtraction" ? "−" : (opType == "multiplication" ? "×" : "÷");
-                        errors.push('Error at line $currentLine: "$opType" operator is not allowed');
-                        errors.push('  → Use "$correctSymbol" instead');
-                        return null;
-                    }
+                if (!validateMathSigns(codeToCheck, currentLine)) {
+                    return null;
                 }
             }
 
@@ -747,8 +708,6 @@ class ZSTranspiler {
                 }
             }
 
-            trimmedLine = fixMinusSigns(trimmedLine);
-
             log.push('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
@@ -792,6 +751,7 @@ class ZSTranspiler {
             log.push('AFTER ZSPatterns: luaLine="$luaLine"');
 
             luaLine = convertQuotes(luaLine);
+            luaLine = fixMinusSigns(luaLine);
 
             if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
@@ -840,7 +800,7 @@ class ZSTranspiler {
                         trace('=== funcCallDirectPattern matched: funcName="$funcName", args="$args" ===');
                         var keywords = ["if", "else", "else if", "then", "end", "while", "do", "repeat", "until", "for", "in", "function", "local", "global", "return", "break", "and", "or", "not", "true", "false", "nil"];
 
-                        if (!keywords.contains(funcName)) {
+                        if (!keywords.contains(funcName) && trimStr(args).charAt(0) != '=') {
                             var processedArgs = args;
                             for (pattern in allPatterns) {
                                 var pRegex = new EReg(pattern.pattern, "g");
@@ -879,8 +839,11 @@ class ZSTranspiler {
 
                 if (beforeParen.length > 0 && beforeParen.indexOf(" ") == -1) {
                     var firstChar = beforeParen.charAt(0);
+                    var lastChar = beforeParen.charAt(beforeParen.length - 1);
                     if ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || firstChar == '_') {
-                        isFunctionCall = true;
+                        if (lastChar != '=') {
+                            isFunctionCall = true;
+                        }
                     }
                 }
 
@@ -1658,5 +1621,57 @@ class ZSTranspiler {
         }
 
         return result;
+    }
+
+    static function validateMathSigns(line:String, lineNum:Int):Bool {
+        var codeToCheck = line;
+
+        if (line.indexOf(" -/") > -1) {
+            var parts = line.split(" -/");
+            codeToCheck = parts[0];
+        }
+
+        if (codeToCheck.indexOf("*") > -1) {
+            errors.push('Error at line $lineNum: ASCII "*" is not allowed for multiplication');
+            errors.push('  → Use "×" instead');
+            errors.push('  Found: "$line"');
+            return false;
+        }
+
+        if (codeToCheck.indexOf("/") > -1) {
+            errors.push('Error at line $lineNum: ASCII "/" is not allowed for division');
+            errors.push('  → Use "÷" instead');
+            errors.push('  Found: "$line"');
+            return false;
+        }
+
+        if (codeToCheck.indexOf("-") > -1) {
+            if (!isNegativeNumber(codeToCheck)) {
+                errors.push('Error at line $lineNum: ASCII "-" is not allowed for subtraction');
+                errors.push('  → Use "−" instead');
+                errors.push('  Found: "$line"');
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static function isNegativeNumber(line:String):Bool {
+        var hyphenPos = line.indexOf("-");
+        if (hyphenPos == 0) return true;
+        if (hyphenPos > 0) {
+            var before = line.charAt(hyphenPos - 1);
+            if (before == ' ' || before == '+' || before == '(' || before == '[' || before == '{' || before == ',' || before == '=') {
+                if (before == ' ' && hyphenPos > 1) {
+                    var beforeSpace = line.charAt(hyphenPos - 2);
+                    if (beforeSpace >= '0' && beforeSpace <= '9') {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
     }
 }
