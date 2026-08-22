@@ -69,7 +69,7 @@ class ResetScoreSubState extends MusicBeatSubstate
 		noText.screenCenter(X);
 		noText.x += 200;
 		add(noText);
-		
+
 		for(letter in yesText.letters) letter.color = FlxColor.RED;
 		updateOptions();
 	}
@@ -116,6 +116,9 @@ class ResetScoreSubState extends MusicBeatSubstate
 		yesText.scale.set(scales[confirmInt], scales[confirmInt]);
 		noText.alpha = alphas[1 - confirmInt];
 		noText.scale.set(scales[1 - confirmInt], scales[1 - confirmInt]);
-		if(week == -1) icon.animation.curAnim.curFrame = confirmInt;
+		if(week == -1 && icon != null)
+		{
+			icon.setIconState(onYes ? 'win' : 'normal');
+		}
 	}
 }

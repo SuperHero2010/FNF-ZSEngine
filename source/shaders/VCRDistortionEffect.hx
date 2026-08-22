@@ -126,7 +126,6 @@ class VCRDistortionShader extends FlxShader
 
     }
 
-
     vec2 scandistort(vec2 uv) {
     	float scan1 = clamp(cos(uv.y * 2.0 + iTime), 0.0, 1.0);
     	float scan2 = clamp(cos(uv.y * 2.0 + iTime + 4.0) * 10.0, 0.0, 1.0) ;

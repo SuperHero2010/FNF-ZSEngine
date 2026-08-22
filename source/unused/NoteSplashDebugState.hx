@@ -14,7 +14,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 	var selection:FlxSprite;
 	var notes:FlxTypedGroup<StrumNote>;
 	var splashes:FlxTypedGroup<FlxSprite>;
-	
+
 	var imageInputText:PsychUIInputText;
 	var nameInputText:PsychUIInputText;
 	var stepperMinFps:PsychUINumericStepper;
@@ -182,7 +182,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 		super.update(elapsed);
 
 		if(!notTyping) return;
-		
+
 		if (FlxG.keys.justPressed.A) changeSelection(-1);
 		else if (FlxG.keys.justPressed.D) changeSelection(1);
 
@@ -197,7 +197,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 
 			if(FlxG.keys.justPressed.UP) movey = 1;
 			else if(FlxG.keys.justPressed.DOWN) movey = -1;
-			
+
 			if(FlxG.keys.pressed.SHIFT)
 			{
 				movex *= 10;
@@ -276,7 +276,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 			if(forceFrame < 0) forceFrame = 0;
 			else if(forceFrame >= maxFrame) forceFrame = maxFrame - 1;
 			//trace('curFrame: $forceFrame');
-			
+
 			curFrameText.text = 'Force Frame: ${forceFrame+1} / $maxFrame\n(Press Q/E to change)';
 			splashes.forEachAlive(function(spr:FlxSprite) {
 				spr.animation.curAnim.paused = true;
@@ -300,7 +300,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 		splashes.forEachAlive(function(spr:FlxSprite) {
 			spr.frames = Paths.getSparrowAtlas(texturePath);
 		});
-	
+
 		// Initialize config
 		NoteSplash.configs.clear();
 		config = NoteSplash.precacheConfig(texturePath);
@@ -338,7 +338,7 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 		savedText.text = 'Can\'t save on this platform, too bad.';
 		#end
 	}
-	
+
 	public function UIEvent(id:String, sender:Dynamic)
 	{
 		if (id == PsychUINumericStepper.CHANGE_EVENT && (sender is PsychUINumericStepper))
@@ -407,10 +407,10 @@ class NoteSplashDebugState extends MusicBeatState implements PsychUIEventHandler
 			{
 				var spr:FlxSprite = splashes.members[i];
 				spr.animation.play('note$i-$curAnim', true);
-				
+
 				if(maxFrame < spr.animation.curAnim.numFrames)
 					maxFrame = spr.animation.curAnim.numFrames;
-				
+
 				spr.animation.curAnim.frameRate = FlxG.random.int(config.minFps, config.maxFps);
 				var offs:Array<Float> = selectedArray(i);
 				spr.offset.set(10 + offs[0], 10 + offs[1]);

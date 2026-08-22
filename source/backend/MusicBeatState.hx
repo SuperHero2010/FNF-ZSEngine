@@ -75,7 +75,7 @@ class MusicBeatState extends FlxState
 		}
 
 		if(FlxG.save.data != null) FlxG.save.data.fullscreen = FlxG.fullscreen;
-		
+
 		stagesFunc(function(stage:BaseStage) {
 			stage.update(elapsed);
 		});
@@ -108,7 +108,7 @@ class MusicBeatState extends FlxState
 			{
 				stepsToDo += Math.round(getBeatsOnSection() * 4);
 				if(stepsToDo > curStep) break;
-				
+
 				curSection++;
 			}
 		}

@@ -100,7 +100,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		ghost.visible = false;
 		ghost.alpha = ghostAlpha;
 		add(ghost);
-		
+
 		animsTxt = new FlxText(10, 32, 400, '');
 		animsTxt.setFormat(null, 16, FlxColor.WHITE, LEFT, OUTLINE_FAST, FlxColor.BLACK);
 		animsTxt.scrollFactor.set();
@@ -297,7 +297,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 					if(animateGhost == null || animateGhostImage != character.imageFile)
 						Paths.loadAnimateAtlas(animateGhost, character.imageFile);
-					
+
 					if(myAnim.indices != null && myAnim.indices.length > 0)
 						animateGhost.anim.addBySymbolIndices('anim', myAnim.name, myAnim.indices, 0, false);
 					else
@@ -308,7 +308,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 
 					animateGhostImage = character.imageFile;
 				}
-				
+
 				var spr:FlxSprite = !character.isAnimateAtlas ? ghost : animateGhost;
 				if(spr != null)
 				{
@@ -431,7 +431,6 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 		templateCharacter.normalStyle.bgColor = FlxColor.RED;
 		templateCharacter.normalStyle.textColor = FlxColor.WHITE;
 
-
 		charDropDown = new PsychUIDropDownMenu(10, 30, [''], function(index:Int, intended:String)
 		{
 			if(intended == null || intended.length < 1) return;
@@ -509,10 +508,10 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 							var splitIndices:Array<String> = ind.split('-');
 							var indexStart:Int = Std.parseInt(splitIndices[0]);
 							if(Math.isNaN(indexStart) || indexStart < 0) indexStart = 0;
-	
+
 							var indexEnd:Int = Std.parseInt(splitIndices[1]);
 							if(Math.isNaN(indexEnd) || indexEnd < indexStart) indexEnd = indexStart;
-	
+
 							for (index in indexStart...indexEnd+1)
 								indices.push(index);
 						}
@@ -1021,7 +1020,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 					var isLeft = false;
 					if((holdingFrameTime > 0.5 && FlxG.keys.pressed.A) || FlxG.keys.justPressed.A) isLeft = true;
 					character.animPaused = true;
-	
+
 					if(holdingFrameTime <= 0.5 || holdingFrameElapsed > 0.1)
 					{
 						frames = FlxMath.wrap(frames + Std.int(isLeft ? -shiftMult : shiftMult), 0, length-1);
@@ -1030,7 +1029,7 @@ class CharacterEditorState extends MusicBeatState implements PsychUIEventHandler
 						holdingFrameElapsed -= 0.1;
 					}
 				}
-	
+
 				txt = 'Frames: ( $frames / ${length-1} )';
 				//if(character.animation.curAnim.paused) txt += ' - PAUSED';
 				clr = FlxColor.WHITE;

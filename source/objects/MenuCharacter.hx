@@ -36,7 +36,7 @@ class MenuCharacter extends FlxSprite
 		var dontPlayAnim:Bool = false;
 		scale.set(1, 1);
 		updateHitbox();
-		
+
 		color = FlxColor.WHITE;
 		alpha = 1;
 

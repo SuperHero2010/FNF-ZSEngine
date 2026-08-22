@@ -28,7 +28,7 @@ class ErrorHandledShader extends FlxShader implements IErrorHandler
 			return null;
 		}
 	}
-	
+
 	public static function crashSave(shaderName:String, error:Dynamic, onError:Dynamic) // prevent the app from dying immediately
 	{
 		if(shaderName == null) shaderName = 'unnamed';

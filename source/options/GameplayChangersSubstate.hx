@@ -93,7 +93,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 	public function new()
 	{
 		super();
-		
+
 		var bg:FlxSprite = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
 		bg.alpha = 0.6;
 		add(bg);
@@ -107,7 +107,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 
 		checkboxGroup = new FlxTypedGroup<CheckboxThingie>();
 		add(checkboxGroup);
-		
+
 		getOptions();
 
 		for (i in 0...optionsArray.length)
@@ -223,7 +223,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 
 									curOption.curOption = num;
 									curOption.setValue(curOption.options[num]); //lol
-									
+
 									if (curOption.name == "Scroll Type")
 									{
 										var oOption:GameplayOption = getOptionByName("Scroll Speed");
@@ -259,7 +259,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 							{
 								case INT:
 									curOption.setValue(Math.round(holdValue));
-								
+
 								case FLOAT, PERCENT:
 									var blah:Float = Math.max(curOption.minValue, Math.min(curOption.maxValue, holdValue + curOption.changeValue - (holdValue % curOption.changeValue)));
 									curOption.setValue(FlxMath.roundDecimal(blah, curOption.decimals));
@@ -329,7 +329,7 @@ class GameplayChangersSubstate extends MusicBeatSubstate
 
 		holdTime = 0;
 	}
-	
+
 	function changeSelection(change:Int = 0)
 	{
 		curSelected = FlxMath.wrap(curSelected + change, 0, optionsArray.length - 1);

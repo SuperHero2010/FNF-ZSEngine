@@ -79,7 +79,7 @@ class VideoSprite extends FlxSpriteGroup {
 			remove(cover);
 			cover.destroy();
 		}
-		
+
 		finishCallback = null;
 		onSkip = null;
 
@@ -100,7 +100,7 @@ class VideoSprite extends FlxSpriteGroup {
 		{
 			if(finishCallback != null)
 				finishCallback();
-			
+
 			destroy();
 		}
 	}

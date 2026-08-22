@@ -20,7 +20,7 @@ class PhillyBlazin extends BaseStage
 	var lightning:BGSprite;
 	var foregroundMultiply:BGSprite;
 	var additionalLighten:FlxSprite;
-	
+
 	var lightningTimer:Float = 3.0;
 
 	var abot:ABotSpeaker;
@@ -47,17 +47,17 @@ class PhillyBlazin extends BaseStage
 			setupScale(skyAdditive);
 			skyAdditive.visible = false;
 			add(skyAdditive);
-			
+
 			lightning = new BGSprite('phillyBlazin/lightning', -50, -300, 0.0, 0.0, ['lightning0'], false);
 			setupScale(lightning);
 			lightning.visible = false;
 			add(lightning);
 		}
-		
+
 		var phillyForegroundCity:BGSprite = new BGSprite('phillyBlazin/streetBlur', -600, -175, 0.0, 0.0);
 		setupScale(phillyForegroundCity);
 		add(phillyForegroundCity);
-		
+
 		if(!ClientPrefs.data.lowQuality)
 		{
 			foregroundMultiply = new BGSprite('phillyBlazin/streetBlur', -600, -175, 0.0, 0.0);
@@ -65,7 +65,7 @@ class PhillyBlazin extends BaseStage
 			foregroundMultiply.blend = MULTIPLY;
 			foregroundMultiply.visible = false;
 			add(foregroundMultiply);
-			
+
 			additionalLighten = new FlxSprite(-600, -175).makeGraphic(1, 1, FlxColor.WHITE);
 			additionalLighten.scrollFactor.set();
 			additionalLighten.scale.set(2500, 2500);
@@ -77,7 +77,7 @@ class PhillyBlazin extends BaseStage
 
 		abot = new ABotSpeaker(gfGroup.x, gfGroup.y + 550);
 		add(abot);
-		
+
 		if(ClientPrefs.data.shaders)
 			setupRainShader();
 
@@ -90,7 +90,7 @@ class PhillyBlazin extends BaseStage
 
 		setDefaultGF('nene');
 		precache();
-		
+
 		if (isStoryMode)
 		{
 			switch (songName)
@@ -109,7 +109,7 @@ class PhillyBlazin extends BaseStage
 			}
 		}
 	}
-	
+
 	override function createPost()
 	{
 		FlxG.camera.focusOn(camFollow.getPosition());
@@ -149,7 +149,7 @@ class PhillyBlazin extends BaseStage
 	{
 		//if(curBeat % 2 == 0) abot.beatHit();
 	}
-	
+
 	override function startSong()
 	{
 		abot.snd = FlxG.sound.music;
@@ -181,7 +181,7 @@ class PhillyBlazin extends BaseStage
 			rainShader.update(elapsed * rainTimeScale);
 			rainTimeScale = FlxMath.lerp(0.02, Math.min(1, rainTimeScale), Math.exp(-elapsed / (1/3)));
 		}
-		
+
 		lightningTimer -= elapsed;
 		if (lightningTimer <= 0)
 		{
@@ -189,7 +189,7 @@ class PhillyBlazin extends BaseStage
 			lightningTimer = FlxG.random.float(7, 15);
 		}
 	}
-	
+
 	function applyLightning():Void
 	{
 		if(ClientPrefs.data.lowQuality || game.endingSong) return;

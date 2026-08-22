@@ -43,7 +43,7 @@ class Language
 		}
 
 		if(!hasPhrases) ClientPrefs.data.language = ClientPrefs.defaultData.language;
-		
+
 		var alphaPath:String = getFileTranslation('images/alphabet');
 		if(alphaPath.startsWith('images/')) alphaPath = alphaPath.substr('images/'.length);
 		var pngPos:Int = alphaPath.indexOf('.png');
@@ -66,7 +66,7 @@ class Language
 
 		if(str == null)
 			str = key;
-		
+
 		if(values != null)
 			for (num => value in values)
 				str = str.replace('{${num+1}}', value);
@@ -83,7 +83,7 @@ class Language
 		#end
 		return key;
 	}
-	
+
 	#if TRANSLATIONS_ALLOWED
 	inline static private function formatKey(key:String)
 	{

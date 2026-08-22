@@ -5,6 +5,15 @@ import flixel.effects.FlxFlicker;
 import lime.app.Application;
 import states.editors.MasterEditorMenu;
 import options.OptionsState;
+#if LUA_ALLOWED
+import debug.LuaDebugger;
+#end
+#if HSCRIPT_ALLOWED
+import debug.HaxeDebugger;
+#end
+#if ZS_ALLOWED
+import debug.ZSDebugger;
+#end
 
 enum MainMenuColumn {
 	LEFT;
@@ -24,6 +33,10 @@ class MainMenuState extends MusicBeatState
 	var leftItem:FlxSprite;
 	var rightItem:FlxSprite;
 
+	public var luaDebugger:Bool = ClientPrefs.data.luaDebugger;
+	public var haxeDebugger:Bool = ClientPrefs.data.haxeDebugger;
+	public var zsDebugger:Bool = ClientPrefs.data.zsDebugger;
+
 	//Centered/Text options
 	var optionShit:Array<String> = [
 		'story_mode',
@@ -37,10 +50,25 @@ class MainMenuState extends MusicBeatState
 
 	var magenta:FlxSprite;
 	var camFollow:FlxObject;
+	var outputTxt:FlxText;
+	var outputAlpha:Float = 0;
+	var camUI:FlxCamera;
 
 	static var showOutdatedWarning:Bool = true;
 	override function create()
 	{
+		camUI = new FlxCamera();
+		camUI.bgColor.alpha = 0;
+		FlxG.cameras.add(camUI, false);
+
+		outputTxt = new FlxText(25, FlxG.height - 50, FlxG.width - 50, '', 20);
+		outputTxt.borderSize = 2;
+		outputTxt.borderStyle = OUTLINE_FAST;
+		outputTxt.scrollFactor.set();
+		outputTxt.cameras = [camUI];
+		outputTxt.alpha = 0;
+		add(outputTxt);
+
 		super.create();
 
 		#if MODS_ALLOWED
@@ -139,7 +167,7 @@ class MainMenuState extends MusicBeatState
 		menuItem.animation.addByPrefix('selected', '$name selected', 24, true);
 		menuItem.animation.play('idle');
 		menuItem.updateHitbox();
-		
+
 		menuItem.antialiasing = ClientPrefs.data.antialiasing;
 		menuItem.scrollFactor.set();
 		menuItems.add(menuItem);
@@ -151,6 +179,8 @@ class MainMenuState extends MusicBeatState
 	var timeNotMoving:Float = 0;
 	override function update(elapsed:Float)
 	{
+		outputAlpha = Math.max(0, outputAlpha - elapsed);
+
 		if (FlxG.sound.music.volume < 0.8)
 			FlxG.sound.music.volume = Math.min(FlxG.sound.music.volume + 0.5 * elapsed, 0.8);
 
@@ -334,7 +364,7 @@ class MainMenuState extends MusicBeatState
 							item.visible = true;
 					}
 				});
-				
+
 				for (memb in menuItems)
 				{
 					if(memb == item)
@@ -353,7 +383,39 @@ class MainMenuState extends MusicBeatState
 			#end
 		}
 
+		outputTxt.alpha = outputAlpha;
+		outputTxt.visible = (outputAlpha > 0);
+
+		if (FlxG.keys.justPressed.L) {
+			if (luaDebugger) {
+				LuaDebugger.clearLog();
+				showOutput("Cleared logs of Lua Debugger");
+			}
+		}
+		if (FlxG.keys.justPressed.H) {
+			if (haxeDebugger) {
+				HaxeDebugger.clearLog();
+				showOutput("Cleared logs of Haxe Debugger");
+			}
+		}
+		if (FlxG.keys.justPressed.Z) {
+			if (zsDebugger) {
+				ZSDebugger.clearLog();
+				showOutput("Cleared logs of ZS Debugger");
+			}
+		}
+
 		super.update(elapsed);
+	}
+
+	function showOutput(message:String)
+	{
+		trace(message);
+		outputTxt.text = message;
+		outputTxt.y = FlxG.height - outputTxt.height - 30;
+		outputAlpha = 4;
+		FlxG.sound.play(Paths.sound('scrollMenu'), 0.6);
+		outputTxt.color = FlxColor.WHITE;
 	}
 
 	function changeItem(change:Int = 0)

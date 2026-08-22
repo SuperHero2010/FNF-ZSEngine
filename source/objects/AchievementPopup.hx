@@ -22,7 +22,7 @@ class AchievementPopup extends openfl.display.Sprite {
 		var graphic = null;
 		var hasAntialias:Bool = ClientPrefs.data.antialiasing;
 		var image:String = 'achievements/$achieve';
-		
+
 		var achievement:Achievement = null;
 		if(Achievements.exists(achieve)) achievement = Achievements.get(achieve);
 
@@ -101,7 +101,7 @@ class AchievementPopup extends openfl.display.Sprite {
 		graphics.beginBitmapFill(clonedBitmap, new Matrix(1, 0, 0, 1, textX, textY), false, false);
 		graphics.drawRect(textX, textY, text.width + textX, text.height + textY);
 	}
-	
+
 	var lerpTime:Float = 0;
 	var countedTime:Float = 0;
 	var timePassed:Float = -1;

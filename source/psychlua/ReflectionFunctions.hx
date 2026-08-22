@@ -196,7 +196,7 @@ class ReflectionFunctions
 					if(destroy) obj.destroy();
 			}
 		});
-		
+
 		Lua_helper.add_callback(lua, "callMethod", function(funcToRun:String, ?args:Array<Dynamic>) {
 			var parent:Dynamic = PlayState.instance;
 			var split:Array<String> = funcToRun.split('.');
@@ -206,7 +206,7 @@ class ReflectionFunctions
 				funcToRun = split.join('.').trim();
 				parent = varParent;
 			}
-			
+
 			if(funcToRun.length > 0) {
 				return callMethodFromObject(parent, funcToRun, parseInstances(args));
 			}
@@ -223,7 +223,7 @@ class ReflectionFunctions
 			{
 				if(args == null) args = [];
 				var myType:Dynamic = Type.resolveClass(className);
-		
+
 				if(myType == null)
 				{
 					FunkinLua.luaTrace('createInstance: Class $className not found', false, false, FlxColor.RED);
@@ -273,7 +273,7 @@ class ReflectionFunctions
 	}
 	public static function parseInstances(arg:Dynamic):Dynamic {
 		if (arg == null) return null;
-		
+
 		if (Std.isOfType(arg, Array)) {
 			return parseInstanceArray(arg);
 		} else {

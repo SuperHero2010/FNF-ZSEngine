@@ -33,11 +33,11 @@ class BaseOptionsMenu extends MusicBeatSubstate
 
 		if(title == null) title = 'Options';
 		if(rpcTitle == null) rpcTitle = 'Options Menu';
-		
+
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence(rpcTitle, null);
 		#end
-		
+
 		bg = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.color = 0xFFea71fd;
 		bg.screenCenter();
@@ -167,15 +167,15 @@ class BaseOptionsMenu extends MusicBeatSubstate
 						bindingBlack.alpha = 0;
 						FlxTween.tween(bindingBlack, {alpha: 0.6}, 0.35, {ease: FlxEase.linear});
 						add(bindingBlack);
-	
+
 						bindingText = new Alphabet(FlxG.width / 2, 160, Language.getPhrase('controls_rebinding', 'Rebinding {1}', [curOption.name]), false);
 						bindingText.alignment = CENTERED;
 						add(bindingText);
-						
+
 						bindingText2 = new Alphabet(FlxG.width / 2, 340, Language.getPhrase('controls_rebinding2', 'Hold ESC to Cancel\nHold Backspace to Delete'), true);
 						bindingText2.alignment = CENTERED;
 						add(bindingText2);
-	
+
 						bindingKey = true;
 						holdingEsc = 0;
 						ClientPrefs.toggleVolumeKeys(false);
@@ -193,14 +193,14 @@ class BaseOptionsMenu extends MusicBeatSubstate
 								var add:Dynamic = null;
 								if(curOption.type != STRING)
 									add = controls.UI_LEFT ? -curOption.changeValue : curOption.changeValue;
-		
+
 								switch(curOption.type)
 								{
 									case INT, FLOAT, PERCENT:
 										holdValue = curOption.getValue() + add;
 										if(holdValue < curOption.minValue) holdValue = curOption.minValue;
 										else if (holdValue > curOption.maxValue) holdValue = curOption.maxValue;
-		
+
 										if(curOption.type == INT)
 										{
 											holdValue = Math.round(holdValue);
@@ -211,17 +211,17 @@ class BaseOptionsMenu extends MusicBeatSubstate
 											holdValue = FlxMath.roundDecimal(holdValue, curOption.decimals);
 											curOption.setValue(holdValue);
 										}
-		
+
 									case STRING:
 										var num:Int = curOption.curOption; //lol
 										if(controls.UI_LEFT_P) --num;
 										else num++;
-		
+
 										if(num < 0)
 											num = curOption.options.length - 1;
 										else if(num >= curOption.options.length)
 											num = 0;
-		
+
 										curOption.curOption = num;
 										curOption.setValue(curOption.options[num]);
 										//trace(curOption.options[num]);
@@ -237,7 +237,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 								holdValue += curOption.scrollSpeed * elapsed * (controls.UI_LEFT ? -1 : 1);
 								if(holdValue < curOption.minValue) holdValue = curOption.minValue;
 								else if (holdValue > curOption.maxValue) holdValue = curOption.maxValue;
-		
+
 								switch(curOption.type)
 								{
 									case INT:
@@ -245,7 +245,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 
 									case FLOAT:
 										curOption.setValue(FlxMath.roundDecimal(holdValue, curOption.decimals));
-									
+
 									case PERCENT:
 										curOption.setValue(FlxMath.roundDecimal(holdValue, curOption.decimals));
 
@@ -255,7 +255,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 								curOption.change();
 							}
 						}
-		
+
 						if(curOption.type != STRING)
 							holdTime += elapsed;
 					}
@@ -441,7 +441,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 				case '[', ']': //Square and Triangle respectively
 					letter.image = 'alphabet_playstation';
 					letter.updateHitbox();
-					
+
 					letter.offset.x += 4;
 					letter.offset.y -= 5;
 			}
@@ -475,7 +475,7 @@ class BaseOptionsMenu extends MusicBeatSubstate
 		var def:Dynamic = option.defaultValue;
 		option.text = text.replace('%v', val).replace('%d', def);
 	}
-	
+
 	function changeSelection(change:Int = 0)
 	{
 		curSelected = FlxMath.wrap(curSelected + change, 0, optionsArray.length - 1);

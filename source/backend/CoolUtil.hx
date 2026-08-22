@@ -212,7 +212,7 @@ class CoolUtil
 				{
 					// Exclude events (negative noteData)
 					if(songNotes == null || songNotes.length < 2 || songNotes[1] < 0) continue;
-					
+
 					if (!oppNotes && (songNotes[1] < 4 ? section.mustHitSection : !section.mustHitSection))
 						total += 1;
 					if (oppNotes && (songNotes[1] < 4 ? !section.mustHitSection : section.mustHitSection))

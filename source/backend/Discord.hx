@@ -24,7 +24,7 @@ class DiscordClient
 		if(ClientPrefs.data.discordRPC) initialize();
 		else if(isInitialized) shutdown();
 	}
-	
+
 	public static function prepare()
 	{
 		if (!isInitialized && ClientPrefs.data.discordRPC)
@@ -40,7 +40,7 @@ class DiscordClient
 		isInitialized = false;
 		Discord.Shutdown();
 	}
-	
+
 	private static function onReady(request:cpp.RawConstPointer<DiscordUser>):Void
 	{
 		final user = cast (request[0].username, String);
@@ -121,7 +121,7 @@ class DiscordClient
 	{
 		Discord.UpdatePresence(cpp.RawConstPointer.addressOf(presence.__presence));
 	}
-	
+
 	inline public static function resetClientID()
 	{
 		clientID = _defaultID;
@@ -230,7 +230,7 @@ private final class DiscordPresence
 	{
 		return __presence.largeImageKey;
 	}
-	
+
 	@:noCompletion inline function set_largeImageKey(value:String):String
 	{
 		return __presence.largeImageKey = value;

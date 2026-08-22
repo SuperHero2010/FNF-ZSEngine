@@ -74,7 +74,7 @@ class Alphabet extends FlxSpriteGroup
 				default:
 					newOffset = 0;
 			}
-	
+
 			letter.offset.x -= letter.alignOffset;
 			letter.alignOffset = newOffset * scale.x;
 			letter.offset.x += letter.alignOffset;
@@ -252,7 +252,6 @@ class Alphabet extends FlxSpriteGroup
 	}
 }
 
-
 ///////////////////////////////////////////
 // ALPHABET LETTERS, SYMBOLS AND NUMBERS //
 ///////////////////////////////////////////
@@ -304,7 +303,7 @@ class AlphaCharacter extends FlxSprite
 				{
 					var char:String = data.allowed.charAt(i);
 					if(char == ' ') continue;
-					
+
 					allLetters.set(char.toLowerCase(), null); //Allows character to be used in Alphabet
 				}
 			}
@@ -344,7 +343,7 @@ class AlphaCharacter extends FlxSprite
 		image = 'alphabet';
 		antialiasing = ClientPrefs.data.antialiasing;
 	}
-	
+
 	public var curLetter:Letter = null;
 	public function setupAlphaCharacter(x:Float, y:Float, ?character:String = null, ?bold:Null<Bool> = null)
 	{
@@ -358,7 +357,7 @@ class AlphaCharacter extends FlxSprite
 			this.scale.x = parent.scaleX;
 			this.scale.y = parent.scaleY;
 		}
-		
+
 		if(character != null)
 		{
 			this.character = character;
@@ -427,12 +426,12 @@ class AlphaCharacter extends FlxSprite
 		this.scale.x = parent.scaleX;
 		this.scale.y = parent.scaleY;
 		alignOffset = 0;
-		
+
 		if (lastAnim != null)
 		{
 			animation.addByPrefix(lastAnim, lastAnim, 24);
 			animation.play(lastAnim, true);
-			
+
 			updateHitbox();
 		}
 		return name;

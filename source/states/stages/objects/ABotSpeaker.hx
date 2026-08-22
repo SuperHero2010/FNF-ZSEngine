@@ -98,7 +98,7 @@ class ABotSpeaker extends FlxSpriteGroup
 		{
 			var animFrame:Int = Math.round(levels[i].value * 5);
 			animFrame = Std.int(Math.abs(FlxMath.bound(animFrame, 0, 5) - 5)); // shitty dumbass flip, cuz dave got da shit backwards lol!
-		
+
 			vizSprites[i].animation.curAnim.curFrame = animFrame;
 			levelMax = Std.int(Math.max(levelMax, 5 - animFrame));
 		}
@@ -122,7 +122,7 @@ class ABotSpeaker extends FlxSpriteGroup
 	{
 		@:privateAccess
 		analyzer = new SpectralAnalyzer(snd._channel.__audioSource, 7, 0.1, 40);
-	
+
 		#if desktop
 		// On desktop it uses FFT stuff that isn't as optimized as the direct browser stuff we use on HTML5
 		// So we want to manually change it!

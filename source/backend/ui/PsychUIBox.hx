@@ -13,7 +13,7 @@ class PsychUIBox extends FlxSpriteGroup
 	public static final DRAG_EVENT = "uibox_drag";
 	public static final DROP_EVENT = "uibox_drop";
 	public var tabs(default, null):Array<PsychUITab> = [];
-	
+
 	public var selectedTab(default, set):PsychUITab = null;
 	public var selectedIndex(default, set):Int = -1;
 	public var selectedName(default, set):String = null;
@@ -44,7 +44,7 @@ class PsychUIBox extends FlxSpriteGroup
 	public function new(x:Float, y:Float, width:Int, height:Int, tabs:Array<String> = null)
 	{
 		super(x, y);
-		
+
 		bg = new FlxSprite().makeGraphic(1, 1, FlxColor.WHITE);
 		bg.color = FlxColor.BLACK;
 		bg.alpha = 0.6;
@@ -115,7 +115,7 @@ class PsychUIBox extends FlxSpriteGroup
 					tab.color = hoverStyle.bgColor;
 					tab.alpha = hoverStyle.bgAlpha;
 					tab.text.color = hoverStyle.textColor;
-	
+
 					if(FlxG.mouse.justPressed)
 						_pressedBox = true;
 
@@ -126,7 +126,7 @@ class PsychUIBox extends FlxSpriteGroup
 						_draggingBox = true;
 						if(broadcastBoxEvents) PsychUIEventHandler.event(DRAG_EVENT, this);
 					}
-					
+
 					if(FlxG.mouse.justReleased && canMinimize && _lastClick < 0.15 && selectedTab == tab && _lastTab == selectedTab)
 					{
 						_ignoreTabUpdate = true;
@@ -134,7 +134,7 @@ class PsychUIBox extends FlxSpriteGroup
 						_lastClick = 0;
 						//trace('do minimize: $isMinimized');
 					}
-					
+
 					if(FlxG.mouse.justPressed)
 					{
 						if(selectedTab != tab)
@@ -149,7 +149,7 @@ class PsychUIBox extends FlxSpriteGroup
 					}
 					else if(selectedTab != tab) continue;
 				}
-				
+
 				var style:UIStyleData = (selectedTab == tab) ? selectedStyle : unselectedStyle;
 				tab.color = style.bgColor;
 				tab.alpha = style.bgAlpha;
@@ -184,7 +184,7 @@ class PsychUIBox extends FlxSpriteGroup
 		for (tab in tabs) tab.camera = v;
 		return super.set_camera(v);
 	}
-			
+
 	override function draw()
 	{
 		super.draw();

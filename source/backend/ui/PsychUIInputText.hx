@@ -53,7 +53,7 @@ class PsychUIInputText extends FlxSpriteGroup
 	public var maxLength(default, set):Int = 0;
 	public var passwordMask(default, set):Bool = false;
 	public var text(default, set):String = null;
-	
+
 	public var forceCase(default, set):CaseMode = ALL_CASES;
 	public var filterMode(default, set):FilterMode = NO_FILTER;
 	public var customFilterPattern(default, set):EReg;
@@ -87,7 +87,7 @@ class PsychUIInputText extends FlxSpriteGroup
 
 		FlxG.stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
 	}
-	
+
 	public var selectIndex:Int = -1;
 	public var caretIndex(default, set):Int = -1;
 	var _caretTime:Float = 0;
@@ -295,10 +295,10 @@ class PsychUIInputText extends FlxSpriteGroup
 					text = text.substring(0, caretIndex) + text.substring(caretIndex+1);
 
 				if(caretIndex >= text.length) caretIndex = text.length;
-				
+
 				if(onChange != null) onChange(lastText, text);
 				if(broadcastInputTextEvent) PsychUIEventHandler.event(CHANGE_EVENT, this);
-			
+
 			case SPACE: //space or last accent pressed
 				if(_nextAccent != NONE) _typeLetter(getAccentCharCode(_nextAccent));
 				else _typeLetter(charCode);
@@ -439,7 +439,7 @@ class PsychUIInputText extends FlxSpriteGroup
 					}
 					else selection.visible = false;
 				}
-	
+
 				if(caret != null && caret.exists)
 				{
 					if(!drewSelection && _caretTime < 0.5 && caret.x >= textObj.x)
@@ -481,7 +481,7 @@ class PsychUIInputText extends FlxSpriteGroup
 			if(caretIndex > 0)
 				caret.x += _boundaries[Std.int(Math.max(0, Math.min(_boundaries.length-1, caretIndex-1)))];
 		}
-		
+
 		if(selection != null && selection.exists)
 		{
 			selection.y = textObj.y + 2;
@@ -564,7 +564,7 @@ class PsychUIInputText extends FlxSpriteGroup
 			if(caret != null && caret.exists) caret.setGraphicSize(1, textObj.height - 4);
 		}
 	}
-	
+
 	override public function updateHitbox()
 	{
 		super.updateHitbox();
@@ -654,7 +654,7 @@ class PsychUIInputText extends FlxSpriteGroup
 	function _typeLetter(charCode:Int)
 	{
 		if(charCode < 1) return;
-		
+
 		if(selectIndex > -1 && selectIndex != caretIndex)
 			deleteSelection();
 
@@ -697,7 +697,7 @@ class PsychUIInputText extends FlxSpriteGroup
 		filterMode = CUSTOM_FILTER;
 		return customFilterPattern;
 	}
-	
+
 	private function filter(text:String):String
 	{
 		switch(forceCase)

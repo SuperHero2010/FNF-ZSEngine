@@ -315,7 +315,7 @@ class NoteSplash extends FlxSprite
 
 		spawned = true;
 	}
-	
+
 	public function playDefaultAnim()
 	{
 		var anim:String = noteDataMap.get(noteData);

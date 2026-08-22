@@ -28,7 +28,7 @@ class MetaNote extends Note
 		this.songData[1] = v;
 		this.noteData = v % ChartingState.GRID_COLUMNS_PER_PLAYER;
 		this.mustPress = (v < ChartingState.GRID_COLUMNS_PER_PLAYER);
-		
+
 		if(!PlayState.isPixelStage)
 			loadNoteAnims();
 		else
@@ -86,7 +86,7 @@ class MetaNote extends Note
 		if(_lastZoom < 0) return;
 		setSustainLength(sustainLength, stepCrochet, _lastZoom);
 	}
-	
+
 	var _noteTypeText:FlxText;
 	public function findNoteTypeText(num:Int)
 	{
@@ -143,33 +143,32 @@ class EventMetaNote extends MetaNote
 	{
 		super(time, -1, eventData);
 		this.isEvent = true;
-		// Some charts may contain malformed/partial event entries.
-		// If eventData[1] is missing/null, ensure we don't crash the chart editor.
 		events = [];
+
 		try
 		{
-			// expected shape from ChartingState.createEvent:
-			// eventData = [strumTime, [[eventName, value1, value2], ...]]
 			var outer:Dynamic = (eventData != null) ? eventData[1] : null;
+			var isOuterArray:Bool = (outer != null && Std.isOfType(outer, Array));
+
 			if (outer != null && Std.isOfType(outer, Array))
 			{
 				var outerArr:Array<Dynamic> = cast outer;
 				for (entry in outerArr)
 				{
-					// tolerate malformed entries: if it's already an array, keep it, otherwise wrap.
-					if (entry != null && Std.isOfType(entry, Array))
-						events.push(cast entry);
-					else
-						events.push([entry]);
+					if (entry != null && Std.isOfType(entry, Array)) events.push(cast entry);
+					else events.push([entry]);
 				}
+			}
+			else
+			{
+				trace('outer is null or not an Array. Value: ' + outer);
 			}
 		}
 		catch (e:Dynamic)
 		{
-			trace('Error: $e');
+			trace('Error parsing event data: ' + e);
 		}
-		//trace('events: $events');
-		
+
 		loadGraphic(Paths.image('editors/eventIcon'));
 		setGraphicSize(ChartingState.GRID_SIZE);
 		updateHitbox();
@@ -180,7 +179,7 @@ class EventMetaNote extends MetaNote
 		eventText.antialiasing = ClientPrefs.data.antialiasing;
 		updateEventText();
 	}
-	
+
 	override function draw()
 	{
 		if(eventText != null && eventText.exists && eventText.visible)
@@ -194,13 +193,20 @@ class EventMetaNote extends MetaNote
 
 	override function setSustainLength(v:Float, stepCrochet:Float, zoom:Float = 1) {}
 
-	// Be tolerant: charts/mods may store non-string values or malformed arrays.
-	public var events:Array<Array<Dynamic>>;
+	public var events:Array<Array<String>>;
 	public function updateEventText()
 	{
+		if (eventText == null) return;
+
 		var myTime:Float = Math.floor(this.strumTime);
-		if(events == null) events = [];
-		if(events.length == 1)
+		if (events == null) events = [];
+		if (events.length == 0)
+		{
+			eventText.text = 'Event at $myTime ms (no data)';
+			return;
+		}
+
+		if (events.length == 1)
 		{
 			var event = events[0];
 			var name:String = (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown';
@@ -208,12 +214,23 @@ class EventMetaNote extends MetaNote
 			var v2:String = (event != null && event.length > 2 && event[2] != null) ? Std.string(event[2]) : '';
 			eventText.text = 'Event: ${name} ($myTime ms)\nValue 1: ${v1}\nValue 2: ${v2}';
 		}
-		else if(events.length > 1)
+		else if (events.length > 1)
 		{
 			var eventNames:Array<String> = [for (event in events) (event != null && event.length > 0 && event[0] != null) ? Std.string(event[0]) : 'Unknown'];
 			eventText.text = '${events.length} Events ($myTime ms):\n${eventNames.join(', ')}';
 		}
-		else eventText.text = 'ERROR FAILSAFE';
+		else
+		{
+			eventText.text = 'ERROR FAILSAFE';
+		}
+	}
+
+	public function updateSongDataFromEvents()
+	{
+		if(songData != null && songData.length > 1)
+		{
+			songData[1] = events.copy();
+		}
 	}
 
 	override function destroy()

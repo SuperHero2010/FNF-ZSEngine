@@ -32,14 +32,15 @@ import haxe.ds.Vector;
 class SongJson
 {
 	static public inline function parse(str:String):Dynamic
+	{
 		return new SongJson(str).doParse();
+	}
 
 	var str:String;
 	var pos:Int;
 	var time:Float = Timer.stamp();
 	public static var skipChart:Bool = false;
-	// Do not depend on console availability for correctness.
-	public static var log:Bool = false;
+	public static var log:Bool = true;
 
 	function new(str:String)
 	{
@@ -303,6 +304,7 @@ class SongJson
 			{
 				try {
 					Sys.stdout().writeString('\x1b[0G$pos/${str.length}');
+					Sys.stdout().flush();
 				}
 				catch (_:Dynamic) {}
 			}

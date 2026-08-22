@@ -93,7 +93,7 @@ class VSlice
 		var songDifficulties:Map<String, SwagSong> = [];
 		var timeChanges:Array<VSliceTimeChange> = cast metadata.timeChanges;
 		timeChanges.sort(sortByTime);
-		
+
 		var songBpm:Float = timeChanges[0].bpm;
 		timeChanges.shift();
 
@@ -163,7 +163,7 @@ class VSlice
 							focusEventNum = i;
 							break;
 						}
-						
+
 						var char:Dynamic = focusEvent.v.char;
 						if(char != null)
 							char = Std.string(char);
@@ -254,7 +254,7 @@ class VSlice
 				needsVoices: true, //There's no value on V-Slice to identify if there are vocals as it checks automatically
 				speed: scrollSpeed,
 				offset: 0,
-			
+
 				player1: metadata.playData.characters.player,
 				player2: metadata.playData.characters.opponent,
 				gfVersion: metadata.playData.characters.girlfriend,
@@ -331,7 +331,7 @@ class VSlice
 		var notes:Array<VSliceNote> = [];
 		var generatedBy:String = 'Psych Engine v${MainMenuState.psychEngineVersion} - Chart Editor V-Slice Exporter';
 		var timeChanges:Array<VSliceTimeChange> = [];
-		
+
 		var time:Float = 0;
 		var bpm:Float = songData.bpm;
 		timeChanges.push({t: 0, bpm: bpm}); //so there was first bpm issue (if the song has multiplier bpm) 
@@ -350,7 +350,7 @@ class VSlice
 							vsliceNote.l = note[2];
 						if(note[3] != null && note[3].length > 0)
 							vsliceNote.k = note[3];
-						
+
 						notes.push(vsliceNote);
 					}
 				}
@@ -376,18 +376,18 @@ class VSlice
 		}
 		events.sort(sortByTime);
 		notes.sort(sortByTime);
-		
+
 		//try to find composer despite it not being a value on psych charts
 		var composer:String = 'Unknown';
 		if(Reflect.hasField(songData, 'artist')) composer = Reflect.field(songData, 'artist');
 		else if(Reflect.hasField(songData, 'composer')) composer = Reflect.field(songData, 'composer');
-		
+
 		var charter:String = 'Unknown';
 		if(Reflect.hasField(songData, 'charter')) composer = Reflect.field(songData, 'charter');
 
 		// Has to add all difficulties or it might crash on V-Slice's Freeplay
 		var diffs:Array<String> = null;
-		
+
 		var scrollSpeed:Map<String, Float> = [];
 		var notesMap:Map<String, Array<VSliceNote>> = [];
 		if(difficultyName == null) //Fill all difficulties to attempt to prevent the song from not showing up on Base Game
@@ -405,7 +405,7 @@ class VSlice
 			var diff:String = Difficulty.getString(false);
 			if(diff == null) diff = Difficulty.getDefault();
 			diff = Paths.formatToSongPath(diff);
-			
+
 			scrollSpeed.set(diff, songData.speed);
 			notesMap.set(diff, notes);
 		}

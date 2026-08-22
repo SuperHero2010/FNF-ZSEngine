@@ -157,7 +157,7 @@ class StageData {
 							spr.loadGraphic(Paths.image(data.image));
 						else
 							spr.frames = Paths.getAtlas(data.image);
-						
+
 						if(data.type == 'animatedSprite' && data.animations != null)
 						{
 							var anims:Array<objects.Character.AnimArray> = cast data.animations;
@@ -167,10 +167,10 @@ class StageData {
 									spr.animation.addByPrefix(anim.anim, anim.name, anim.fps, anim.loop);
 								else
 									spr.animation.addByIndices(anim.anim, anim.name, anim.indices, '', anim.fps, anim.loop);
-	
+
 								if(anim.offsets != null)
 									spr.addOffset(anim.anim, anim.offsets[0], anim.offsets[1]);
-	
+
 								if(spr.animation.curAnim == null || data.firstAnimation == anim.anim)
 									spr.playAnim(anim.anim, true);
 							}
@@ -195,7 +195,7 @@ class StageData {
 					}
 					spr.scrollFactor.set(data.scroll[0], data.scroll[1]);
 					spr.color = CoolUtil.colorFromString(data.color);
-					
+
 					for (varName in ['alpha', 'angle'])
 					{
 						var dat:Dynamic = Reflect.getProperty(data, varName);

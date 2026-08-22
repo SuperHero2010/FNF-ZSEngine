@@ -84,6 +84,105 @@ class FileDialogHandler extends FlxBasic
 		_fileRef.browseEx(OPEN_DIRECTORY, null, title);
 	}
 
+	public function saveWithPath(?fileName:String = '', ?dataToSave:String = '', ?onComplete:String->Void, ?onCancel:Void->Void, ?onError:String->Void)
+	{
+		if(!completed)
+		{
+			throw new Exception('You must finish previous operation before starting a new one.');
+		}
+
+		this._dialogMode = SAVE;
+		_startUpPath(onComplete, onCancel, onError);
+
+		removeEventsPath();
+		_currentEventPath = onSaveCompleteWithPath;
+		_fileRef.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEventPath);
+		_fileRef.addEventListener(IOErrorEvent.IO_ERROR, onErrorFnPath); // Add error listener
+		_fileRef.save(dataToSave, fileName);
+	}
+
+	public function saveFile(sourcePath:String, ?fileName:String = '', ?onComplete:String->Void, ?onCancel:Void->Void, ?onError:String->Void)
+	{
+		if(!completed)
+		{
+			throw new Exception('You must finish previous operation before starting a new one.');
+		}
+
+		this._dialogMode = SAVE;
+		_startUpPath(onComplete, onCancel, onError);
+
+		removeEvents();
+		_currentEvent = onSaveFileComplete;
+		_fileRef.addEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEvent);
+		_fileRef.addEventListener(IOErrorEvent.IO_ERROR, onErrorFnPath);
+
+		_tempSourcePath = sourcePath;
+		_fileRef.save("", fileName);
+	}
+
+	private var _tempSourcePath:String;
+
+	private function onSaveFileComplete(_):Void
+	{
+		@:privateAccess
+		var targetPath = _fileRef._trackSavedPath;
+
+		if (targetPath != null && targetPath.length > 0 && _tempSourcePath != null && FileSystem.exists(_tempSourcePath))
+		{
+			File.copy(_tempSourcePath, targetPath);
+			FileSystem.deleteFile(_tempSourcePath);
+			_tempSourcePath = null;
+			this.path = targetPath;
+			trace('Saved file from temp to: $targetPath');
+		}
+
+		removeEvents();
+		this.completed = true;
+		if(onComplete != null) onComplete();
+	}
+
+	private var _onCompletePath:String->Void;
+	private var _currentEventPath:openfl.events.Event->Void;
+	private var _onErrorPath:String->Void;
+
+	function _startUpPath(onComplete:String->Void, onCancel:Void->Void, onError:String->Void)
+	{
+		this._onCompletePath = onComplete;
+		this.onCancel = onCancel;
+		this._onErrorPath = onError;
+		this.completed = false;
+		this.data = null;
+		this.path = null;
+	}
+
+	function onSaveCompleteWithPath(_)
+	{
+		removeEventsPath();
+		@:privateAccess
+		this.path = _fileRef._trackSavedPath;
+		this.completed = true;
+		trace('Saved file to: $path');
+
+		if(_onCompletePath != null) _onCompletePath(this.path);
+	}
+
+	function onErrorFnPath(e:IOErrorEvent)
+	{
+		removeEventsPath();
+		this.completed = true;
+		trace('Save error: ' + e.text);
+		if(_onErrorPath != null) _onErrorPath(e.text);
+	}
+
+	function removeEventsPath()
+	{
+		if(_currentEventPath == null) return;
+
+		_fileRef.removeEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEventPath);
+		_fileRef.removeEventListener(IOErrorEvent.IO_ERROR, onErrorFnPath);
+		_currentEventPath = null;
+	}
+
 	public var data:String;
 	public var path:String;
 	public var completed:Bool = true;
@@ -154,7 +253,7 @@ class FileDialogHandler extends FlxBasic
 	function removeEvents()
 	{
 		if(_currentEvent == null) return;
-		
+
 		_fileRef.removeEventListener(#if desktop Event.SELECT #else Event.COMPLETE #end, _currentEvent);
 		_currentEvent = null;
 	}
@@ -184,7 +283,7 @@ class FileReferenceCustom extends FileReference
 		_trackSavedPath = path;
 		super.saveFileDialog_onSelect(path);
 	}
-	
+
 	public function browseEx(browseType:FileDialogType = OPEN, ?defaultName:String, ?title:String = null, ?typeFilter:Array<FileFilter> = null):Bool
 	{
 		__data = null;

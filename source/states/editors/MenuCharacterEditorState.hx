@@ -30,7 +30,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 			flipX: false,
 			antialiasing: true
 		};
-		
+
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence
 		DiscordClient.changePresence("Menu Character Editor", "Editting: " + characterFile.image);
@@ -75,7 +75,6 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		addTypeUI();
 		add(UI_typebox);
 
-		
 		UI_mainbox = new PsychUIBox(FlxG.width - 340, FlxG.height - 265, 240, 215, ['Character']);
 		UI_mainbox.scrollFactor.set();
 		addCharacterUI();
@@ -87,7 +86,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		loadButton.screenCenter(X);
 		loadButton.x -= 60;
 		add(loadButton);
-	
+
 		var saveButton:PsychUIButton = new PsychUIButton(0, 480, "Save Character", function() {
 			saveCharacter();
 		});
@@ -114,7 +113,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 	var antialiasingCheckbox:PsychUICheckBox;
 	function addCharacterUI() {
 		var tab_group = UI_mainbox.getTab('Character').menu;
-		
+
 		imageInputText = new PsychUIInputText(10, 20, 80, characterFile.image, 8);
 		idleInputText = new PsychUIInputText(10, imageInputText.y + 35, 100, characterFile.idle_anim, 8);
 		confirmInputText = new PsychUIInputText(10, idleInputText.y + 35, 100, characterFile.confirm_anim, 8);
@@ -137,7 +136,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		var reloadImageButton:PsychUIButton = new PsychUIButton(140, confirmInputText.y + 30, "Reload Char", function() {
 			reloadSelectedCharacter();
 		});
-		
+
 		scaleStepper = new PsychUINumericStepper(140, imageInputText.y, 0.05, 1, 0.1, 30, 2);
 
 		var confirmDescText = new FlxText(10, confirmInputText.y - 18, 0, 'Start Press animation on the .XML:');
@@ -163,7 +162,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		}
 		reloadSelectedCharacter();
 	}
-	
+
 	function reloadSelectedCharacter() {
 		var char:MenuCharacter = grpWeekCharacters.members[characterTypeRadio.checked];
 
@@ -177,7 +176,7 @@ class MenuCharacterEditorState extends MusicBeatState implements PsychUIEventHan
 		char.updateHitbox();
 		char.animation.play('idle');
 		updateOffset();
-		
+
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence
 		DiscordClient.changePresence("Menu Character Editor", "Editting: " + characterFile.image);

@@ -1,6 +1,8 @@
-![PsychionalEngineLogo](docs/img/PsychEngineLogoTweak.png)
+![ZSEngineLogo](docs/img/ZSEngineLogo.png)
 
-Engine originally used on [Mind Games Mod](https://gamebanana.com/mods/301107), intended to be a fix for the vanilla version's many issues while keeping the casual play aspect of it. Also aiming to be an easier alternative to newbie coders.
+ZS Engine is a modified version of Psych Engine. It contains many improved features, new functionalities, bug fixes, and a better user experience. Additionally, it includes a ZS-LUA compiler to translate ZS code into Lua code.
+
+ZS Language is a natural language. It's readable like English, easy to read, easy to see, and easier to program. Its rules don't follow traditional programming language conventions; it adheres to natural mathematical rules, prohibits artificial keywords, and uses natural keywords instead. While not fully executable, it remains a viable alternative to traditional languages ​​like Lua.
 
 ## Installation:
 
@@ -21,9 +23,21 @@ For this you can head over to [the wiki](https://shadowmario.github.io/psychengi
 
 There you can learn how to use the 212 PlayState funcions in your mod!
 
-## Credits:
+## Softcoding (.zs)
+For this you can head over to [zsscript/](https://github.com/SuperHero2010/FNF-ZSEngine/tree/main/source/zsscript)
+
+## Credits
+### Author of ZS Engine
+* SuperHero2010 - Independent Author, Main Programmer and Head of ZS Engine
+* Tools Scripts - Coder of ZS Engine
+
+### Author of Psych Engine
 * Shadow Mario - Main Programmer and Head of Psych Engine.
 * Riveren - Main Artist/Animator of Psych Engine.
+
+### Ported features
+* JordanSantiagoYT - Original author of faster chart loading/saving and note spamming features
+* HRK.EXEX - Original author of faster chart loading and some important features
 
 ### Special Thanks
 * bbpanzu - Ex-Team Member (Programmer).
@@ -123,5 +137,4 @@ There you can learn how to use the 212 PlayState funcions in your mod!
 * You can listen to a song or adjust Scroll Speed/Damage taken/etc. on Freeplay by pressing Space.
 * You can enable "Combo Stacking" in Gameplay Options. This causes the combo sprites to just be one sprite with an animation rather than sprites spawning each note hit.
 
-
-#### Psych Engine by ShadowMario, Friday Night Funkin' by ninjamuffin99
+#### ZS Engine by SuperHero2010, Psych Engine by ShadowMario, Friday Night Funkin' by ninjamuffin99

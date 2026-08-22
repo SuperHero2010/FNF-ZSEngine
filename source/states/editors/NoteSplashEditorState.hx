@@ -30,8 +30,24 @@ class NoteSplashEditorState extends MusicBeatState
     var properUI:PsychUIBox;
     var shaderUI:PsychUIBox;
 
+    var outputTxt:FlxText;
+    var outputAlpha:Float = 0;
+    var camUI:FlxCamera;
+
     override function create()
     {
+		camUI = new FlxCamera();
+		camUI.bgColor.alpha = 0;
+		FlxG.cameras.add(camUI, false);
+
+		outputTxt = new FlxText(25, FlxG.height - 50, FlxG.width - 50, '', 20);
+		outputTxt.borderSize = 2;
+		outputTxt.borderStyle = OUTLINE_FAST;
+		outputTxt.scrollFactor.set();
+        outputTxt.cameras = [camUI];
+        outputTxt.alpha = 0;
+		add(outputTxt);
+
         if (imageSkin == null)
             imageSkin =  NoteSplash.defaultNoteSplash + NoteSplash.getSplashSkinPostfix();
 
@@ -333,7 +349,7 @@ class NoteSplashEditorState extends MusicBeatState
             try {
                 reloadImage();
             } catch (e:Dynamic) {
-                showOutput("No image found");
+                showOutput("No image found", true);
             }
         });
         ui.add(reloadButton);
@@ -482,7 +498,7 @@ class NoteSplashEditorState extends MusicBeatState
             onCheck(false);
         });
         add(changeShader);
-        
+
         defaultButton = new PsychUICheckBox(shaderUI.x + 30, shaderUI.y + 115, "Do not replace", 100, () -> onCheck());
         defaultButton.text.y += 2.5;
         add(defaultButton);
@@ -495,9 +511,6 @@ class NoteSplashEditorState extends MusicBeatState
     {
         // Empty line
     }
-
-    var outputTxt:FlxText;
-    var outputAlpha:Float = 0;
 
     var holdingArrowsTime:Float = 0;
     var holdingArrowsElapsed:Float = 0;
@@ -529,7 +542,7 @@ class NoteSplashEditorState extends MusicBeatState
 
             config.scale = scaleNumericStepper.value;
         }
-        
+
         var blockInput:Bool = PsychUIInputText.focusOn != null;
         if (!blockInput && config != null && config.animations != null && config.animations.exists(curAnim) && curAnim != null && curAnim.length > 0)
         {
@@ -575,7 +588,7 @@ class NoteSplashEditorState extends MusicBeatState
                 config.animations[curAnim].offsets[1] += ((moveKeysP[2] ? 1 : 0) - (moveKeysP[3] ? 1 : 0)) * multiplier;
                 changedOffset = true;
             }
-    
+
             var moveKeys = [FlxG.keys.pressed.LEFT, FlxG.keys.pressed.RIGHT, FlxG.keys.pressed.UP, FlxG.keys.pressed.DOWN];
             if(moveKeys.contains(true))
             {
@@ -675,7 +688,7 @@ class NoteSplashEditorState extends MusicBeatState
         {
             errorText.alpha = 1;
             errorText.text = "ERROR while playing splash";
-            
+
             FlxTween.cancelTweensOf(errorText);
             FlxTween.tween(errorText, {alpha: 0}, {startDelay: 1});
         }
@@ -717,7 +730,7 @@ class NoteSplashEditorState extends MusicBeatState
                     else if (i == 2)
                         blueEnabled = true;
                 }
-                
+
                 var colors = [rgb.r, rgb.g, rgb.b];
                 if (i == 0)
                     redShader = colors;
@@ -737,7 +750,7 @@ class NoteSplashEditorState extends MusicBeatState
     {
         if (config == null)
             config = NoteSplash.createConfig();
-        
+
         if (!redEnabled && !greenEnabled && !blueEnabled)
         {
             config.rgb = null;
@@ -950,7 +963,6 @@ class NoteSplashEditorState extends MusicBeatState
         return config;
     }
 }
-
 
 class NoteSplashEditorHelpSubState extends MusicBeatSubstate
 {

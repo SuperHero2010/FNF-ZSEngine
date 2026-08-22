@@ -57,9 +57,9 @@ class ControlsSubState extends MusicBeatSubstate
 	var gamepadColor:FlxColor = 0xfffd7194;
 	var keyboardColor:FlxColor = 0xff7192fd;
 	var onKeyboardMode:Bool = true;
-	
+
 	var controllerSpr:FlxSprite;
-	
+
 	public function new()
 	{
 		super();
@@ -233,7 +233,7 @@ class ControlsSubState extends MusicBeatSubstate
 				case '[', ']': //Square and Triangle respectively
 					letter.image = 'alphabet_playstation';
 					letter.updateHitbox();
-					
+
 					letter.offset.x += 4;
 					letter.offset.y -= 5;
 			}
@@ -251,7 +251,7 @@ class ControlsSubState extends MusicBeatSubstate
 		attach.ID = bind.ID;
 		attach.x = bind.x;
 		attach.y = bind.y;
-		
+
 		playstationCheck(attach);
 		attach.scaleX = Math.min(1, 230 / attach.width);
 		//attach.text = text;
@@ -307,7 +307,7 @@ class ControlsSubState extends MusicBeatSubstate
 					bindingText = new Alphabet(FlxG.width / 2, 160, Language.getPhrase('controls_rebinding', 'Rebinding {1}', [options[curOptions[curSelected]][3]]), false);
 					bindingText.alignment = CENTERED;
 					add(bindingText);
-					
+
 					bindingText2 = new Alphabet(FlxG.width / 2, 340, Language.getPhrase('controls_rebinding2', 'Hold ESC to Cancel\nHold Backspace to Delete'), true);
 					bindingText2.alignment = CENTERED;
 					add(bindingText2);

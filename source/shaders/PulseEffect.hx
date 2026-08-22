@@ -37,14 +37,14 @@ class PulseEffect
         shader.uEnabled.value = [enabled];
         return v;
     }
-    
+
     function set_waveFrequency(v:Float):Float
     {
         waveFrequency = v;
         shader.uFrequency.value = [waveFrequency];
         return v;
     }
-    
+
     function set_waveAmplitude(v:Float):Float
     {
         waveAmplitude = v;
@@ -62,19 +62,19 @@ class PulseShader extends FlxShader
 
     //modified version of the wave shader to create weird garbled corruption like messes
     uniform float uTime;
-    
+
     /**
      * How fast the waves move over time
      */
     uniform float uSpeed;
-    
+
     /**
      * Number of waves over time
      */
     uniform float uFrequency;
 
     uniform bool uEnabled;
-    
+
     /**
      * How much the pixels are going to stretch over the waves
      */
@@ -91,7 +91,7 @@ class PulseShader extends FlxShader
             pt.y = mix(pt.y,sin(pt.y / 3 * pt.z + (2 * offsetZ) - pt.x),uWaveAmplitude * uampmul);
             pt.z = mix(pt.z,sin(pt.z / 6 * (pt.x * offsetY) - (50 * offsetZ) * (pt.z * offsetX)),uWaveAmplitude * uampmul);
         }
-        
+
         return vec4(pt.x, pt.y, pt.z, pt.w);
     }
 

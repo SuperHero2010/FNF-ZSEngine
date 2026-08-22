@@ -311,7 +311,7 @@ class HScript extends Iris
 		set('createCallback', function(name:String, func:Dynamic, ?funk:FunkinLua = null)
 		{
 			if(funk == null) funk = parentLua;
-			
+
 			if(funk != null) funk.addLocalCallback(name, func);
 			else Iris.error('createCallback ($name): 3rd argument is null', this.interp.posInfos());
 		});
@@ -367,7 +367,7 @@ class HScript extends Iris
 			}
 			return null;
 		});
-		
+
 		funk.addLocalCallback("runHaxeFunction", function(funcToRun:String, ?funcArgs:Array<Dynamic> = null) {
 			if (funk.hscript != null)
 			{

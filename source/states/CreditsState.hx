@@ -29,7 +29,7 @@ class CreditsState extends MusicBeatState
 		bg.antialiasing = ClientPrefs.data.antialiasing;
 		add(bg);
 		bg.screenCenter();
-		
+
 		grpOptions = new FlxTypedGroup<Alphabet>();
 		add(grpOptions);
 
@@ -42,7 +42,7 @@ class CreditsState extends MusicBeatState
 			["SuperHero2010",       "superhero2010",    "Independent Author, Main Programmer and Head of ZS Engine",                 "https://youtube.com/@SuperHero20102",                 "008000"],
 			["Tools Scripts",       "toolsscripts",     "Coder of ZS Engine",                                                        "https://www.youtube.com/@ToolsScripts",               "008000"],
 			[""],
-			["Credits for these new features"],
+			["Credits for these ported features"],
 			["HRK-EXEX",            "hrk",              "Original author of faster chart loading and some important features",       "https://x.com/Hrek_Hexex",                            "0080FF"],
 			["Jordan Santiago",     "jor",              "Original author of faster chart loading/saving and note spamming features", "https://youtube.com/@JordanSantiago",                 "00FF00"],
 			[""],
@@ -75,7 +75,7 @@ class CreditsState extends MusicBeatState
 			["Psych Engine Discord"],
 			["Join the Psych Ward!", "discord",         "Original Psych Engine Discord",                                             "https://discord.gg/2ka77eMXDv",                       "5165F6"]
 		];
-		
+
 		for(i in defaultList)
 			creditsStuff.push(i);
 

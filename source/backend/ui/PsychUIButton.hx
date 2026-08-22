@@ -13,7 +13,7 @@ class PsychUIButton extends FlxSpriteGroup
 
 	public var onChangeState:String->Void;
 	public var onClick:Void->Void;
-	
+
 	public var clickStyle:UIStyleData = {
 		bgColor: FlxColor.BLACK,
 		textColor: FlxColor.WHITE,
@@ -43,7 +43,7 @@ class PsychUIButton extends FlxSpriteGroup
 		add(text);
 		resize(wid, hei);
 		this.label = label;
-		
+
 		this.onClick = onClick;
 		forceCheckNext = true;
 	}
@@ -63,7 +63,7 @@ class PsychUIButton extends FlxSpriteGroup
 			text.color = normalStyle.textColor;
 			_firstFrame = false;
 		}
-		
+
 		if(isClicked && FlxG.mouse.released)
 		{
 			forceCheckNext = true;

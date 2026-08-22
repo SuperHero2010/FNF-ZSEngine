@@ -49,11 +49,11 @@ class NotesColorSubState extends MusicBeatSubstate
 
 	public function new() {
 		super();
-		
+
 		#if DISCORD_ALLOWED
 		DiscordClient.changePresence("Note Colors Menu", null);
 		#end
-		
+
 		onPixel = PlayState.isPixelStage;
 		var bg:FlxSprite = new FlxSprite().loadGraphic(Paths.image('menuDesat'));
 		bg.color = 0xFFEA71FD;
@@ -89,7 +89,7 @@ class NotesColorSubState extends MusicBeatSubstate
 		var bg:FlxSprite = new FlxSprite(750, 160).makeGraphic(FlxG.width - 780, 540, FlxColor.BLACK);
 		bg.alpha = 0.25;
 		add(bg);
-		
+
 		var text:Alphabet = new Alphabet(50, 86, 'CTRL', false);
 		text.alignment = CENTERED;
 		text.setScale(0.4);
@@ -116,7 +116,7 @@ class NotesColorSubState extends MusicBeatSubstate
 		colorPalette.updateHitbox();
 		colorPalette.antialiasing = false;
 		add(colorPalette);
-		
+
 		colorWheel = new FlxSprite(860, 200).loadGraphic(Paths.image('noteColorMenu/colorWheel'));
 		colorWheel.setGraphicSize(360, 360);
 		colorWheel.updateHitbox();
@@ -163,7 +163,7 @@ class NotesColorSubState extends MusicBeatSubstate
 		controllerPointer.screenCenter();
 		controllerPointer.alpha = 0.6;
 		add(controllerPointer);
-		
+
 		FlxG.mouse.visible = !controls.controllerMode;
 		controllerPointer.visible = controls.controllerMode;
 		_lastControllerMode = controls.controllerMode;
@@ -197,7 +197,7 @@ class NotesColorSubState extends MusicBeatSubstate
 		if(FlxG.gamepads.anyJustPressed(ANY)) controls.controllerMode = true;
 		else if(FlxG.mouse.justPressed || FlxG.mouse.deltaScreenX != 0 || FlxG.mouse.deltaScreenY != 0) controls.controllerMode = false;
 		//
-		
+
 		var changedToController:Bool = false;
 		if(controls.controllerMode != _lastControllerMode)
 		{
@@ -270,14 +270,14 @@ class NotesColorSubState extends MusicBeatSubstate
 				setShaderColor(colorHex);
 				_storedColor = getShaderColor();
 				updateColors();
-				
+
 				// move you to next letter
 				hexTypeNum++;
 				changed = true;
 			}
 			else if(FlxG.keys.justPressed.ENTER)
 				hexTypeNum = -1;
-			
+
 			var end:Bool = false;
 			if(changed)
 			{
@@ -313,7 +313,7 @@ class NotesColorSubState extends MusicBeatSubstate
 				modeBG.visible = onModeColumn;
 				notesBG.visible = !onModeColumn;
 			}
-	
+
 			if(add != 0)
 			{
 				if(onModeColumn) changeSelectionMode(add);
@@ -551,7 +551,7 @@ class NotesColorSubState extends MusicBeatSubstate
 			curSelectedNote = dataArray.length-1;
 		if (curSelectedNote >= dataArray.length)
 			curSelectedNote = 0;
-		
+
 		modeBG.visible = false;
 		notesBG.visible = true;
 		bigNote.rgbShader.parent = Note.globalRgbShaders[curSelectedNote];

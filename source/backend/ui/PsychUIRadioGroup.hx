@@ -28,7 +28,7 @@ class PsychUIRadioGroup extends FlxSpriteGroup
 	public function new(x:Float, y:Float, labels:Array<String>, space:Float = 25, maxItems:Int = 0, ?isHorizontal:Bool = false, ?textWidth:Int = 100)
 	{
 		super(x, y);
-		
+
 		_hitbox = new FlxObject();
 
 		arrowUp = new FlxSprite().loadGraphic(Paths.image('psych-ui/arrow_up', 'embed'), true, 24, 18);
@@ -223,7 +223,6 @@ class PsychUIRadioGroup extends FlxSpriteGroup
 		return space;
 	}
 
-
 	function set_textWidth(v:Int)
 	{
 		textWidth = v;
@@ -271,7 +270,7 @@ class PsychUIRadioGroup extends FlxSpriteGroup
 				_addNewRadio();
 			}
 		}
-		
+
 		for (num => radio in radios)
 		{
 			radio.visible = radio.active = (num < labels.length || labels.length > maxItems);

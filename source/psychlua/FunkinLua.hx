@@ -40,12 +40,16 @@ import psychlua.ModchartSprite;
 
 import flixel.input.keyboard.FlxKey;
 import flixel.input.gamepad.FlxGamepadInputID;
-
+#if LUA_ALLOWED
+import debug.LuaDebugger;
+#end
 import haxe.Json;
 
 import shaders.WiggleEffect;
 import shaders.ChromaticAberrationEffect;
 import shaders.VCRDistortionEffect;
+
+import haxe.CallStack;
 
 class FunkinLua {
 	public var lua:State = null;
@@ -59,6 +63,7 @@ class FunkinLua {
 	#end
 
 	public var zsScript:Bool = ClientPrefs.data.zsScript;
+	public static var luaDebugger:Bool = ClientPrefs.data.luaDebugger;
 
 	public var callbacks:Map<String, Dynamic> = new Map<String, Dynamic>();
 	public static var customFunctions:Map<String, Dynamic> = new Map<String, Dynamic>();
@@ -131,7 +136,6 @@ class FunkinLua {
 		// Screen stuff
 		set('screenWidth', FlxG.width);
 		set('screenHeight', FlxG.height);
-
 
 		// PlayState-only variables
 		if(game != null)
@@ -537,7 +541,7 @@ class FunkinLua {
 							ease: myOptions.ease,
 							startDelay: myOptions.startDelay,
 							loopDelay: myOptions.loopDelay,
-	
+
 							onUpdate: function(twn:FlxTween) {
 								if(myOptions.onUpdate != null) game.callOnLuas(myOptions.onUpdate, [originalTag, vars]);
 							},
@@ -602,7 +606,7 @@ class FunkinLua {
 			if(penisExam != null) {
 				var curColor:FlxColor = penisExam.color;
 				curColor.alphaFloat = penisExam.alpha;
-				
+
 				if(tag != null)
 				{
 					var originalTag:String = tag;
@@ -719,7 +723,7 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "runTimer", function(tag:String, time:Float = 1, loops:Int = 1) {
 			LuaUtils.cancelTimer(tag);
 			var variables = MusicBeatState.getVariables();
-			
+
 			var originalTag:String = tag;
 			tag = LuaUtils.formatVariable('timer_$tag');
 			variables.set(tag, new FlxTimer().start(time, function(tmr:FlxTimer)
@@ -735,30 +739,42 @@ class FunkinLua {
 		//stupid bietch ass functions
 		Lua_helper.add_callback(lua, "addScore", function(value:Int = 0) {
 			game.songScore += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "addMisses", function(value:Int = 0) {
 			game.songMisses += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "addHits", function(value:Int = 0) {
 			game.songHits += value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setScore", function(value:Int = 0) {
 			game.songScore = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setMisses", function(value:Int = 0) {
 			game.songMisses = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
 		Lua_helper.add_callback(lua, "setHits", function(value:Int = 0) {
 			game.songHits = value;
+			game.updateScoreText();
 			game.RecalculateRating();
 		});
-		Lua_helper.add_callback(lua, "setHealth", function(value:Float = 1) game.health = value);
-		Lua_helper.add_callback(lua, "addHealth", function(value:Float = 0) game.health += value);
+		Lua_helper.add_callback(lua, "setHealth", function(value:Float = 1) {
+			game.health = value;
+			game.updateScoreText();
+		});
+		Lua_helper.add_callback(lua, "addHealth", function(value:Float = 0) {
+			game.health += value;
+			game.updateScoreText();
+		});
 		Lua_helper.add_callback(lua, "getHealth", function() return game.health);
 
 		//Identical functions
@@ -1167,7 +1183,7 @@ class FunkinLua {
 			var obj:FlxSprite = LuaUtils.getObjectDirectly(tag);
 			if(obj == null || obj.destroy == null)
 				return;
-			
+
 			var groupObj:Dynamic = null;
 			if(group == null) groupObj = LuaUtils.getTargetInstance();
 			else groupObj = LuaUtils.getObjectDirectly(group);
@@ -1564,7 +1580,7 @@ class FunkinLua {
 				snd.pitch = value;
 				if (doPause && wasResumed) snd.play();
 			}
-			
+
 			if(tag == null || tag.length < 1)
 			{
 				if(FlxG.sound.music != null)
@@ -1637,7 +1653,7 @@ class FunkinLua {
 				Lua_helper.add_callback(lua, name, func);
 		}
 
-		try{
+		try {
 			var isString:Bool = !FileSystem.exists(scriptName);
 			var result:Dynamic = null;
 			if(!isString)
@@ -1656,6 +1672,7 @@ class FunkinLua {
 				lua = null;
 				return;
 			}
+			if (luaDebugger) LuaDebugger.enableDebugMode(this);
 			if(isString) scriptName = 'unknown';
 		} catch(e:Dynamic) {
 			trace(e);
@@ -1681,8 +1698,13 @@ class FunkinLua {
 			var type:Int = Lua.type(lua, -1);
 
 			if (type != Lua.LUA_TFUNCTION) {
-				if (type > Lua.LUA_TNIL)
+				if (type > Lua.LUA_TNIL) {
 					luaTrace("ERROR (" + func + "): attempt to call a " + LuaUtils.typeToString(type) + " value", false, false, FlxColor.RED);
+					#if LUA_ALLOWED
+					var errorMsg:String = "attempt to call a " + LuaUtils.typeToString(type) + " value";
+					if (luaDebugger) LuaDebugger.logLua(scriptName, 'Function call error - $func: $errorMsg', "ERROR");
+					#end
+				}
 
 				Lua.pop(lua, 1);
 				return LuaUtils.Function_Continue;
@@ -1695,6 +1717,12 @@ class FunkinLua {
 			if (status != Lua.LUA_OK) {
 				var error:String = getErrorMessage(status);
 				luaTrace("ERROR (" + func + "): " + error, false, false, FlxColor.RED);
+				#if LUA_ALLOWED
+				if (luaDebugger) {
+					LuaDebugger.logLua(scriptName, 'Runtime error in $func: $error', "ERROR");
+					LuaDebugger.logLua(scriptName, 'Args: ' + args, "ERROR");
+				}
+				#end
 				return LuaUtils.Function_Continue;
 			}
 
@@ -1703,11 +1731,23 @@ class FunkinLua {
 			if (result == null) result = LuaUtils.Function_Continue;
 
 			Lua.pop(lua, 1);
+
+			#if LUA_ALLOWED
+			if (LuaDebugger.verbose && luaDebugger)
+				LuaDebugger.watchLuaCalls(scriptName, func, args);
+			#end
+
 			if(closed) stop();
 			return result;
 		}
 		catch (e:Dynamic) {
 			trace(e);
+			#if LUA_ALLOWED
+			if (luaDebugger) {
+				LuaDebugger.logLua(scriptName, 'Exception in $func: $e', "ERROR");
+				LuaDebugger.logError(e, CallStack.exceptionStack());
+			}
+			#end
 		}
 		return LuaUtils.Function_Continue;
 	}

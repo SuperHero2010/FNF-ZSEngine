@@ -11,6 +11,7 @@ class OptionsState extends MusicBeatState
 		'Adjust Delay and Combo',
 		'Optimizations',
 		'Graphics',
+		'Script Debuggers',
 		'Visuals',
 		'Gameplay'
 		#if TRANSLATIONS_ALLOWED , 'Language' #end
@@ -39,6 +40,8 @@ class OptionsState extends MusicBeatState
 				MusicBeatState.switchState(new options.NoteOffsetState());
 			case 'Language':
 				openSubState(new options.LanguageSubState());
+			case 'Script Debuggers':
+				openSubState(new options.ScriptDebuggersSubState());
 		}
 	}
 
@@ -115,7 +118,7 @@ class OptionsState extends MusicBeatState
 		}
 		else if (controls.ACCEPT) openSelectedSubstate(options[curSelected]);
 	}
-	
+
 	function changeSelection(change:Int = 0)
 	{
 		curSelected = FlxMath.wrap(curSelected + change, 0, options.length - 1);

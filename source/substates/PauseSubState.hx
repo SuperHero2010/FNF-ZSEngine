@@ -131,7 +131,7 @@ class PauseSubState extends MusicBeatSubstate
 		missingTextBG.alpha = 0.6;
 		missingTextBG.visible = false;
 		add(missingTextBG);
-		
+
 		missingText = new FlxText(50, 0, FlxG.width - 100, '', 24);
 		missingText.setFormat(Paths.font("vcr.ttf"), 24, FlxColor.WHITE, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
 		missingText.scrollFactor.set();
@@ -143,7 +143,7 @@ class PauseSubState extends MusicBeatSubstate
 
 		super.create();
 	}
-	
+
 	function getPauseSong()
 	{
 		var formattedSongName:String = (songName != null ? Paths.formatToSongPath(songName) : '');
@@ -240,7 +240,7 @@ class PauseSubState extends MusicBeatSubstate
 				catch(e:haxe.Exception)
 				{
 					trace('ERROR! ${e.message}');
-	
+
 					var errorStr:String = e.message;
 					if(errorStr.startsWith('[lime.utils.Assets] ERROR:')) errorStr = 'Missing file: ' + errorStr.substring(errorStr.indexOf(songLowercase), errorStr.length-1); //Missing chart
 					else errorStr += '\n\n' + e.stack;
@@ -254,7 +254,6 @@ class PauseSubState extends MusicBeatSubstate
 					super.update(elapsed);
 					return;
 				}
-
 
 				menuItems = menuItemsOG;
 				regenMenu();
@@ -434,7 +433,7 @@ class PauseSubState extends MusicBeatSubstate
 		curSelected = 0;
 		changeSelection();
 	}
-	
+
 	function updateSkipTextStuff()
 	{
 		if(skipTimeText == null || skipTimeTracker == null) return;

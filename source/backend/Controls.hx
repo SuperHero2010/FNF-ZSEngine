@@ -71,7 +71,6 @@ class Controls
 	private function get_NOTE_LEFT_R() return justReleased('note_left');
 	private function get_NOTE_RIGHT_R() return justReleased('note_right');
 
-
 	// Pressed buttons (others)
 	public var ACCEPT(get, never):Bool;
 	public var BACK(get, never):Bool;

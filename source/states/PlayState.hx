@@ -6,6 +6,7 @@ import backend.WeekData;
 import backend.Song;
 import backend.Rating;
 import backend.MemoryUtil;
+import backend.PsychCamera;
 
 import flixel.FlxBasic;
 import flixel.FlxObject;
@@ -51,9 +52,11 @@ import states.stages.objects.*;
 
 #if LUA_ALLOWED
 import psychlua.*;
+import debug.LuaDebugger;
 #else
 import psychlua.LuaUtils;
 import psychlua.HScript;
+import debug.LuaDebugger;
 #end
 
 #if HSCRIPT_ALLOWED
@@ -61,10 +64,12 @@ import psychlua.HScript.HScriptInfos;
 import crowplexus.iris.Iris;
 import crowplexus.hscript.Expr.Error as IrisError;
 import crowplexus.hscript.Printer;
+import debug.HaxeDebugger;
 #end
 
 #if ZS_ALLOWED
 import zsscript.ZSTranspiler;
+import debug.ZSDebugger;
 #end
 
 /**
@@ -159,9 +164,9 @@ class PlayState extends MusicBeatState
 
 	public var spawnTime:Float = 2000;
 
-	public var inst:FlxSound;
-	public var vocals:FlxSound;
-	public var opponentVocals:FlxSound;
+	public var inst:FlxSound = new FlxSound();
+	public var vocals:FlxSound = new FlxSound();
+	public var opponentVocals:FlxSound = new FlxSound();
 
 	public var dad:Character = null;
 	public var gf:Character = null;
@@ -197,9 +202,16 @@ class PlayState extends MusicBeatState
 	public var drainMultiplier:Float = 1;
 	public var combo:Int = 0;
 
+	public var playerNotes:Int = 0;
+	public var opponentNotes:Int = 0;
+
 	public var healthBar:Bar;
 	public var timeBar:Bar;
 	var songPercent:Float = 0;
+
+	public var luaDebugger:Bool = ClientPrefs.data.luaDebugger;
+	public var haxeDebugger:Bool = ClientPrefs.data.haxeDebugger;
+	public var zsDebugger:Bool = ClientPrefs.data.zsDebugger;
 
 	public var ratingsData:Array<Rating> = Rating.loadDefault();
 
@@ -278,6 +290,7 @@ class PlayState extends MusicBeatState
 	public var botplayTxt:FlxText;
 
 	//i added it back. happy now, mr superhero? - Jordan Santiago
+	//Ok. Thanks - SuperHero2010
 	public var cpuHitNotes:Bool = ClientPrefs.data.cpuHitNotes;
 
 	public var iconP1:HealthIcon;
@@ -288,6 +301,7 @@ class PlayState extends MusicBeatState
 	public var cameraSpeed:Float = 1;
 
 	public var songScore:Int = 0;
+	public var botSongScore:Int = 0;
 	public var songHits:Int = 0;
 	public var songMisses:Int = 0;
 	public var scoreTxt:FlxText;
@@ -409,8 +423,8 @@ class PlayState extends MusicBeatState
 
 		// var gameCam:FlxCamera = FlxG.camera;
 		camGame = initPsychCamera();
-		camHUD = new FlxCamera();
-		camOther = new FlxCamera();
+		camHUD = new PsychCamera();
+		camOther = new PsychCamera();
 		camHUD.bgColor.alpha = 0;
 		camOther.bgColor.alpha = 0;
 
@@ -516,7 +530,7 @@ class PlayState extends MusicBeatState
 		boyfriend = new Character(0, 0, SONG.player1, true);
 		startCharacterPos(boyfriend);
 		boyfriendGroup.add(boyfriend);
-		
+
 		if(stageData.objects != null && stageData.objects.length > 0)
 		{
 			var list:Map<String, FlxSprite> = StageData.addObjectsToState(stageData.objects, !stageData.hide_girlfriend ? gfGroup : null, dadGroup, boyfriendGroup, this);
@@ -533,19 +547,52 @@ class PlayState extends MusicBeatState
 
 		// "SCRIPTS FOLDER" SCRIPTS
 		#if (LUA_ALLOWED || HSCRIPT_ALLOWED || ZS_ALLOWED)
+		if (luaDebugger) {
+			LuaDebugger.enabled = true;
+			LuaDebugger.logToFile = true;
+			LuaDebugger.log('=== STARTING SCRIPT LOADING ===', "INFO");
+		}
+		else {
+			LuaDebugger.enabled = false;
+			LuaDebugger.logToFile = false;
+		}
+
+		if (haxeDebugger) {
+			HaxeDebugger.enabled = true;
+			HaxeDebugger.logToFile = true;
+			HaxeDebugger.log('=== STARTING SCRIPT LOADING ===', "INFO");
+		}
+		else {
+			HaxeDebugger.enabled = false;
+			HaxeDebugger.logToFile = false;
+		}
+
 		for (folder in Mods.directoriesWithFile(Paths.getSharedPath(), 'scripts/'))
 			for (file in FileSystem.readDirectory(folder))
 			{
 				#if LUA_ALLOWED
-				if (file.toLowerCase().endsWith('.lua'))
-					new FunkinLua(folder + file);
+				if (file.toLowerCase().endsWith('.lua')) {
+					if (luaDebugger) {
+						LuaDebugger.logLua(folder + file, 'Loading script', "INFO");
+						var luaScript = new FunkinLua(folder + file);
+						LuaDebugger.enableDebugMode(luaScript);
+					}
+					else new FunkinLua(folder + file);
+				}
 				#end
 				#if HSCRIPT_ALLOWED
-				if (file.toLowerCase().endsWith('.hx'))
-					initHScript(folder + file);
+				if (file.toLowerCase().endsWith('.hx')) {
+					if (haxeDebugger) {
+						HaxeDebugger.logScript(folder + file, 'Loading script', "INFO");
+						HaxeDebugger.testHxScript(folder + file);
+						var hscript = initHScript(folder + file);
+						HaxeDebugger.enableTraceCapture(hscript, folder + file);
+					}
+					else initHScript(folder + file);
+				}
 				#end
 				#if ZS_ALLOWED
-				if (file.toLowerCase().endsWith('.zs') && zsScript) 
+				if (file.toLowerCase().endsWith('.zs') && zsScript)
 					loadZSScript(folder + file);
 				#end
 			}
@@ -563,7 +610,7 @@ class PlayState extends MusicBeatState
 			if(gf != null)
 				gf.visible = false;
 		}
-		
+
 		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
 		// STAGE SCRIPTS
 		#if LUA_ALLOWED startLuasNamed('stages/' + curStage + '.lua'); #end
@@ -682,7 +729,6 @@ class PlayState extends MusicBeatState
 		botplayTxt.borderSize = 1.25;
 		botplayTxt.visible = cpuControlled;
 		uiGroup.add(botplayTxt);
-		if (ClientPrefs.data.downScroll) botplayTxt.y = healthBar.y + 70;
 
 		uiGroup.cameras = [camHUD];
 		noteGroup.cameras = [camHUD];
@@ -731,12 +777,22 @@ class PlayState extends MusicBeatState
 			for (file in FileSystem.readDirectory(folder))
 			{
 				#if LUA_ALLOWED
-				if (file.toLowerCase().endsWith('.lua'))
-					new FunkinLua(folder + file);
+				if (file.toLowerCase().endsWith('.lua')) {
+					if (luaDebugger) {
+						var luaScript = new FunkinLua(folder + file);
+						LuaDebugger.enableDebugMode(luaScript);
+					}
+					else new FunkinLua(folder + file);
+				}
 				#end
 				#if HSCRIPT_ALLOWED
-				if (file.toLowerCase().endsWith('.hx'))
-					initHScript(folder + file);
+				if (file.toLowerCase().endsWith('.hx')) {
+					if (haxeDebugger) {
+						var hscript = initHScript(folder + file);
+						HaxeDebugger.enableTraceCapture(hscript, folder + file);
+					}
+					else initHScript(folder + file);
+				}
 				#end
 				#if ZS_ALLOWED
 				if (file.toLowerCase().endsWith('.zs') && zsScript) 
@@ -771,7 +827,7 @@ class PlayState extends MusicBeatState
 
 		stagesFunc(function(stage:BaseStage) stage.createPost());
 		callOnScripts('onCreatePost');
-		
+
 		var splash:NoteSplash = new NoteSplash();
 		grpNoteSplashes.add(splash);
 		splash.alpha = 0.000001; //cant make it invisible or it won't allow precaching
@@ -797,7 +853,7 @@ class PlayState extends MusicBeatState
 			}
 		}
 		songSpeed = value;
-		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed * playbackRate);
+		noteKillOffset = Math.max(Conductor.stepCrochet, 350 / songSpeed);
 		return value;
 	}
 
@@ -810,16 +866,12 @@ class PlayState extends MusicBeatState
 			opponentVocals.pitch = value;
 			FlxG.sound.music.pitch = value;
 
-			var ratio:Float = playbackRate / value; //funny word huh
-			if(ratio != 1)
-			{
-				for (note in notes.members) note.resizeByRatio(ratio);
-				for (note in unspawnNotes) note.resizeByRatio(ratio);
-			}
+			for (note in notes.members) note.resizeByRatio(value);
+			for (note in unspawnNotes) note.resizeByRatio(value);
 		}
 		playbackRate = value;
 		FlxG.animationTimeScale = value;
-		Conductor.offset = Reflect.hasField(PlayState.SONG, 'offset') ? (PlayState.SONG.offset / value) : 0;
+		Conductor.offset = Reflect.hasField(SONG, 'offset') ? (SONG.offset / value) : 0;
 		Conductor.safeZoneOffset = (ClientPrefs.data.safeFrames / 60) * 1000 * value;
 		#if VIDEOS_ALLOWED
 		if(videoCutscene != null && videoCutscene.videoSprite != null) videoCutscene.videoSprite.bitmap.rate = value;
@@ -891,6 +943,11 @@ class PlayState extends MusicBeatState
 
 	function startCharacterScripts(name:String)
 	{
+		if (haxeDebugger)
+			HaxeDebugger.log('Loading character haxe scripts for: $name', "INFO");
+		if (luaDebugger)
+			LuaDebugger.log('Loading character lua scripts for: $name', "INFO");
+
 		// Lua
 		#if LUA_ALLOWED
 		var doPush:Bool = false;
@@ -923,7 +980,14 @@ class PlayState extends MusicBeatState
 					break;
 				}
 			}
-			if(doPush) new FunkinLua(luaFile);
+			if(doPush) {
+				if (luaDebugger) {
+					LuaDebugger.logLua(luaFile, 'Loading character script', "INFO");
+					var luaScript = new FunkinLua(luaFile);
+					LuaDebugger.enableDebugMode(luaScript);
+				}
+				else new FunkinLua(luaFile);
+			}
 		}
 		#end
 
@@ -951,7 +1015,14 @@ class PlayState extends MusicBeatState
 			if(Iris.instances.exists(scriptFile))
 				doPush = false;
 
-			if(doPush) initHScript(scriptFile);
+			if(doPush) {
+				if (haxeDebugger) {
+					HaxeDebugger.logScript(scriptFile, 'Loading character script', "INFO");
+					var hscript = initHScript(scriptFile);
+					HaxeDebugger.enableTraceCapture(hscript, scriptFile);
+				}
+				else initHScript(scriptFile);
+			}
 		}
 		#end
 	}
@@ -965,6 +1036,12 @@ class PlayState extends MusicBeatState
 		var newCamEffects:Array<BitmapFilter> = [];
 		for (e in stack)
 			newCamEffects.push(new ShaderFilter(e.shader));
+		cam.filters = newCamEffects;
+	}
+
+	function cleanCameraShaderStack(cam:FlxCamera, stack:Array<CameraStackShader>):Void
+	{
+		var newCamEffects:Array<BitmapFilter> = [];
 		cam.filters = newCamEffects;
 	}
 
@@ -1006,6 +1083,64 @@ class PlayState extends MusicBeatState
 				}
 		}
 	}
+
+	public function removeShaderFromCamera(cam:String, effect:CameraStackShader):Void
+	{
+		if (!ClientPrefs.data.shaders)
+			return;
+
+		switch (cam.toLowerCase())
+		{
+			case 'camhud' | 'hud':
+				camHUDShaders.remove(effect);
+				rebuildCameraShaderStack(camHUD, camHUDShaders);
+			case 'camother' | 'other':
+				camOtherShaders.remove(effect);
+				rebuildCameraShaderStack(camOther, camOtherShaders);
+			case 'camgame' | 'game':
+				camGameShaders.remove(effect);
+				rebuildCameraShaderStack(camGame, camGameShaders);
+			default:
+				if (variables.exists(cam))
+				{
+					var obj:Dynamic = variables.get(cam);
+					if (obj != null)
+						Reflect.setProperty(obj, 'shader', null);
+				}
+				else
+				{
+					try
+					{
+						var obj:Dynamic = Reflect.getProperty(this, cam);
+						if (obj != null)
+							Reflect.setProperty(obj, 'shader', null);
+					}
+					catch (_:Dynamic) {}
+				}
+		}
+	}
+
+	public function clearShaderFromCamera(cam:String, effect:CameraStackShader):Void
+	{
+		if (!ClientPrefs.data.shaders)
+			return;
+
+		switch (cam.toLowerCase())
+		{
+			case 'camhud' | 'hud':
+				camHUDShaders = [];
+				cleanCameraShaderStack(camHUD, camHUDShaders);
+			case 'camother' | 'other':
+				camOtherShaders = [];
+				cleanCameraShaderStack(camOther, camOtherShaders);
+			case 'camgame' | 'game':
+				camGameShaders = [];
+				cleanCameraShaderStack(camGame, camGameShaders);
+			default:
+				camGameShaders = [];
+				cleanCameraShaderStack(camGame, camGameShaders);
+		}
+	}
 	#end
 
 	function startCharacterPos(char:Character, ?gfCheck:Bool = false) {
@@ -1045,7 +1180,7 @@ class PlayState extends MusicBeatState
 			{
 				function onVideoEnd()
 				{
-					if (!isDead && generatedMusic && PlayState.SONG.notes[Std.int(curStep / 16)] != null && !endingSong && !isCameraOnForcedPos)
+					if (!isDead && generatedMusic && SONG.notes[Std.int(curStep / 16)] != null && !endingSong && !isCameraOnForcedPos)
 					{
 						moveCameraSection();
 						FlxG.camera.snapToTarget();
@@ -1256,7 +1391,7 @@ class PlayState extends MusicBeatState
 		spr.scrollFactor.set();
 		spr.updateHitbox();
 
-		if (PlayState.isPixelStage)
+		if (isPixelStage)
 			spr.setGraphicSize(Std.int(spr.width * daPixelZoom));
 
 		spr.screenCenter();
@@ -1335,8 +1470,12 @@ class PlayState extends MusicBeatState
 		callOnScripts('onUpdateScore', [miss]);
 	}
 
+	var playerNotesStr:String;
+	var opponentNotesStr:String;
+	var totalNotesStr:String;
 	public dynamic function updateScoreText()
 	{
+		botSongScore = songScore;
 		var str:String = Language.getPhrase('rating_$ratingName', ratingName);
 		if(totalPlayed != 0)
 		{
@@ -1351,17 +1490,34 @@ class PlayState extends MusicBeatState
 		var targetHealth:Float = health * 50;
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
-		else hpShowStr = numFormat(targetHealth, 4 - Std.string(Math.floor(targetHealth)).length, true) + (targetHealth >= 0.001 ? ' %' : '');
+		else {
+			var roundedHealth = Math.round(targetHealth);
+			if (roundedHealth % 10 == 0) {
+				hpShowStr = Std.string(roundedHealth) + ' %';
+			} else {
+				hpShowStr = numFormat(targetHealth, 3, true) + ' %';
+			}
+		}
 
 		var tempScore:String;
-		if(!instakillOnMiss) {
-			if (!practiceMode) {
-				tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Rating: {3} | HP: {4}', [songScore, songMisses, str, hpShowStr]);
-			} else {
-				tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Practice Mode | HP: {3}', [songScore, songMisses, hpShowStr]);
+		if (!cpuControlled) {
+			if (!instakillOnMiss) {
+				if (!practiceMode) {
+					tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Rating: {3} | HP: {4}', [songScore, songMisses, str, hpShowStr]);
+				}
+				else {
+					tempScore = Language.getPhrase('score_text', 'Score: {1} | Misses: {2} | Practice Mode | HP: {3}', [songScore, songMisses, hpShowStr]);
+				}
 			}
-		} else {
-			tempScore = Language.getPhrase('score_text_instakill', 'Score: {1} | Rating: {2}', [songScore, str]);
+			else {
+				tempScore = Language.getPhrase('score_text_instakill', 'Score: {1} | Rating: {2} | Instant Kill Mode | HP: {3}', [songScore, str, hpShowStr]);
+			}
+		}
+		else {
+			playerNotesStr = Std.string(playerNotes);
+			opponentNotesStr = Std.string(opponentNotes);
+			totalNotesStr = Std.string(playerNotes + opponentNotes);
+			tempScore = Language.getPhrase('bot_score_text', 'Score: {1} | Notes: {2} + {3} = {4} | HP: {5}', [botSongScore, opponentNotesStr, playerNotesStr, totalNotesStr, hpShowStr]);
 		}
 		scoreTxt.text = tempScore;
 	}
@@ -1442,6 +1598,9 @@ class PlayState extends MusicBeatState
 	function startSong():Void
 	{
 		startingSong = false;
+		FlxG.sound.list.add(inst);
+		FlxG.sound.list.add(vocals);
+		FlxG.sound.list.add(opponentVocals);
 
 		@:privateAccess
 		FlxG.sound.playMusic(inst._sound, 1, false);
@@ -1485,7 +1644,6 @@ class PlayState extends MusicBeatState
 	private var syncTime:Float = 0;
 	private var progressUpdateTime:Float = 0.05;
 	private var cnt:Int = 0;
-	private var sectionNoteCnt:Int = 0;
 	private var parsedNotes:Int = 0;
 	private var sustainTotalCnt:Int = 0;
 	private var sustainNoteCnt:Int = 0;
@@ -1498,11 +1656,11 @@ class PlayState extends MusicBeatState
 		{
 			if ((Date.now().getTime() - syncTime > progressUpdateTime) || force)
 			{
-				Sys.stdout().writeString('\x1b[0GLoading $cnt/${SONG.notes.length} (${parsedNotes + sectionNoteCnt} notes)');
+				Sys.stdout().writeString('\x1b[0GLoading $cnt/${SONG.notes.length} ($parsedNotes notes)');
 				syncTime = Date.now().getTime();
 			}
 		} else if (isDesktop && force) {
-			Sys.println('Loading $cnt/${SONG.notes.length} (${parsedNotes + sectionNoteCnt} notes)');
+			Sys.println('Loading $cnt/${SONG.notes.length} ($parsedNotes notes)');
 		}
 	}
 
@@ -1513,12 +1671,6 @@ class PlayState extends MusicBeatState
 		loadNoteTime = Date.now().getTime();
 		syncTime = Date.now().getTime();
 
-		// JS Engine optimization: Disable GC for large charts
-		var totalNotes:Int = 0;
-		for (section in SONG.notes)
-			if (section.sectionNotes != null)
-				totalNotes += section.sectionNotes.length;
-
 		#if sys
 		// H-Slice approach: Use MemoryUtil for GC control
 		if (ClientPrefs.data.disableGC) {
@@ -1528,7 +1680,7 @@ class PlayState extends MusicBeatState
 		}
 		#end
 
-		songSpeed = PlayState.SONG.speed;
+		songSpeed = SONG.speed;
 		songSpeedType = ClientPrefs.getGameplaySetting('scrolltype');
 		switch(songSpeedType)
 		{
@@ -1543,15 +1695,13 @@ class PlayState extends MusicBeatState
 
 		curSong = songData.song;
 
-		vocals = new FlxSound();
-		opponentVocals = new FlxSound();
 		try
 		{
 			if (songData.needsVoices)
 			{
 				var playerVocals = Paths.voices(songData.song, (boyfriend.vocalsFile == null || boyfriend.vocalsFile.length < 1) ? 'Player' : boyfriend.vocalsFile);
 				vocals.loadEmbedded(playerVocals != null ? playerVocals : Paths.voices(songData.song));
-				
+
 				var oppVocals = Paths.voices(songData.song, (dad.vocalsFile == null || dad.vocalsFile.length < 1) ? 'Opponent' : dad.vocalsFile);
 				if(oppVocals != null && oppVocals.length > 0) opponentVocals.loadEmbedded(oppVocals);
 			}
@@ -1562,16 +1712,12 @@ class PlayState extends MusicBeatState
 		vocals.pitch = playbackRate;
 		opponentVocals.pitch = playbackRate;
 		#end
-		FlxG.sound.list.add(vocals);
-		FlxG.sound.list.add(opponentVocals);
 
-		inst = new FlxSound();
 		try
 		{
 			inst.loadEmbedded(Paths.inst(songData.song));
 		}
 		catch (e:Dynamic) {}
-		FlxG.sound.list.add(inst);
 
 		notes = new FlxTypedGroup<Note>();
 		noteGroup.add(notes);
@@ -1587,7 +1733,7 @@ class PlayState extends MusicBeatState
 		catch(e:Dynamic) {}
 
 		var oldNote:Note = null;
-		var sectionsData:Array<SwagSection> = PlayState.SONG.notes;
+		var sectionsData:Array<SwagSection> = SONG.notes;
 		ghostNotesCaught = 0; // Initialize class member
 		var daBpm:Float = Conductor.bpm;
 
@@ -1596,17 +1742,14 @@ class PlayState extends MusicBeatState
 			if (section.changeBPM != null && section.changeBPM && section.bpm != null && daBpm != section.bpm)
 				daBpm = section.bpm;
 
-			++cnt;
-			sectionNoteCnt = 0;
-			
-			// Show progress at start of each section
+			cnt++;
+
 			showProgress(false);
 
 			for (i in 0...section.sectionNotes.length)
 			{
 				final songNotes: Array<Dynamic> = section.sectionNotes[i];
 
-				// JS Engine optimization: Skip notes that won't be played
 				if (songNotes[0] < startOnTime - 500)
 					continue;
 
@@ -1629,8 +1772,7 @@ class PlayState extends MusicBeatState
 
 				swagNote.scrollFactor.set();
 				unspawnNotes.push(swagNote);
-				++sectionNoteCnt;
-				++parsedNotes;
+				parsedNotes++;
 
 				var curStepCrochet:Float = 60 / daBpm * 1000 / 4.0;
 				final roundSus:Int = Math.round(swagNote.sustainLength / curStepCrochet);
@@ -1651,12 +1793,11 @@ class PlayState extends MusicBeatState
 						swagNote.tail.push(sustainNote);
 
 						sustainNote.correctionOffset = swagNote.height / 2;
-						if(!PlayState.isPixelStage)
+						if(!isPixelStage)
 						{
 							if(oldNote.isSustainNote)
 							{
 								oldNote.scale.y *= Note.SUSTAIN_SIZE / oldNote.frameHeight;
-								oldNote.scale.y /= playbackRate;
 								oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 							}
 
@@ -1665,7 +1806,6 @@ class PlayState extends MusicBeatState
 						}
 						else if(oldNote.isSustainNote)
 						{
-							oldNote.scale.y /= playbackRate;
 							oldNote.resizeByRatio(curStepCrochet / Conductor.stepCrochet);
 						}
 
@@ -1701,7 +1841,7 @@ class PlayState extends MusicBeatState
 		showProgress(isDesktop);
 
 		Sys.println('\n[ --- "${SONG.song.toUpperCase()}" CHART INFO --- ]');
-		
+
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
 
@@ -1861,7 +2001,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	override function closeSubState()
 	{
 		super.closeSubState();
-		
+
 		stagesFunc(function(stage:BaseStage) stage.closeSubState());
 		if (paused)
 		{
@@ -2068,7 +2208,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		if (unspawnNotes[0] != null)
 		{
-			var time:Float = spawnTime * playbackRate;
+			var time:Float = spawnTime;
 			// Apply H-Slice bounds checking for songSpeed
 			if(songSpeed < 1) time = Math.max(spawnTime / songSpeed, Conductor.stepCrochet);
 			else time /= songSpeed;
@@ -2122,7 +2262,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 								daNote.active = daNote.visible = false;
 								invalidateNote(daNote);
-							} else if (canBeHit) {
+							}
+							else if (canBeHit) {
 								if(daNote.mustPress)
 								{
 									if(cpuControlled && !daNote.blockHit)
@@ -2147,7 +2288,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 								if(!daNote.mustPress) strumGroup = opponentStrums;
 
 								var strum:StrumNote = strumGroup.members[daNote.noteData];
-								daNote.followStrumNote(strum, fakeCrochet, songSpeed / playbackRate);
+								daNote.followStrumNote(strum, fakeCrochet, songSpeed);
 								if(canBeHit && daNote.isSustainNote && strum.sustainReduce) daNote.clipToStrumNote(strum);
 							}
 
@@ -2190,17 +2331,23 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		var mult:Float = FlxMath.lerp(1, iconP1.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP1.scale.set(mult, mult);
 		iconP1.updateHitbox();
+		iconP1.y = healthBar.y + (healthBar.height - iconP1.height) / 2;
+		iconP1.origin.set(iconP1.width / 2, iconP1.height / 2);
 
 		var mult:Float = FlxMath.lerp(1, iconP2.scale.x, Math.exp(-elapsed * 9 * playbackRate));
 		iconP2.scale.set(mult, mult);
 		iconP2.updateHitbox();
+		iconP2.y = healthBar.y + (healthBar.height - iconP2.height) / 2;
+		iconP2.origin.set(iconP2.width / 2, iconP2.height / 2);
 	}
 
 	public dynamic function updateIconsPosition()
 	{
 		var iconOffset:Int = 26;
-		iconP1.x = healthBar.barCenter + (150 * iconP1.scale.x - 150) / 2 - iconOffset;
-		iconP2.x = healthBar.barCenter - (150 * iconP2.scale.x) / 2 - iconOffset * 2;
+		iconP1.x = healthBar.barCenter + (iconP1.width * iconP1.scale.x - iconP1.width) / 2 - iconOffset;
+		iconP2.x = healthBar.barCenter - (iconP2.width * iconP2.scale.x) / 2 - iconOffset * 2;
+		iconP1.y = healthBar.y + (healthBar.height - iconP1.height) / 2;
+		iconP2.y = healthBar.y + (healthBar.height - iconP2.height) / 2;
 	}
 
 	var iconsAnimations:Bool = true;
@@ -2221,8 +2368,42 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		var newPercent:Null<Float> = FlxMath.remapToRange(FlxMath.bound(healthBar.valueFunction(), healthBar.bounds.min, healthBar.bounds.max), healthBar.bounds.min, healthBar.bounds.max, 0, 100);
 		healthBar.percent = (newPercent != null ? newPercent : 0);
 
-		iconP1.animation.curAnim.curFrame = (healthBar.percent < 20) ? 1 : 0; //If health is under 20%, change player icon to frame 1 (losing icon), otherwise, frame 0 (normal)
-		iconP2.animation.curAnim.curFrame = (healthBar.percent > 80) ? 1 : 0; //If health is over 80%, change opponent icon to frame 1 (losing icon), otherwise, frame 0 (normal)
+		var healthPercent = healthBar.percent;
+
+		if (healthPercent <= 20)
+		{
+			iconP1.setIconState('lose');
+		}
+		else if (healthPercent >= 80)
+		{
+			var winPath = 'icons/' + iconP1.getCharacter() + '-win';
+			if (Paths.fileExists('images/' + winPath + '.png', IMAGE))
+				iconP1.setIconState('win');
+			else
+				iconP1.setIconState('normal');
+		}
+		else
+		{
+			iconP1.setIconState('normal');
+		}
+
+		if (healthPercent >= 80)
+		{
+			iconP2.setIconState('lose');
+		}
+		else if (healthPercent <= 20)
+		{
+			var winPath = 'icons/' + iconP2.getCharacter() + '-win';
+			if (Paths.fileExists('images/' + winPath + '.png', IMAGE))
+				iconP2.setIconState('win');
+			else
+				iconP2.setIconState('normal');
+		}
+		else
+		{
+			iconP2.setIconState('normal');
+		}
+
 		return health;
 	}
 
@@ -2511,7 +2692,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					}
 				}
 
-
 			case 'Change Character':
 				var charType:Int = 0;
 				switch(value1.toLowerCase().trim()) {
@@ -2615,6 +2795,9 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				}
 				catch(e:Dynamic)
 				{
+					if (luaDebugger) LuaDebugger.log('ERROR ("Set Property" Event) - ' + e.message, "ERROR");
+					if (haxeDebugger) HaxeDebugger.log('ERROR ("Set Property" Event) - ' + e.message, "ERROR");
+
 					var len:Int = e.message.indexOf('\n') + 1;
 					if(len <= 0) len = e.message.length;
 					#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
@@ -2653,7 +2836,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		else
 			callOnScripts('onMoveCamera', ['boyfriend']);
 	}
-	
+
 	public function moveCameraToGirlfriend()
 	{
 		camFollow.setPosition(gf.getMidpoint().x, gf.getMidpoint().y);
@@ -2721,7 +2904,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		}
 	}
 
-
 	public var transitioning = false;
 	public function endSong()
 	{
@@ -2766,7 +2948,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			#if !switch
 			var percent:Float = ratingPercent;
 			if(Math.isNaN(percent)) percent = 0;
-			Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
+			if (!cpuControlled && !practiceMode) Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
 			#end
 			playbackRate = 1;
 
@@ -2795,7 +2977,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					// if ()
 					if(!ClientPrefs.getGameplaySetting('practice') && !ClientPrefs.getGameplaySetting('botplay')) {
 						StoryMenuState.weekCompleted.set(WeekData.weeksList[storyWeek], true);
-						Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
+						if (!cpuControlled && !practiceMode) Highscore.saveWeekScore(WeekData.getWeekFileName(), campaignScore, storyDifficulty);
 
 						FlxG.save.data.weekCompleted = StoryMenuState.weekCompleted;
 						FlxG.save.flush();
@@ -2807,13 +2989,13 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 					var difficulty:String = Difficulty.getFilePath();
 
 					trace('LOADING NEXT SONG');
-					trace(Paths.formatToSongPath(PlayState.storyPlaylist[0]) + difficulty);
+					trace(Paths.formatToSongPath(storyPlaylist[0]) + difficulty);
 
 					FlxTransitionableState.skipNextTransIn = true;
 					FlxTransitionableState.skipNextTransOut = true;
 					prevCamFollow = camFollow;
 
-					Song.loadFromJson(PlayState.storyPlaylist[0] + difficulty, PlayState.storyPlaylist[0], true);
+					Song.loadFromJson(storyPlaylist[0] + difficulty, storyPlaylist[0]);
 					FlxG.sound.music.stop();
 
 					canResync = false;
@@ -2947,7 +3129,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		comboSpr.velocity.x += FlxG.random.int(1, 10) * playbackRate;
 		comboGroup.add(rating);
 
-		if (!PlayState.isPixelStage)
+		if (!isPixelStage)
 		{
 			rating.setGraphicSize(Std.int(rating.width * 0.7));
 			comboSpr.setGraphicSize(Std.int(comboSpr.width * 0.7));
@@ -2974,7 +3156,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			numScore.x = placement + (43 * daLoop) - 90 + ClientPrefs.data.comboOffset[2];
 			numScore.y += 80 - ClientPrefs.data.comboOffset[3];
 
-			if (!PlayState.isPixelStage) numScore.setGraphicSize(Std.int(numScore.width * 0.5));
+			if (!isPixelStage) numScore.setGraphicSize(Std.int(numScore.width * 0.5));
 			else numScore.setGraphicSize(Std.int(numScore.width * daPixelZoom));
 			numScore.updateHitbox();
 
@@ -3346,6 +3528,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			}
 		}
 
+		if (cpuControlled && !note.isSustainNote) opponentNotes++;
+
 		if(opponentVocals.length <= 0) vocals.volume = 1;
 		strumPlayAnim(true, Std.int(Math.abs(note.noteData)));
 		note.hitByOpponent = true;
@@ -3363,7 +3547,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				if (guitarHeroSustains && note.isSustainNote) drainHealth = false;
 				if (drainHealth) {
 					health -= drain * drainMultiplier;
-					updateScoreText();
 				}
 			}
 
@@ -3373,6 +3556,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if (drain < 0.0001) drain = 0.0001;
 			else if (drain > 1) drain = 1;
 		}
+		updateScoreText();
 	}
 
 	public function goodNoteHit(note:Note):Void
@@ -3417,7 +3601,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 						if(char.animation.exists(holdAnim)) animToPlay = holdAnim;
 						if(char.getAnimationName() == holdAnim || char.getAnimationName() == holdAnim + '-loop') canPlay = false;
 					}
-	
+
 					if(canPlay) char.playAnim(animToPlay, true);
 					char.holdTimer = 0;
 
@@ -3450,8 +3634,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if (guitarHeroSustains && note.isSustainNote) gainHealth = false;
 			if (gainHealth) {
 				health += hitHealth * healthGain;
-				updateScoreText();
 			}
+			updateScoreText();
 		}
 		else //Notes that count as a miss if you hit them (Hurt notes for example)
 		{
@@ -3471,6 +3655,8 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			noteMiss(note);
 			if(!note.noteSplashData.disabled && !note.isSustainNote) spawnNoteSplashOnNote(note);
 		}
+
+		if (cpuControlled && !note.isSustainNote) playerNotes++;
 
 		stagesFunc(function(stage:BaseStage) stage.goodNoteHit(note));
 		var result:Dynamic = callOnLuas('goodNoteHit', [notes.members.indexOf(note), leData, leType, isSus]);
@@ -3505,6 +3691,10 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			closeSubState();
 			resetSubState();
 		}
+
+		#if ZS_ALLOWED
+		cleanupTranspiledFiles();
+		#end
 
 		#if LUA_ALLOWED
 		for (lua in luaArray)
@@ -3660,10 +3850,12 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if(OpenFlAssets.exists(luaToLoad))
 		#end
 		{
+			if (luaDebugger) LuaDebugger.logLua(luaToLoad, 'Loading script', "INFO");
 			for (script in luaArray)
 				if(script.scriptName == luaToLoad) return false;
 
-			new FunkinLua(luaToLoad);
+			var luaScript = new FunkinLua(luaToLoad);
+			if (luaDebugger) LuaDebugger.enableDebugMode(luaScript);
 			return true;
 		}
 		return false;
@@ -3683,13 +3875,44 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		if(FileSystem.exists(scriptToLoad))
 		{
+			if (haxeDebugger) HaxeDebugger.logScript(scriptToLoad, 'Loading script', "INFO");
 			if (Iris.instances.exists(scriptToLoad)) return false;
 
-			initHScript(scriptToLoad);
+			var hscript = initHScript(scriptToLoad);
+			if (haxeDebugger) HaxeDebugger.enableTraceCapture(hscript, scriptToLoad);
 			return true;
 		}
 		return false;
 	}
+
+	public function initHScript(file:String):HScript
+	{
+		if (haxeDebugger) HaxeDebugger.logScript(file, 'Initializing HScript', "INFO");
+		var newScript:HScript = null;
+		try
+		{
+			newScript = new HScript(null, file);
+			if (newScript.exists('onCreate')) {
+				HaxeDebugger.logScript(file, 'Calling onCreate', "INFO");
+				newScript.call('onCreate');
+			}
+			if (haxeDebugger) HaxeDebugger.logScript(file, 'Initialized successfully', "SUCCESS");
+			trace('initialized hscript interp successfully: $file');
+			hscriptArray.push(newScript);
+			return newScript;
+		}
+		catch(e:IrisError)
+		{
+			if (haxeDebugger) HaxeDebugger.logScript(file, 'Error: ' + e, "ERROR");
+			var pos:HScriptInfos = cast {fileName: file, showLine: false};
+			Iris.error(Printer.errorToString(e, false), pos);
+			var newScript:HScript = cast (Iris.instances.get(file), HScript);
+			if(newScript != null)
+				newScript.destroy();
+			return null;
+		}
+	}
+	#end
 
     #if ZS_ALLOWED
     public function startZSScriptsNamed(zsFile:String) {
@@ -3704,33 +3927,12 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
         if(OpenFlAssets.exists(zsToLoad))
         #end
         {
-            loadZSScript(zsToLoad);
+            loadZSEvent(zsToLoad);
             return true;
         }
         return false;
     }
     #end
-
-	public function initHScript(file:String)
-	{
-		var newScript:HScript = null;
-		try
-		{
-			newScript = new HScript(null, file);
-			if (newScript.exists('onCreate')) newScript.call('onCreate');
-			trace('initialized hscript interp successfully: $file');
-			hscriptArray.push(newScript);
-		}
-		catch(e:IrisError)
-		{
-			var pos:HScriptInfos = cast {fileName: file, showLine: false};
-			Iris.error(Printer.errorToString(e, false), pos);
-			var newScript:HScript = cast (Iris.instances.get(file), HScript);
-			if(newScript != null)
-				newScript.destroy();
-		}
-	}
-	#end
 
 	public function callOnScripts(funcToCall:String, args:Array<Dynamic> = null, ignoreStops = false, exclusions:Array<String> = null, excludeValues:Array<Dynamic> = null):Dynamic {
 		var returnVal:Dynamic = LuaUtils.Function_Continue;
@@ -3762,15 +3964,20 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if(exclusions.contains(script.scriptName))
 				continue;
 
-			var myValue:Dynamic = script.call(funcToCall, args);
-			if((myValue == LuaUtils.Function_StopLua || myValue == LuaUtils.Function_StopAll) && !excludeValues.contains(myValue) && !ignoreStops)
-			{
-				returnVal = myValue;
-				break;
-			}
+			try {
+				var myValue:Dynamic = script.call(funcToCall, args);
+				if((myValue == LuaUtils.Function_StopLua || myValue == LuaUtils.Function_StopAll) && !excludeValues.contains(myValue) && !ignoreStops)
+				{
+					returnVal = myValue;
+					break;
+				}
 
-			if(myValue != null && !excludeValues.contains(myValue))
-				returnVal = myValue;
+				if(myValue != null && !excludeValues.contains(myValue))
+					returnVal = myValue;
+			} catch (e:Dynamic) {
+				if (luaDebugger) LuaDebugger.log('ERROR in Lua script ${script.scriptName} calling $funcToCall: $e', "ERROR");
+				if (haxeDebugger) HaxeDebugger.log('ERROR in Lua script ${script.scriptName} calling $funcToCall: $e', "ERROR");
+			}
 
 			if(script.closed) arr.push(script);
 		}
@@ -3800,19 +4007,24 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			if(script == null || !script.exists(funcToCall) || exclusions.contains(script.origin))
 				continue;
 
-			var callValue = script.call(funcToCall, args);
-			if(callValue != null)
-			{
-				var myValue:Dynamic = callValue.returnValue;
-
-				if((myValue == LuaUtils.Function_StopHScript || myValue == LuaUtils.Function_StopAll) && !excludeValues.contains(myValue) && !ignoreStops)
+			try {
+				var callValue = script.call(funcToCall, args);
+				if(callValue != null)
 				{
-					returnVal = myValue;
-					break;
-				}
+					var myValue:Dynamic = callValue.returnValue;
 
-				if(myValue != null && !excludeValues.contains(myValue))
-					returnVal = myValue;
+					if((myValue == LuaUtils.Function_StopHScript || myValue == LuaUtils.Function_StopAll) && !excludeValues.contains(myValue) && !ignoreStops)
+					{
+						returnVal = myValue;
+						break;
+					}
+
+					if(myValue != null && !excludeValues.contains(myValue))
+						returnVal = myValue;
+				}
+			} catch(e:Dynamic) {
+				if (luaDebugger) LuaDebugger.log('ERROR in HScript ${script.origin} calling $funcToCall: $e', "ERROR");
+				if (haxeDebugger) HaxeDebugger.log('ERROR in HScript ${script.origin} calling $funcToCall: $e', "ERROR");
 			}
 		}
 		#end
@@ -3870,17 +4082,16 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		try {
 			var zsContent = File.getContent(path);
 
-			#if DEBUG
 			trace('Loading ZS script: $path');
-			#end
+    		if (zsDebugger) ZSDebugger.log('Loading ZS script: $path');
 
 			var luaContent = ZSTranspiler.transpile(zsContent);
 
 			if (luaContent != null) {
-				#if DEBUG
-				var debugPath = path.replace(".zs", "_debug.lua");
-				File.saveContent(debugPath, luaContent);
-				#end
+				if (zsDebugger) {
+					var debugPath = path.replace(".zs", "_debug.lua");
+					File.saveContent(debugPath, luaContent);
+				}
 
 				var tempDir = Sys.getEnv("TEMP");
 				#if windows
@@ -3889,20 +4100,89 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				if (tempDir == null) tempDir = "/tmp/";
 				#end
 
-				var tempFile = tempDir + "zs_" + Math.floor(Math.random() * 1000000) + ".lua";
+				var tempFile = tempDir + "_zs_" + Math.floor(Math.random() * 1000000) + ".lua";
 				File.saveContent(tempFile, luaContent);
 
 				var luaScript = new FunkinLua(tempFile);
-				PlayState.instance.luaArray.push(luaScript);
+				instance.luaArray.push(luaScript);
 
 				FileSystem.deleteFile(tempFile);
+				if (zsDebugger) ZSDebugger.log('ZS script loaded: $path');
 			} else {
 				for (err in ZSTranspiler.errors) {
 					trace('ZS Error in $path: $err');
+					if (zsDebugger) ZSDebugger.logError('ZS Error in $path: $err');
 				}
 			}
 		} catch(e:Dynamic) {
 			trace('Failed to load ZS script $path: $e');
+			if (zsDebugger) ZSDebugger.logError('Failed to load ZS script $path: $e');
+		}
+	}
+
+	function cleanupTranspiledFiles() {
+		#if ZS_ALLOWED
+		for (script in luaArray) {
+			var path = script.scriptName;
+			if (path.indexOf("-transpiled.lua") > -1) {
+				var luaPath = path;
+				var zsPath = path.replace("-transpiled.lua", ".zs");
+
+				if (FileSystem.exists(luaPath)) {
+					FileSystem.deleteFile(luaPath);
+				}
+
+				#if windows
+				Sys.command('attrib -H "' + zsPath + '"');
+				#elseif linux
+				var hiddenPath = zsPath.replace(".zs", ".zs.hidden");
+				if (FileSystem.exists(hiddenPath)) {
+					FileSystem.rename(hiddenPath, zsPath);
+				}
+				#elseif mac
+				Sys.command('chflags nohidden "' + zsPath + '"');
+				#end
+			}
+		}
+		#end
+	}
+
+	function loadZSEvent(path:String) {
+		try {
+			var zsContent = File.getContent(path);
+			var luaContent = ZSTranspiler.transpile(zsContent);
+
+			if (luaContent != null) {
+				var luaPath = path.replace(".zs", "-transpiled.lua");
+
+				trace('Loading ZS event script: $path');
+				if (zsDebugger) ZSDebugger.log('Loading ZS event script: $path');
+				trace('Transpiled Lua saved to: $luaPath');
+				if (zsDebugger) ZSDebugger.log('Transpiled Lua saved to: $luaPath');
+
+				File.saveContent(luaPath, luaContent);
+
+				#if windows
+				Sys.command('attrib +H "' + path + '"');
+				#elseif linux
+				var hiddenPath = path.replace(".zs", ".zs.hidden");
+				FileSystem.rename(path, hiddenPath);
+				#elseif mac
+				Sys.command('chflags hidden "' + path + '"');
+				#end
+
+				var luaScript = new FunkinLua(luaPath);
+				PlayState.instance.luaArray.push(luaScript);
+				if (zsDebugger) ZSDebugger.log('ZS event script loaded: $path');
+			} else {
+				for (err in ZSTranspiler.errors) {
+					trace('ZS Error in $path: $err');
+					if (zsDebugger) ZSDebugger.logError('ZS Error in $path: $err');
+				}
+			}
+		} catch(e:Dynamic) {
+			trace('Failed to load ZS event script $path: $e');
+			if (zsDebugger) ZSDebugger.logError('Failed to load ZS script $path: $e');
 		}
 	}
 	#end
