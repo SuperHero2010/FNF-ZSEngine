@@ -2078,6 +2078,43 @@ class ZSPatternGenerator {
             category: "conditions"
         });
 
+        patterns.push({
+            pattern: "∅",
+            replacement: "{}",
+            description: "Empty set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∈ ([^ ]+)",
+            replacement: "tableContains($2, $1)",
+            description: "Element of set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∉ ([^ ]+)",
+            replacement: "not tableContains($2, $1)",
+            description: "Not element of set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∩ ([^ ]+)",
+            replacement: "tableIntersection($1, $2)",
+            description: "Set intersection",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∪ ([^ ]+)",
+            replacement: "tableUnion($1, $2)",
+            description: "Set union",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) \\ ([^ ]+)",
+            replacement: "tableDifference($1, $2)",
+            description: "Set difference",
+            category: "sets"
+        });
+
         return patterns;
     }
 
