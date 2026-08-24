@@ -4350,10 +4350,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function tableContains(table:Dynamic, value:Dynamic):Bool {
 		if (table == null) return false;
-		var arr = Std.array(table);
-		if (arr == null) return false;
-		for (v in arr) {
-			if (v == value) return true;
+		if (Std.is(table, Array)) {
+			var arr:Array<Dynamic> = cast table;
+			for (v in arr) {
+				if (v == value) return true;
+			}
 		}
 		return false;
 	}
@@ -4361,12 +4362,13 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	public function tableIntersection(A:Dynamic, B:Dynamic):Array<Dynamic> {
 		var result:Array<Dynamic> = [];
 		if (A == null || B == null) return result;
-		var arrA = Std.array(A);
-		var arrB = Std.array(B);
-		if (arrA == null || arrB == null) return result;
-		for (v in arrA) {
-			if (tableContains(arrB, v)) {
-				result.push(v);
+		if (Std.is(A, Array) && Std.is(B, Array)) {
+			var arrA:Array<Dynamic> = cast A;
+			var arrB:Array<Dynamic> = cast B;
+			for (v in arrA) {
+				if (tableContains(arrB, v)) {
+					result.push(v);
+				}
 			}
 		}
 		return result;
@@ -4374,23 +4376,40 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function tableUnion(A:Dynamic, B:Dynamic):Array<Dynamic> {
 		var result:Array<Dynamic> = [];
-		if (A != null) {
-			var arrA = Std.array(A);
-			if (arrA != null) {
-				for (v in arrA) {
-					if (!tableContains(result, v)) {
-						result.push(v);
-					}
+		if (A != null && Std.is(A, Array)) {
+			var arrA:Array<Dynamic> = cast A;
+			for (v in arrA) {
+				if (!tableContains(result, v)) {
+					result.push(v);
 				}
 			}
 		}
-		if (B != null) {
-			var arrB = Std.array(B);
-			if (arrB != null) {
+		if (B != null && Std.is(B, Array)) {
+			var arrB:Array<Dynamic> = cast B;
+			for (v in arrB) {
+				if (!tableContains(result, v)) {
+					result.push(v);
+				}
+			}
+		}
+		return result;
+	}
+
+	public function tableComplement(A:Dynamic, B:Dynamic):Array<Dynamic> {
+		var result:Array<Dynamic> = [];
+		if (B == null) return result;
+		if (Std.is(B, Array)) {
+			var arrB:Array<Dynamic> = cast B;
+			if (A == null || !Std.is(A, Array)) {
 				for (v in arrB) {
-					if (!tableContains(result, v)) {
-						result.push(v);
-					}
+					result.push(v);
+				}
+				return result;
+			}
+			var arrA:Array<Dynamic> = cast A;
+			for (v in arrB) {
+				if (!tableContains(arrA, v)) {
+					result.push(v);
 				}
 			}
 		}
@@ -4400,16 +4419,13 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	public function tableDifference(A:Dynamic, B:Dynamic):Array<Dynamic> {
 		var result:Array<Dynamic> = [];
 		if (A == null) return result;
-		var arrA = Std.array(A);
-		var arrB = Std.array(B);
-		if (arrA == null) return result;
-		if (arrB == null) {
-			for (v in arrA) result.push(v);
-			return result;
-		}
-		for (v in arrA) {
-			if (!tableContains(arrB, v)) {
-				result.push(v);
+		if (Std.is(A, Array) && Std.is(B, Array)) {
+			var arrA:Array<Dynamic> = cast A;
+			var arrB:Array<Dynamic> = cast B;
+			for (v in arrA) {
+				if (!tableContains(arrB, v)) {
+					result.push(v);
+				}
 			}
 		}
 		return result;
@@ -4417,10 +4433,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function subsetEq(A:Dynamic, B:Dynamic):Bool {
 		if (A == null) return true;
-		var arrA = Std.array(A);
-		var arrB = Std.array(B);
-		if (arrA == null) return true;
-		if (arrB == null) return false;
+		if (!Std.is(A, Array)) return false;
+		var arrA:Array<Dynamic> = cast A;
+		if (arrA.length == 0) return true;
+		if (!Std.is(B, Array)) return false;
+		var arrB:Array<Dynamic> = cast B;
 		for (v in arrA) {
 			if (!tableContains(arrB, v)) {
 				return false;
@@ -4430,11 +4447,10 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function subsetStrict(A:Dynamic, B:Dynamic):Bool {
-		var arrA = Std.array(A);
-		var arrB = Std.array(B);
-		var lenA = (arrA == null) ? 0 : arrA.length;
-		var lenB = (arrB == null) ? 0 : arrB.length;
-		return subsetEq(A, B) && lenA < lenB;
+		if (!Std.is(A, Array) || !Std.is(B, Array)) return false;
+		var arrA:Array<Dynamic> = cast A;
+		var arrB:Array<Dynamic> = cast B;
+		return subsetEq(A, B) && arrA.length < arrB.length;
 	}
 
 	public function supersetEq(A:Dynamic, B:Dynamic):Bool {
@@ -4442,11 +4458,10 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function supersetStrict(A:Dynamic, B:Dynamic):Bool {
-		var arrA = Std.array(A);
-		var arrB = Std.array(B);
-		var lenA = (arrA == null) ? 0 : arrA.length;
-		var lenB = (arrB == null) ? 0 : arrB.length;
-		return supersetEq(A, B) && lenA > lenB;
+		if (!Std.is(A, Array) || !Std.is(B, Array)) return false;
+		var arrA:Array<Dynamic> = cast A;
+		var arrB:Array<Dynamic> = cast B;
+		return supersetEq(A, B) && arrA.length > arrB.length;
 	}
 
 	public function notSubsetEq(A:Dynamic, B:Dynamic):Bool {

@@ -2109,6 +2109,12 @@ class ZSPatternGenerator {
             category: "sets"
         });
         patterns.push({
+            pattern: "∁\\(<([^>]+)>, <([^>]+)>\\)",
+            replacement: "tableComplement($1, $2)",
+            description: "Complement of A in B (elements in B not in A)",
+            category: "sets"
+        });
+        patterns.push({
             pattern: "([^ ]+) \\ ([^ ]+)",
             replacement: "tableDifference($1, $2)",
             description: "Set difference",
