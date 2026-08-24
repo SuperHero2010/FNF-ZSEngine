@@ -1696,7 +1696,7 @@ class FunkinLua {
 		});
 
 		Lua_helper.add_callback(lua, "tableComplement", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
-			return game.tableDifference(A, B);
+			return game.tableComplement(A, B);
 		});
 
 		Lua_helper.add_callback(lua, "tableDifference", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
