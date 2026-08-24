@@ -706,6 +706,22 @@ class ZSTranspiler {
                 }
             }
 
+            if (trimmedLine.indexOf("[") > -1 && trimmedLine.indexOf("]") > -1) {
+                if (!inBlockComment) {
+                    var content = trimmedLine.substring(trimmedLine.indexOf("["), trimmedLine.lastIndexOf("]") + 1);
+                    var isListLiteral = content.indexOf(",") > -1;
+
+                    var isTableLiteral = content.indexOf(":") > -1;
+
+                    if (!isListLiteral && !isTableLiteral) {
+                        errors.push('Error at line $currentLine: Old "[]" array access syntax is not allowed');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use: "<index> of <array>" or "<index1> and <index2> of <array>" instead');
+                        return null;
+                    }
+                }
+            }
+
             var colonPos = trimmedLine.indexOf(":");
             if (colonPos > 0 && !inBlockComment && !inString) {
                 if (isInsideTableLiteral(trimmedLine, colonPos)) {}
