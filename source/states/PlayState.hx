@@ -4350,17 +4350,22 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function tableContains(table:Dynamic, value:Dynamic):Bool {
 		if (table == null) return false;
-		for (v in table) {
+		var arr = Std.array(table);
+		if (arr == null) return false;
+		for (v in arr) {
 			if (v == value) return true;
 		}
 		return false;
 	}
 
 	public function tableIntersection(A:Dynamic, B:Dynamic):Array<Dynamic> {
-		var result = [];
+		var result:Array<Dynamic> = [];
 		if (A == null || B == null) return result;
-		for (v in A) {
-			if (tableContains(B, v)) {
+		var arrA = Std.array(A);
+		var arrB = Std.array(B);
+		if (arrA == null || arrB == null) return result;
+		for (v in arrA) {
+			if (tableContains(arrB, v)) {
 				result.push(v);
 			}
 		}
@@ -4368,18 +4373,24 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function tableUnion(A:Dynamic, B:Dynamic):Array<Dynamic> {
-		var result = [];
+		var result:Array<Dynamic> = [];
 		if (A != null) {
-			for (v in A) {
-				if (!tableContains(result, v)) {
-					result.push(v);
+			var arrA = Std.array(A);
+			if (arrA != null) {
+				for (v in arrA) {
+					if (!tableContains(result, v)) {
+						result.push(v);
+					}
 				}
 			}
 		}
 		if (B != null) {
-			for (v in B) {
-				if (!tableContains(result, v)) {
-					result.push(v);
+			var arrB = Std.array(B);
+			if (arrB != null) {
+				for (v in arrB) {
+					if (!tableContains(result, v)) {
+						result.push(v);
+					}
 				}
 			}
 		}
@@ -4387,10 +4398,17 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function tableDifference(A:Dynamic, B:Dynamic):Array<Dynamic> {
-		var result = [];
+		var result:Array<Dynamic> = [];
 		if (A == null) return result;
-		for (v in A) {
-			if (!tableContains(B, v)) {
+		var arrA = Std.array(A);
+		var arrB = Std.array(B);
+		if (arrA == null) return result;
+		if (arrB == null) {
+			for (v in arrA) result.push(v);
+			return result;
+		}
+		for (v in arrA) {
+			if (!tableContains(arrB, v)) {
 				result.push(v);
 			}
 		}
@@ -4399,8 +4417,12 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function subsetEq(A:Dynamic, B:Dynamic):Bool {
 		if (A == null) return true;
-		for (v in A) {
-			if (!tableContains(B, v)) {
+		var arrA = Std.array(A);
+		var arrB = Std.array(B);
+		if (arrA == null) return true;
+		if (arrB == null) return false;
+		for (v in arrA) {
+			if (!tableContains(arrB, v)) {
 				return false;
 			}
 		}
@@ -4408,7 +4430,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function subsetStrict(A:Dynamic, B:Dynamic):Bool {
-		return subsetEq(A, B) && (A == null ? 0 : A.length) < (B == null ? 0 : B.length);
+		var arrA = Std.array(A);
+		var arrB = Std.array(B);
+		var lenA = (arrA == null) ? 0 : arrA.length;
+		var lenB = (arrB == null) ? 0 : arrB.length;
+		return subsetEq(A, B) && lenA < lenB;
 	}
 
 	public function supersetEq(A:Dynamic, B:Dynamic):Bool {
@@ -4416,7 +4442,11 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	}
 
 	public function supersetStrict(A:Dynamic, B:Dynamic):Bool {
-		return supersetEq(A, B) && (A == null ? 0 : A.length) > (B == null ? 0 : B.length);
+		var arrA = Std.array(A);
+		var arrB = Std.array(B);
+		var lenA = (arrA == null) ? 0 : arrA.length;
+		var lenB = (arrB == null) ? 0 : arrB.length;
+		return supersetEq(A, B) && lenA > lenB;
 	}
 
 	public function notSubsetEq(A:Dynamic, B:Dynamic):Bool {
