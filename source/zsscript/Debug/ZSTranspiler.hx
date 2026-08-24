@@ -2,6 +2,11 @@ package;
 
 import ZSPatternGenerator.Pattern;
 
+typedef OfToken = {
+    type:String,
+    value:String
+}
+
 class ZSTranspiler {
     public static var errors:Array<String> = [];
     public static var currentLine:Int = 0;
@@ -208,8 +213,11 @@ class ZSTranspiler {
             var line = trimStr(lines[i]);
             if (line == "" || line.indexOf("-/") == 0) continue;
             if (line == "! ZS-LUA") continue;
+            if (line == "! ORIENT") continue;
+            if (line == "! WESTERN") continue;
 
             if (line.indexOf("*/-") == 0 || line.indexOf("/-*") >= 0) continue;
+            if (line.indexOf("'") == 0 || line.indexOf('"') >= 0 || line.indexOf("‘") == 0 || line.indexOf("’") >= 0 || line.indexOf("“") == 0 || line.indexOf("”") >= 0) continue;
 
             if (line.charAt(line.length - 1) == ":") continue;
 
@@ -334,12 +342,39 @@ class ZSTranspiler {
             return null;
         }
 
+        var setMathStyle = "ORIENT";
+        var hasWestern = false;
+        var hasOrient = false;
+
+        for (i in 0...lines.length) {
+            var line = trimStr(lines[i]);
+            if (line == "! WESTERN") {
+                hasWestern = true;
+                lines[i] = "";
+            } else if (line == "! ORIENT") {
+                hasOrient = true;
+                lines[i] = "";
+            }
+        }
+
+        if (hasWestern && hasOrient) {
+            errors.push('Error: Cannot use both "! WESTERN" and "! ORIENT" flags');
+            errors.push('  Please choose one convention for set operations');
+            return null;
+        }
+
+        if (hasWestern) {
+            setMathStyle = "WESTERN";
+        } else {
+            setMathStyle = "ORIENT";
+        }
+
         lines[directiveLineIndex] = "";
 
         var indentationStack:Array<Int> = [0];
         var blockTypeStack:Array<String> = [];
         var lastIndent = 0;
-        var inBlockComment = false;
+        var inBlockComment:Bool = false;
         var inString:Bool = false;
         var stringChar:String = "";
         var i = 0;
@@ -649,8 +684,30 @@ class ZSTranspiler {
                 }
             }
 
+            if (trimmedLine.indexOf("local <") == 0) {
+                var equalPos = trimmedLine.indexOf("=");
+                if (equalPos == -1) {
+                    var nounMatch = ~/local <([^>]+)>/;
+                    if (nounMatch.match(trimmedLine)) {
+                        var nounName = nounMatch.matched(1);
+                        trimmedLine = "local " + nounName + " = nil";
+                    }
+                }
+            }
+
+            if (trimmedLine.indexOf("global <") == 0) {
+                var equalPos = trimmedLine.indexOf("=");
+                if (equalPos == -1) {
+                    var nounMatch = ~/global <([^>]+)>/;
+                    if (nounMatch.match(trimmedLine)) {
+                        var nounName = nounMatch.matched(1);
+                        trimmedLine = nounName + " = nil";
+                    }
+                }
+            }
+
             var colonPos = trimmedLine.indexOf(":");
-            if (colonPos > 0) {
+            if (colonPos > 0 && !inBlockComment && !inString) {
                 if (isInsideTableLiteral(trimmedLine, colonPos)) {}
                 else {
                     var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
@@ -750,10 +807,24 @@ class ZSTranspiler {
             }
             log.push('AFTER ZSPatterns: luaLine="$luaLine"');
 
+            if (setMathStyle == "WESTERN") {
+                luaLine = ~/<([^>]+)> ⊂ <([^>]+)>/g.replace(luaLine, "subsetStrict($1, $2)");
+                luaLine = ~/<([^>]+)> ⊆ <([^>]+)>/g.replace(luaLine, "subsetEq($1, $2)");
+                luaLine = ~/<([^>]+)> ⊃ <([^>]+)>/g.replace(luaLine, "supersetStrict($1, $2)");
+                luaLine = ~/<([^>]+)> ⊇ <([^>]+)>/g.replace(luaLine, "supersetEq($1, $2)");
+            } else {
+                luaLine = ~/<([^>]+)> ⊂ <([^>]+)>/g.replace(luaLine, "subsetEq($1, $2)");
+                luaLine = ~/<([^>]+)> ⊆ <([^>]+)>/g.replace(luaLine, "subsetStrict($1, $2)");
+                luaLine = ~/<([^>]+)> ⊃ <([^>]+)>/g.replace(luaLine, "supersetEq($1, $2)");
+                luaLine = ~/<([^>]+)> ⊇ <([^>]+)>/g.replace(luaLine, "supersetStrict($1, $2)");
+            }
+
+            luaLine = ~/<([^>]+)> ⊄ <([^>]+)>/g.replace(luaLine, "notSubsetEq($1, $2)");
+            luaLine = ~/<([^>]+)> ⊅ <([^>]+)>/g.replace(luaLine, "notSupersetEq($1, $2)");
             luaLine = convertQuotes(luaLine);
             luaLine = fixMinusSigns(luaLine);
 
-            if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1) {
+            if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1 && !inBlockComment && !inString) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
                 if (funcCallMixedPattern.match(luaLine)) {
                     var funcName = funcCallMixedPattern.matched(1);
@@ -828,12 +899,16 @@ class ZSTranspiler {
             luaLine = convertGroupingBrackets(luaLine);
             trace('AFTER convertGroupingBrackets: luaLine="$luaLine"');
 
+            if (luaLine.indexOf(" of ") > -1 && !inBlockComment) {
+                luaLine = parseOfExpression(luaLine);
+            }
+
             if (luaLine.indexOf("else if ") == 0) {
                 luaLine = "elseif " + luaLine.substr(8);
             }
 
             var startParen = luaLine.indexOf("(");
-            if (startParen > -1) {
+            if (startParen > -1 && !inBlockComment && !inString) {
                 var beforeParen = StringTools.trim(luaLine.substring(0, startParen));
                 var isFunctionCall = false;
 
@@ -917,6 +992,14 @@ class ZSTranspiler {
                         luaLine = beforeParenFull + "(" + parsedContent + ")" + afterParen;
                         trace('splitArgs result: $args');
                     }
+                }
+            }
+
+            if (luaLine.indexOf("<") > -1 && luaLine.indexOf(">") > -1) {
+                var nounMatch = ~/^<([^>]+)>$/;
+                if (nounMatch.match(luaLine)) {
+                    var nounName = nounMatch.matched(1);
+                    luaLine = nounName + " = nil";
                 }
             }
 
@@ -1569,7 +1652,7 @@ class ZSTranspiler {
         var hasCommaOrQuote = false;
         for (i in 0...colonPos) {
             var c = line.charAt(i);
-            if (c == ',' || c == '"' || c == "'" || c == "“" || c == "”") {
+            if (c == ',' || c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”") {
                 hasCommaOrQuote = true;
                 break;
             }
@@ -1673,5 +1756,66 @@ class ZSTranspiler {
             }
         }
         return false;
+    }
+
+    static function parseOfExpression(line:String):String {
+        var result = line;
+
+        var equalPos = line.indexOf("=");
+        if (equalPos == -1) return result;
+
+        var lhs = line.substring(0, equalPos + 1);
+        var rhs = trimStr(line.substring(equalPos + 1));
+
+        var parsedRhs = parseOfExpressionRHS(rhs);
+
+        return lhs + " " + parsedRhs;
+    }
+
+    static function parseOfExpressionRHS(expr:String):String {
+        var andParts = expr.split(" and ");
+        if (andParts.length > 1) {
+            var lastPart = andParts[andParts.length - 1];
+            var base = parseSingleOf(lastPart);
+
+            var indices = [];
+            for (i in 0...andParts.length - 1) {
+                var part = andParts[i];
+                var parsed = parseSingleOf(part);
+                indices.push(parsed);
+            }
+
+            indices.reverse();
+
+            var result = base;
+            for (idx in indices) {
+                result += "[" + idx + "]";
+            }
+            return result;
+        }
+
+        return parseSingleOf(expr);
+    }
+
+    static function parseSingleOf(expr:String):String {
+        var parts = expr.split(" of ");
+        if (parts.length < 2) return expr;
+
+        var result = parts[0];
+        if (result.indexOf("<") > -1 && result.indexOf(">") > -1) {
+            result = result.substring(1, result.length - 1);
+        }
+
+        var i = 1;
+        while (i < parts.length) {
+            var noun = parts[i];
+            if (noun.indexOf("<") > -1 && noun.indexOf(">") > -1) {
+                noun = noun.substring(1, noun.length - 1);
+            }
+            result = noun + "[" + result + "]";
+            i++;
+        }
+
+        return result;
     }
 }

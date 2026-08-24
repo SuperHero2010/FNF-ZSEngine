@@ -1681,6 +1681,47 @@ class FunkinLua {
 		trace('lua file loaded succesfully:' + scriptName);
 
 		call('onCreate', []);
+
+		// Sets
+		Lua_helper.add_callback(lua, "tableContains", function(table:Dynamic, value:Dynamic):Bool {
+			return game.tableContains(table, value);
+		});
+
+		Lua_helper.add_callback(lua, "tableIntersection", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
+			return game.tableIntersection(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "tableUnion", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
+			return game.tableUnion(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "tableDifference", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
+			return game.tableDifference(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "subsetEq", function(A:Dynamic, B:Dynamic):Bool {
+			return game.subsetEq(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "subsetStrict", function(A:Dynamic, B:Dynamic):Bool {
+			return game.subsetStrict(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "supersetEq", function(A:Dynamic, B:Dynamic):Bool {
+			return game.supersetEq(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "supersetStrict", function(A:Dynamic, B:Dynamic):Bool {
+			return game.supersetStrict(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "notSubsetEq", function(A:Dynamic, B:Dynamic):Bool {
+			return game.notSubsetEq(A, B);
+		});
+
+		Lua_helper.add_callback(lua, "notSupersetEq", function(A:Dynamic, B:Dynamic):Bool {
+			return game.notSupersetEq(A, B);
+		});
 	}
 
 	//main

@@ -2059,6 +2059,25 @@ class ZSPatternGenerator {
             category: "control"
         });
 
+        patterns.push({
+            pattern: "<([^>]+)> exists",
+            replacement: "$1 ~= nil",
+            description: "Check if noun exists",
+            category: "conditions"
+        });
+        patterns.push({
+            pattern: "not <([^>]+)> exists",
+            replacement: "$1 == nil",
+            description: "Check if noun does not exist (not before)",
+            category: "conditions"
+        });
+        patterns.push({
+            pattern: "<([^>]+)> not exists",
+            replacement: "$1 == nil",
+            description: "Check if noun does not exist (not after)",
+            category: "conditions"
+        });
+
         return patterns;
     }
 

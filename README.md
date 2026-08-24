@@ -24,7 +24,7 @@ For this you can head over to [the wiki](https://shadowmario.github.io/psychengi
 There you can learn how to use the 212 PlayState funcions in your mod!
 
 ## Softcoding (.zs)
-For this you can head over to [zsscript/](https://github.com/SuperHero2010/FNF-ZSEngine/tree/main/source/zsscript)
+For this you can head over to [zsscript/](https://github.com/SuperHero2010/FNF-ZSEngine/tree/main/source/zsscript) & [the wiki](https://superhero2010.github.io/zsengine.zs)
 
 ## Credits
 ### Author of ZS Engine

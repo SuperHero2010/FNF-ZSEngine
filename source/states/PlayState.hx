@@ -4347,4 +4347,83 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		#end
 		return false;
 	}
+
+	public function tableContains(table:Dynamic, value:Dynamic):Bool {
+		if (table == null) return false;
+		for (v in table) {
+			if (v == value) return true;
+		}
+		return false;
+	}
+
+	public function tableIntersection(A:Dynamic, B:Dynamic):Array<Dynamic> {
+		var result = [];
+		if (A == null || B == null) return result;
+		for (v in A) {
+			if (tableContains(B, v)) {
+				result.push(v);
+			}
+		}
+		return result;
+	}
+
+	public function tableUnion(A:Dynamic, B:Dynamic):Array<Dynamic> {
+		var result = [];
+		if (A != null) {
+			for (v in A) {
+				if (!tableContains(result, v)) {
+					result.push(v);
+				}
+			}
+		}
+		if (B != null) {
+			for (v in B) {
+				if (!tableContains(result, v)) {
+					result.push(v);
+				}
+			}
+		}
+		return result;
+	}
+
+	public function tableDifference(A:Dynamic, B:Dynamic):Array<Dynamic> {
+		var result = [];
+		if (A == null) return result;
+		for (v in A) {
+			if (!tableContains(B, v)) {
+				result.push(v);
+			}
+		}
+		return result;
+	}
+
+	public function subsetEq(A:Dynamic, B:Dynamic):Bool {
+		if (A == null) return true;
+		for (v in A) {
+			if (!tableContains(B, v)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	public function subsetStrict(A:Dynamic, B:Dynamic):Bool {
+		return subsetEq(A, B) && (A == null ? 0 : A.length) < (B == null ? 0 : B.length);
+	}
+
+	public function supersetEq(A:Dynamic, B:Dynamic):Bool {
+		return subsetEq(B, A);
+	}
+
+	public function supersetStrict(A:Dynamic, B:Dynamic):Bool {
+		return supersetEq(A, B) && (A == null ? 0 : A.length) > (B == null ? 0 : B.length);
+	}
+
+	public function notSubsetEq(A:Dynamic, B:Dynamic):Bool {
+		return !subsetEq(A, B);
+	}
+
+	public function notSupersetEq(A:Dynamic, B:Dynamic):Bool {
+		return !supersetEq(A, B);
+	}
 }
