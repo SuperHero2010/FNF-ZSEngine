@@ -1695,6 +1695,10 @@ class FunkinLua {
 			return game.tableUnion(A, B);
 		});
 
+		Lua_helper.add_callback(lua, "tableComplement", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
+			return game.tableDifference(A, B);
+		});
+
 		Lua_helper.add_callback(lua, "tableDifference", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
 			return game.tableDifference(A, B);
 		});
