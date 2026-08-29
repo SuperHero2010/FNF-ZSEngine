@@ -154,7 +154,7 @@ class ZSTranspiler {
     }
 
     public static function extractKeywordsFromPatterns():Array<String> {
-        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back"];
+        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where"];
         var allPatterns = ZSPatterns.getPatterns();
 
         for (pattern in allPatterns) {
@@ -777,6 +777,8 @@ class ZSTranspiler {
                     }
                 }
             }
+
+            trimmedLine = parseQuantifier(trimmedLine);
 
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
@@ -1842,5 +1844,78 @@ class ZSTranspiler {
         }
 
         return result;
+    }
+
+    static function parseQuantifier(line:String):String {
+        var quantifier = line.indexOf("∀") != -1 ? "∀" : "∃";
+        var pos = line.indexOf(quantifier);
+        if (pos == -1) return line;
+
+        var varStart = line.indexOf("<", pos);
+        var varEnd = line.indexOf(">", varStart);
+        if (varStart == -1 || varEnd == -1) return line;
+        var varName = line.substring(varStart + 1, varEnd);
+
+        var inPos = line.indexOf(" in ", varEnd);
+        if (inPos == -1) return line;
+        var collStart = line.indexOf("<", inPos);
+        var collEnd = line.indexOf(">", collStart);
+        if (collStart == -1 || collEnd == -1) return line;
+        var collName = line.substring(collStart + 1, collEnd);
+
+        var wherePos = line.indexOf(" where ", collEnd);
+        if (wherePos == -1) return line;
+        var conditionStart = wherePos + 7;
+
+        var conditionEnd = line.length;
+        var depth = 0;
+        var i = conditionStart;
+        while (i < line.length) {
+            var c = line.charAt(i);
+            if (c == '(' || c == '[' || c == '{') {
+                depth++;
+            } else if (c == ')' || c == ']' || c == '}') {
+                depth--;
+            } else if (depth == 0) {
+                if (c == '∧' || c == '∨') {
+                    conditionEnd = i;
+                    break;
+                }
+                if (i + 5 < line.length && line.substring(i, i + 6) == " then ") {
+                    conditionEnd = i;
+                    break;
+                }
+                if (i + 4 < line.length && line.substring(i, i + 5) == " then" && (i + 5 == line.length || line.charAt(i + 5) == ' ')) {
+                    conditionEnd = i;
+                    break;
+                }
+            }
+            i++;
+        }
+
+        var condition = trimStr(line.substring(conditionStart, conditionEnd));
+        var before = line.substring(0, pos);
+        var after = line.substring(conditionEnd);
+
+        var funcName = quantifier == "∀" ? "forAll" : "exists";
+        var replacement = funcName + "(" + collName + ", function(" + varName + ") return " + condition + " end)";
+
+        if (before.length > 0 && before.charAt(before.length - 1) == ' ') {
+            if (after.length > 0 && after.charAt(0) == ' ') {
+                return before + replacement + after;
+            } else if (after.length > 0) {
+                return before + replacement + " " + after;
+            } else {
+                return before + replacement;
+            }
+        } else {
+            if (after.length > 0 && after.charAt(0) == ' ') {
+                return before + " " + replacement + after;
+            } else if (after.length > 0) {
+                return before + " " + replacement + " " + after;
+            } else {
+                return before + " " + replacement;
+            }
+        }
     }
 }

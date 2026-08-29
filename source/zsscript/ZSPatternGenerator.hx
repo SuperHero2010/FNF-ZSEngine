@@ -2140,19 +2140,6 @@ class ZSPatternGenerator {
         });
 
         patterns.push({
-            pattern: "∀ <([^>]+)> in <([^>]+)> where (.+)",
-            replacement: "forAll($2, function($1) return $3 end)",
-            description: "For all elements in set",
-            category: "logic"
-        });
-        patterns.push({
-            pattern: "∃ <([^>]+)> in <([^>]+)> where (.+)",
-            replacement: "exists($2, function($1) return $3 end)",
-            description: "Exists element in set",
-            category: "logic"
-        });
-
-        patterns.push({
             pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)>",
             replacement: "$1($2)",
             description: "Function call one arg",
