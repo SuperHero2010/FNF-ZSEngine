@@ -4474,17 +4474,12 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 	public function forAll(collection:Dynamic, condition:Dynamic):Bool {
 		if (collection == null) return true;
+		if (!Std.is(collection, Array)) return true;
 
-		var arr:Array<Dynamic> = null;
-		if (Std.is(collection, Array)) {
-			arr = cast collection;
-		} else {
-			return true;
-		}
-
+		var arr:Array<Dynamic> = cast collection;
 		for (v in arr) {
-			if (Std.is(condition, Function)) {
-				var func:Void->Bool = cast condition;
+			if (Reflect.isFunction(condition)) {
+				var func:Dynamic = cast condition;
 				if (!func(v)) return false;
 			} else {
 				if (v != condition) return false;
@@ -4493,19 +4488,14 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		return true;
 	}
 
-	public function exists(collection:Dynamic, condition:Dynamic):Bool {
+	public function existsIn(collection:Dynamic, condition:Dynamic):Bool {
 		if (collection == null) return false;
+		if (!Std.is(collection, Array)) return false;
 
-		var arr:Array<Dynamic> = null;
-		if (Std.is(collection, Array)) {
-			arr = cast collection;
-		} else {
-			return false;
-		}
-
+		var arr:Array<Dynamic> = cast collection;
 		for (v in arr) {
-			if (Std.is(condition, Function)) {
-				var func:Void->Bool = cast condition;
+			if (Reflect.isFunction(condition)) {
+				var func:Dynamic = cast condition;
 				if (func(v)) return true;
 			} else {
 				if (v == condition) return true;

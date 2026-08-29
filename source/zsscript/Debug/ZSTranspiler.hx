@@ -2005,7 +2005,7 @@ class ZSTranspiler {
 
         var parsedCondition = parseQuantifier(condition);
 
-        var funcName = quantifier == "∀" ? "forAll" : "exists";
+        var funcName = quantifier == "∀" ? "forAll" : "existsIn";
         var replacement = funcName + "(" + collName + ", function(" + varName + ") return " + parsedCondition + " end)";
 
         if (before.length > 0 && before.charAt(before.length - 1) == ' ') {

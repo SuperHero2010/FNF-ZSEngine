@@ -1731,7 +1731,7 @@ class FunkinLua {
 			return game.forAll(collection, condition);
 		});
 
-		Lua_helper.add_callback(lua, "exists", function(collection:Dynamic, condition:Dynamic):Bool {
+		Lua_helper.add_callback(lua, "existsIn", function(collection:Dynamic, condition:Dynamic):Bool {
 			return game.exists(collection, condition);
 		});
 	}
