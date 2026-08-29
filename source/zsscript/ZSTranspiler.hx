@@ -1897,8 +1897,10 @@ class ZSTranspiler {
         var before = line.substring(0, pos);
         var after = line.substring(conditionEnd);
 
+        var parsedCondition = parseQuantifier(condition);
+
         var funcName = quantifier == "∀" ? "forAll" : "exists";
-        var replacement = funcName + "(" + collName + ", function(" + varName + ") return " + condition + " end)";
+        var replacement = funcName + "(" + collName + ", function(" + varName + ") return " + parsedCondition + " end)";
 
         if (before.length > 0 && before.charAt(before.length - 1) == ' ') {
             if (after.length > 0 && after.charAt(0) == ' ') {

@@ -2115,7 +2115,7 @@ class ZSPatternGenerator {
             category: "sets"
         });
         patterns.push({
-            pattern: "([^ ]+) \\ ([^ ]+)",
+            pattern: "([^ ]+) \\\\ ([^ ]+)",
             replacement: "tableDifference($1, $2)",
             description: "Set difference",
             category: "sets"
