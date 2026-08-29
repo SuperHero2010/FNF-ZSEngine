@@ -4471,4 +4471,46 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 	public function notSupersetEq(A:Dynamic, B:Dynamic):Bool {
 		return !supersetEq(A, B);
 	}
+
+	public function forAll(collection:Dynamic, condition:Dynamic):Bool {
+		if (collection == null) return true;
+
+		var arr:Array<Dynamic> = null;
+		if (Std.is(collection, Array)) {
+			arr = cast collection;
+		} else {
+			return true;
+		}
+
+		for (v in arr) {
+			if (Std.is(condition, Function)) {
+				var func:Void->Bool = cast condition;
+				if (!func(v)) return false;
+			} else {
+				if (v != condition) return false;
+			}
+		}
+		return true;
+	}
+
+	public function exists(collection:Dynamic, condition:Dynamic):Bool {
+		if (collection == null) return false;
+
+		var arr:Array<Dynamic> = null;
+		if (Std.is(collection, Array)) {
+			arr = cast collection;
+		} else {
+			return false;
+		}
+
+		for (v in arr) {
+			if (Std.is(condition, Function)) {
+				var func:Void->Bool = cast condition;
+				if (func(v)) return true;
+			} else {
+				if (v == condition) return true;
+			}
+		}
+		return false;
+	}
 }

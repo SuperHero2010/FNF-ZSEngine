@@ -1726,6 +1726,14 @@ class FunkinLua {
 		Lua_helper.add_callback(lua, "notSupersetEq", function(A:Dynamic, B:Dynamic):Bool {
 			return game.notSupersetEq(A, B);
 		});
+
+		Lua_helper.add_callback(lua, "forAll", function(collection:Dynamic, condition:Dynamic):Bool {
+			return game.forAll(collection, condition);
+		});
+
+		Lua_helper.add_callback(lua, "exists", function(collection:Dynamic, condition:Dynamic):Bool {
+			return game.exists(collection, condition);
+		});
 	}
 
 	//main

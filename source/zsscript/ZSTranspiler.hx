@@ -670,6 +670,16 @@ class ZSTranspiler {
                 if (!validateMathSigns(codeToCheck, currentLine)) {
                     return null;
                 }
+
+                if (codeToCheck.indexOf(" and ") > -1) {
+                    var isArrayAccess = codeToCheck.indexOf(" of ") > -1;
+                    if (!isArrayAccess) {
+                        errors.push('Error at line $currentLine: "and" is not a logical operator in ZS');
+                        errors.push('  Found: "$codeToCheck"');
+                        errors.push('  Use "∧" for logical AND or "and" only for array access');
+                        return null;
+                    }
+                }
             }
 
             if (trimmedLine.indexOf("local <") == 0) {
@@ -711,7 +721,7 @@ class ZSTranspiler {
             }
 
             var colonPos = trimmedLine.indexOf(":");
-            if (colonPos > 0 && !inBlockComment && !inString) {
+            if (colonPos > 0) {
                 if (isInsideTableLiteral(trimmedLine, colonPos)) {}
                 else {
                     var beforeColon = trimStr(trimmedLine.substring(0, colonPos));
@@ -771,15 +781,21 @@ class ZSTranspiler {
             var luaLine = trimmedLine;
             var allPatterns = ZSPatterns.getPatterns();
 
-            var matchedAtStart = false;
+            var matchedAtStart:Bool = false;
+            var maxMatched:Int = 5;
+            var matched:Int = 0;
             for (pattern in allPatterns) {
                 var regex = new EReg(pattern.pattern, "g");
                 if (regex.match(luaLine)) {
                     var matchPos = regex.matchedPos().pos;
                     if (matchPos == 0) {
+                        matched++;
                         luaLine = replaceMultiPattern(regex, pattern, luaLine, luaLine);
-                        matchedAtStart = true;
-                        break;
+                        // If matched variable is 5, break the loop to prevent memory spike
+                        if (matched >= maxMatched) {
+                            matchedAtStart = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -818,7 +834,7 @@ class ZSTranspiler {
             luaLine = convertQuotes(luaLine);
             luaLine = fixMinusSigns(luaLine);
 
-            if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1 && !inBlockComment && !inString) {
+            if (luaLine.indexOf(":") == -1 && luaLine.indexOf("function") == -1) {
                 var funcCallMixedPattern = ~/^([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)(?:, *<([^>]+)>)*>, (.+)$/;
                 if (funcCallMixedPattern.match(luaLine)) {
                     var funcName = funcCallMixedPattern.matched(1);
@@ -899,8 +915,8 @@ class ZSTranspiler {
             }
 
             var startParen = luaLine.indexOf("(");
-            if (startParen > -1 && !inBlockComment && !inString) {
-                var beforeParen = StringTools.trim(luaLine.substring(0, startParen));
+            if (startParen > -1) {
+                var beforeParen = trimStr(luaLine.substring(0, startParen));
                 var isFunctionCall = false;
 
                 if (beforeParen.length > 0 && beforeParen.indexOf(" ") == -1) {
@@ -934,7 +950,7 @@ class ZSTranspiler {
                         var args = splitArgs(content);
                         for (j in 0...args.length) {
                             var arg = args[j];
-                            var trimmedArg = StringTools.trim(arg);
+                            var trimmedArg = trimStr(arg);
 
                             var isTableLiteral = (trimmedArg.indexOf("{") == 0 && trimmedArg.lastIndexOf("}") == trimmedArg.length - 1);
                             var isListLiteral = (trimmedArg.indexOf("[") == 0 && trimmedArg.lastIndexOf("]") == trimmedArg.length - 1);
@@ -1078,19 +1094,15 @@ class ZSTranspiler {
                 if (isConditionalStart) {
                     indentationStack.push(originalIndent);
                     blockTypeStack.push("if");
-                    trace('  PUSH if: stack=$indentationStack');
                 } else if (isLoopStart) {
                     indentationStack.push(originalIndent);
                     blockTypeStack.push("loop");
-                    trace('  PUSH loop: stack=$indentationStack');
                 } else if (isFunctionStart) {
                     indentationStack.push(originalIndent);
                     blockTypeStack.push("function");
-                    trace('  PUSH function: stack=$indentationStack');
                 } else if (isRepeat) {
                     indentationStack.push(originalIndent);
                     blockTypeStack.push("repeat");
-                    trace('  PUSH repeat: stack=$indentationStack');
                 }
                 lastIndent = originalIndent;
                 i++;
@@ -1198,7 +1210,7 @@ class ZSTranspiler {
                     args.push(current);
                     current = "";
                 }
-            } else if (!inQuote && depth == 0 && c == '-' && i + 1 < content.length && isDigit(content.charAt(i + 1)) && StringTools.trim(current) != "") {
+            } else if (!inQuote && depth == 0 && c == '-' && i + 1 < content.length && isDigit(content.charAt(i + 1)) && trimStr(current) != "") {
                 args.push(current);
                 current = "-";
                 i++;
@@ -1275,7 +1287,6 @@ class ZSTranspiler {
     }
 
     static function processTableLiteral(table:String):String {
-        trace('=== processTableLiteral INPUT: "$table" ===');
         var result = "";
         var inString = false;
         var stringChar = "";
@@ -1285,7 +1296,6 @@ class ZSTranspiler {
 
         while (i < table.length) {
             var c = table.charAt(i);
-            trace('  pos $i: char="$c", depth=$depth, inString=$inString, currentValue="$currentValue", result="$result"');
 
             if (!inString && (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”")) {
                 inString = true;
@@ -1336,19 +1346,15 @@ class ZSTranspiler {
             }
 
             if (!inString && depth > 0 && c == ',') {
-                trace('    -> depth > 0 comma, currentValue="$currentValue"');
                 var trimmedValue = trimStr(currentValue);
                 if (trimmedValue == "") {
                     var lastChar = result.length > 0 ? result.charAt(result.length - 1) : "";
                     if (lastChar == ')' || lastChar == ']' || lastChar == '}') {
-                        trace('    -> empty value after closing bracket, skipping nil insertion');
                         result += c + " ";
                     } else {
-                        trace('    -> empty value, adding nil, comma and space to result');
                         result += "nil" + c;
                     }
                 } else {
-                    trace('    -> adding trimmed value + comma + space: "$trimmedValue" + "$c" + " "');
                     result += trimmedValue + c + " ";
                 }
                 currentValue = "";
@@ -1368,7 +1374,6 @@ class ZSTranspiler {
             }
         }
 
-        trace('=== processTableLiteral OUTPUT: "$result" ===');
         return result;
     }
 
@@ -1695,15 +1700,101 @@ class ZSTranspiler {
     static function parseOfExpression(line:String):String {
         var result = line;
 
-        var equalPos = line.indexOf("=");
-        if (equalPos == -1) return result;
+        var inString = false;
+        var stringChar = "";
+        var stringStart = -1;
+        var stringEnd = -1;
+        var parsedStrings = [];
 
-        var lhs = line.substring(0, equalPos + 1);
-        var rhs = trimStr(line.substring(equalPos + 1));
+        for (i in 0...line.length) {
+            var c = line.charAt(i);
 
-        var parsedRhs = parseOfExpressionRHS(rhs);
+            if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’")) {
+                inString = true;
+                stringChar = c;
+                stringStart = i;
+                continue;
+            }
+            if (inString && c == stringChar) {
+                inString = false;
+                stringEnd = i;
+                var content = line.substring(stringStart + 1, stringEnd);
+                if (content.indexOf(" of ") != -1) {
+                    var parsedContent = parseArrayAccessContent(content);
+                    parsedStrings.push({
+                        start: stringStart,
+                        end: stringEnd,
+                        replacement: stringChar + parsedContent + stringChar
+                    });
+                }
+                continue;
+            }
+        }
 
-        return lhs + " " + parsedRhs;
+        var i = parsedStrings.length - 1;
+        while (i >= 0) {
+            var ps = parsedStrings[i];
+            result = result.substring(0, ps.start) + ps.replacement + result.substring(ps.end + 1);
+            i--;
+        }
+
+        if (result.indexOf(" of ") == -1) return result;
+
+        var expr = extractArrayAccess(result);
+
+        if (expr == null) return result;
+
+        var parsed = parseOfExpressionRHS(expr);
+
+        var result = StringTools.replace(line, expr, parsed);
+
+        return result;
+    }
+
+    static function parseArrayAccessContent(content:String):String {
+        var parts = content.split(" of ");
+        if (parts.length < 2) return content;
+
+        var base = parts[parts.length - 1];
+        var result = base;
+
+        for (i in 0...parts.length - 1) {
+            var idx = parts[i];
+            result += "[" + idx + "]";
+        }
+
+        return result;
+    }
+
+    static function extractArrayAccess(line:String):String {
+        var ofPos = line.lastIndexOf(" of ");
+        if (ofPos == -1) return null;
+
+        var separators = ["=", "==", "if", "then", "else", "for", "while", "do", "repeat", "until", "∧", "∨", "¬", "∀", "∃"];
+        var lastSeparatorPos = -1;
+
+        for (sep in separators) {
+            var pos = line.lastIndexOf(sep, ofPos);
+            if (pos > lastSeparatorPos) {
+                lastSeparatorPos = pos;
+            }
+        }
+
+        var startPos = lastSeparatorPos + 1;
+        while (startPos < line.length && line.charAt(startPos) == ' ') {
+            startPos++;
+        }
+
+        if (startPos >= line.length) return null;
+
+        var afterOf = line.substring(ofPos + 4);
+        var nounEnd = afterOf.indexOf(" ");
+        if (nounEnd == -1) nounEnd = afterOf.length;
+        var endPos = ofPos + 4 + nounEnd;
+
+        var expr = line.substring(startPos, endPos);
+
+        return expr;
     }
 
     static function parseOfExpressionRHS(expr:String):String {

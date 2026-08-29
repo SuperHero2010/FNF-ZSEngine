@@ -2120,6 +2120,44 @@ class ZSPatternGenerator {
             description: "Set difference",
             category: "sets"
         });
+        patterns.push({
+            pattern: "∧",
+            replacement: "and",
+            description: "Logical AND",
+            category: "logic"
+        });
+        patterns.push({
+            pattern: "∨",
+            replacement: "or",
+            description: "Logical OR",
+            category: "logic"
+        });
+        patterns.push({
+            pattern: "¬",
+            replacement: "not",
+            description: "Logical NOT",
+            category: "logic"
+        });
+
+        patterns.push({
+            pattern: "∀ <([^>]+)> in <([^>]+)> where (.+)",
+            replacement: "forAll($2, function($1) return $3 end)",
+            description: "For all elements in set",
+            category: "logic"
+        });
+        patterns.push({
+            pattern: "∃ <([^>]+)> in <([^>]+)> where (.+)",
+            replacement: "exists($2, function($1) return $3 end)",
+            description: "Exists element in set",
+            category: "logic"
+        });
+
+        patterns.push({
+            pattern: "([a-zA-Z_][a-zA-Z0-9_]*)<([^>]+)>",
+            replacement: "$1($2)",
+            description: "Function call one arg",
+            category: "function"
+        });
 
         return patterns;
     }
@@ -2415,6 +2453,19 @@ class ZSPatternGenerator {
             replacement: "updateScoreText()",
             description: "Update score text (nested)",
             category: "score"
+        });
+
+        patterns.push({
+            pattern: "read ‘([^’]*)’",
+            replacement: 'getProperty(\'$1\')',
+            description: "Read a property (nested curly quote)",
+            category: "reflection"
+        });
+        patterns.push({
+            pattern: "read “([^”]*)”",
+            replacement: 'getProperty("$1")',
+            description: "Read a property (nested double curly quote)",
+            category: "reflection"
         });
 
         patterns.push({

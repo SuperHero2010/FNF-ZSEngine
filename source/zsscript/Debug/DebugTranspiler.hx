@@ -606,50 +606,21 @@ onCreate:
             var line = StringTools.trim(lines[i]);
             if (line == "! ZS-LUA") {
                 directiveFound = true;
-                trace("  Directive found at line " + (i+1));
+                trace("  Directive found at line " + (i + 1));
                 break;
             }
         }
         if (!directiveFound) trace("  Directive NOT found!");
         trace("");
 
-        trace("Step 2: Testing pattern replacement...");
-        var testLine = "setProperty: <hitHealth> = 0.5";
-        trace('  Testing line: "$testLine"');
-
-        var resultLine = testLine;
-        for (pattern in ZSPatterns.patterns) {
-            var regex = new EReg(pattern.pattern, "g");
-            if (regex.match(resultLine)) {
-                trace('  Pattern matched: "${pattern.pattern}"');
-                trace('  → Category: ${pattern.category}');
-                resultLine = regex.replace(resultLine, pattern.replacement);
-            }
-        }
-        trace('  Result: "$resultLine"');
-
-        trace("Step 3: Testing comment handling...");
-        var commentLine = "    setProperty: <hitHealth> = 0.5 -/ Change value";
-        trace('  Testing: "$commentLine"');
-
-        if (commentLine.indexOf(" -/") > -1) {
-            trace("  Inline comment detected");
-            var parts = commentLine.split(" -/");
-            trace('  Code part: "${StringTools.trim(parts[0])}"');
-            trace('  Comment part: "${parts[1]}"');
-        } else {
-            trace("  Inline comment NOT detected");
-        }
-        trace("");
-
-        trace("Step 4: Running full transpilation...");
+        trace("Step 2: Running full transpilation...");
         var result = ZSTranspiler.transpile(testScript);
 
         if (result != null) {
             trace(" Transpilation successful!");
             trace("");
             trace("=== OUTPUT ===");
-            trace(result);
+            trace("\n" + result);
         } else {
             trace(" Transpilation failed!");
             trace("");
