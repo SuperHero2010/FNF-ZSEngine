@@ -1732,7 +1732,7 @@ class FunkinLua {
 		});
 
 		Lua_helper.add_callback(lua, "existsIn", function(collection:Dynamic, condition:Dynamic):Bool {
-			return game.exists(collection, condition);
+			return game.existsIn(collection, condition);
 		});
 	}
 
