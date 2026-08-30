@@ -1004,20 +1004,29 @@ class ZSTranspiler {
                                 var parts = originalArg.split(" ");
                                 trace('    -> parts.length=${parts.length}, parts=$parts');
                                 if (parts.length > 1) {
-                                    var firstWord = parts[0];
-                                    var rest = originalArg.substring(firstWord.length + 1);
-                                    var firstChar = trimStr(rest).charAt(0);
-                                    trace('    -> firstWord="$firstWord", rest="$rest", firstChar="$firstChar"');
+                                    var trimmedArg = trimStr(originalArg);
+                                    var isStringLiteral = (
+                                        (trimmedArg.indexOf('"') == 0 && trimmedArg.lastIndexOf('"') == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("'") == 0 && trimmedArg.lastIndexOf("'") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("“") == 0 && trimmedArg.lastIndexOf("”") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("‘") == 0 && trimmedArg.lastIndexOf("’") == trimmedArg.length - 1)
+                                    );
+                                    if (!isStringLiteral) {
+                                        var firstWord = parts[0];
+                                        var rest = originalArg.substring(firstWord.length + 1);
+                                        var firstChar = trimStr(rest).charAt(0);
+                                        trace('    -> firstWord="$firstWord", rest="$rest", firstChar="$firstChar"');
 
-                                    var hasComma = rest.indexOf(",") > -1;
-                                    if (hasComma && isKnownFunction(firstWord)) {
-                                        args[j] = firstWord + "(" + rest + ")";
-                                        trace('    -> Argument $j converted to function call (has comma): "${args[j]}"');
-                                    } else if (firstChar != "+" && firstChar != "-" && firstChar != "*" && firstChar != "/") {
-                                        args[j] = firstWord + "(" + rest + ")";
-                                        trace('    -> Argument $j converted to function call: "${args[j]}"');
-                                    } else {
-                                        trace('    -> Not converting (firstChar is operator)');
+                                        var hasComma = rest.indexOf(",") > -1;
+                                        if (hasComma && isKnownFunction(firstWord)) {
+                                            args[j] = firstWord + "(" + rest + ")";
+                                            trace('    -> Argument $j converted to function call (has comma): "${args[j]}"');
+                                        } else if (firstChar != "+" && firstChar != "-" && firstChar != "*" && firstChar != "/") {
+                                            args[j] = firstWord + "(" + rest + ")";
+                                            trace('    -> Argument $j converted to function call: "${args[j]}"');
+                                        } else {
+                                            trace('    -> Not converting (firstChar is operator)');
+                                        }
                                     }
                                 }
                             }

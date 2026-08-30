@@ -973,16 +973,24 @@ class ZSTranspiler {
 
                                 var parts = originalArg.split(" ");
                                 if (parts.length > 1) {
-                                    var firstWord = parts[0];
-                                    var rest = originalArg.substring(firstWord.length + 1);
-                                    var firstChar = trimStr(rest).charAt(0);
+                                    var trimmedArg = trimStr(originalArg);
+                                    var isStringLiteral = (
+                                        (trimmedArg.indexOf('"') == 0 && trimmedArg.lastIndexOf('"') == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("'") == 0 && trimmedArg.lastIndexOf("'") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("“") == 0 && trimmedArg.lastIndexOf("”") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("‘") == 0 && trimmedArg.lastIndexOf("’") == trimmedArg.length - 1)
+                                    );
+                                    if (!isStringLiteral) {
+                                        var firstWord = parts[0];
+                                        var rest = originalArg.substring(firstWord.length + 1);
+                                        var firstChar = trimStr(rest).charAt(0);
 
-                                    var hasComma = rest.indexOf(",") > -1;
-                                    if (hasComma && isKnownFunction(firstWord)) {
-                                        args[j] = firstWord + "(" + rest + ")";
-                                    } else if (firstChar != "+" && firstChar != "-" && firstChar != "*" && firstChar != "/") {
-                                        args[j] = firstWord + "(" + rest + ")";
-                                    } else {
+                                        var hasComma = rest.indexOf(",") > -1;
+                                        if (hasComma && isKnownFunction(firstWord)) {
+                                            args[j] = firstWord + "(" + rest + ")";
+                                        } else if (firstChar != "+" && firstChar != "-" && firstChar != "*" && firstChar != "/") {
+                                            args[j] = firstWord + "(" + rest + ")";
+                                        } else {}
                                     }
                                 }
                             }
