@@ -5891,8 +5891,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			substate.onCancel = function() { /* do nothing */ };
 			openSubState(substate);
 		}, btnWid);
-		btn.text.alignment = LEFT;
-		tab_group.add(btn);
+		loadClipboardButton.text.alignment = LEFT;
+		tab_group.add(loadClipboardButton);
 
 		btnY++;
 		btnY += 20;
