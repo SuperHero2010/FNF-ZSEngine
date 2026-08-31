@@ -999,34 +999,56 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					if(selectedNotes.length > 0)
 					{
-						copiedNotes = [];
-						copiedEvents = [];
-						var pushedNotes:Array<Array<Dynamic>> = [];
+						var notes:Array<Array<Dynamic>> = [];
+						var events:Array<Array<Dynamic>> = [];
 
 						for (note in selectedNotes)
 						{
 							if(note == null) continue;
-
-							var copied:Array<Dynamic> = makeNoteDataCopy(note.songData, note.isEvent);
-							pushedNotes.push(copied);
-							if(note.isEvent) copiedEvents.push(copied);
-							else copiedNotes.push(copied);
+							var copied = makeNoteDataCopy(note.songData, note.isEvent);
+							if(note.isEvent) events.push(copied);
+							else notes.push(copied);
 						}
-						pushedNotes.sort((a:Array<Dynamic>, b:Array<Dynamic>) -> FlxSort.byValues(FlxSort.ASCENDING, a[0], b[0]));
 
-						var minTime:Float = pushedNotes[0][0];
-						for (note in pushedNotes)
-							note[0] -= minTime;
+						// Sort by time and normalize times relative to first note
+						var all = notes.concat(events);
+						all.sort((a, b) -> FlxSort.byValues(FlxSort.ASCENDING, a[0], b[0]));
+						var minTime = all.length > 0 ? all[0][0] : 0;
+						for (item in all) item[0] -= minTime;
+
+						var filePath = saveClipboardToFile(notes, events);
+        				showOutput('Clipboard saved: ' + filePath);
+
+						copiedNotes = notes;
+						copiedEvents = events;
 					}
 				}
 				else if(FlxG.keys.justPressed.V) // Paste (Ctrl + V)
 				{
-					if(copiedNotes.length > 0 || copiedEvents.length > 0)
+					var notesToPaste:Array<Array<Dynamic>> = [];
+					var eventsToPaste:Array<Array<Dynamic>> = [];
+
+					var lastFile = getLastClipboardFile();
+					if (lastFile != null && FileSystem.exists(lastFile)) {
+						var data = loadClipboardFromFile(lastFile);
+						notesToPaste = data.notes;
+						eventsToPaste = data.events;
+						trace('Pasting from file: ' + lastFile);
+					} else if (copiedNotes.length > 0 || copiedEvents.length > 0) {
+						notesToPaste = copiedNotes;
+						eventsToPaste = copiedEvents;
+						trace('Pasting from memory clipboard');
+					} else {
+						showOutput('No clipboard found!', true);
+						return;
+					}
+
+					if (notesToPaste.length > 0 || eventsToPaste.length > 0)
 					{
 						selectionBox.visible = false;
 						stopMovingNotes();
 						resetSelectedNotes();
-						selectedNotes = pasteCopiedNotesToSection();
+						selectedNotes = pasteCopiedNotesToSection(notesToPaste, eventsToPaste);
 						selectedNotes.sort(PlayState.sortByTime);
 
 						var didFind:Bool = false;
@@ -3058,6 +3080,48 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		_lastSec = curSec;
 	}
 
+	private function getClipboardFolder():String {
+		var folder = "clipboards/";
+		if (!FileSystem.exists(folder)) FileSystem.createDirectory(folder);
+		return folder;
+	}
+
+	private function getLastClipboardFile():String {
+		var folder = getClipboardFolder();
+		var files = FileSystem.readDirectory(folder).filter(f -> f.endsWith(".clipboard"));
+		if (files.length == 0) return null;
+		files.sort((a, b) -> b.compare(a)); // newest first
+		return folder + files[0];
+	}
+
+	private function generateClipboardFileName():String {
+		var date = Date.now();
+		var dateStr = DateTools.format(date, "%Y-%m-%d_%H-%M-%S");
+		return dateStr + ".clipboard";
+	}
+
+	private function saveClipboardToFile(notes:Array<Array<Dynamic>>, events:Array<Array<Dynamic>>):String {
+		var folder = getClipboardFolder();
+		var fileName = generateClipboardFileName();
+		var filePath = folder + fileName;
+		var data = {
+			notes: notes,
+			events: events,
+			timestamp: Date.now().getTime(),
+			noteCount: notes.length,
+			eventCount: events.length
+		};
+		var json = haxe.Json.stringify(data);
+		sys.io.File.saveContent(filePath, json);
+		return filePath;
+	}
+
+	private function loadClipboardFromFile(filePath:String):{notes:Array<Array<Dynamic>>, events:Array<Array<Dynamic>>} {
+		var content = sys.io.File.getContent(filePath);
+		var data = haxe.Json.parse(content);
+		return {notes: data.notes, events: data.events};
+	}
+
 	var playbackSlider:PsychUISlider;
 
 	var mouseSnapCheckBox:PsychUICheckBox;
@@ -3709,6 +3773,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 				if(str.length > 0) showOutput(str);
 			}
+
+			if (copiedNotes.length > 0 || copiedEvents.length > 0) {
+				var filePath = saveClipboardToFile(copiedNotes, copiedEvents);
+				trace('Clipboard saved: ' + filePath);
+			}
 		}
 
 		mustHitCheckBox = new PsychUICheckBox(objX, objY, 'Must Hit Sec.', 70, function()
@@ -3774,7 +3843,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var copyButton:PsychUIButton = new PsychUIButton(objX, objY, 'Copy Section', copyNotesOnSection.bind());
 		var pasteButton:PsychUIButton = new PsychUIButton(objX + 100, objY, 'Paste Section', function()
 		{
-			pasteCopiedNotesToSection(affectNotes.checked, affectEvents.checked);
+			var lastFile = getLastClipboardFile();
+			if (lastFile != null && FileSystem.exists(lastFile)) {
+				var data = loadClipboardFromFile(lastFile);
+				pasteCopiedNotesToSection(data.notes, data.events);
+			} else {
+				pasteCopiedNotesToSection(copiedNotes, copiedEvents);
+			}
 		});
 		var clearButton:PsychUIButton = new PsychUIButton(objX + 200, objY, 'Clear', function()
 		{
@@ -4378,8 +4453,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 	}
 
-	function pasteCopiedNotesToSection(?canCopyNotes:Bool = true, ?canCopyEvents:Bool = true, ?showMessage:Bool = true) //Used on "Paste Section" and "Copy Last Section" buttons
+	function pasteCopiedNotesToSection(?notesData:Array<Array<Dynamic>> = null, ?eventsData:Array<Array<Dynamic>> = null, ?canCopyNotes:Bool = true, ?canCopyEvents:Bool = true, ?showMessage:Bool = true) //Used on "Paste Section" and "Copy Last Section" buttons
 	{
+		if (notesData == null) notesData = copiedNotes;
+		if (eventsData == null) eventsData = copiedEvents;
+
 		var curSectionTime:Null<Float> = cachedSectionTimes[curSec];
 		if(curSectionTime == null)
 		{
@@ -4390,14 +4468,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var pushedNotes:Array<MetaNote> = [];
 		var nts:Array<MetaNote> = [];
 		var evs:Array<EventMetaNote> = [];
-		if(canCopyNotes && copiedNotes.length > 0)
+
+		if(canCopyNotes && notesData.length > 0)
 		{
-			for (note in copiedNotes)
+			for (note in notesData)
 			{
 				if(note == null) continue;
 				var dataCopy:Array<Dynamic> = makeNoteDataCopy(note, false);
 				dataCopy[0] += curSectionTime;
-
 				var createdNote = createNote(dataCopy, curSec);
 				notes.push(createdNote);
 				pushedNotes.push(createdNote);
@@ -4406,14 +4484,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			notes.sort(PlayState.sortByTime);
 		}
 
-		if(canCopyEvents && copiedEvents.length > 0)
+		if(canCopyEvents && eventsData.length > 0)
 		{
-			for (event in copiedEvents)
+			for (event in eventsData)
 			{
 				if(event == null) continue;
 				var dataCopy:Array<Dynamic> = makeNoteDataCopy(event, true);
 				dataCopy[0] += curSectionTime;
-
 				var createdEvent = createEvent(dataCopy);
 				events.push(createdEvent);
 				pushedNotes.push(createdEvent);
@@ -4421,27 +4498,20 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 			events.sort(PlayState.sortByTime);
 		}
+
 		loadSection();
 
-		if(showMessage)
+		if(showMessage && (nts.length > 0 || evs.length > 0))
 		{
-			if(nts.length == 0 && evs.length == 0)
-			{
-				showOutput('Nothing to paste!', true);
-				return [];
-			}
-
-			var str:String = '';
+			var str = '';
 			if(nts.length > 0) str += 'Notes Added: ${nts.length}';
-			if(evs.length > 0)
-			{
-				if(str.length > 0) str += '\n';
-				str += 'Events Added: ${evs.length}';
-			}
-
+			if(evs.length > 0) str += (str.length > 0 ? '\n' : '') + 'Events Added: ${evs.length}';
 			if(str.length > 0) showOutput(str);
 		}
-		addUndoAction(ADD_NOTE, {notes: nts, events: evs});
+
+		if(nts.length > 0 || evs.length > 0)
+			addUndoAction(ADD_NOTE, {notes: nts, events: evs});
+
 		return pushedNotes;
 	}
 
@@ -5801,6 +5871,22 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			));
 
 		};
+		btn.text.alignment = LEFT;
+		tab_group.add(btn);
+
+		btnY++;
+		btnY += 20;
+		var loadClipboardButton:PsychUIButton = new PsychUIButton(btnX, btnY, "Load Clipboard", function() {
+			var substate = new ClipboardSubstate();
+			substate.onConfirm = function(filePath:String) {
+				var data = loadClipboardFromFile(filePath);
+				copiedNotes = data.notes;
+				copiedEvents = data.events;
+				showOutput('Clipboard loaded: ${data.notes.length} notes, ${data.events.length} events');
+			};
+			substate.onCancel = function() { /* do nothing */ };
+			openSubState(substate);
+		}, btnWid);
 		btn.text.alignment = LEFT;
 		tab_group.add(btn);
 
