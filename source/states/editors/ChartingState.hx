@@ -186,8 +186,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var bg:FlxSprite;
 	var theme:ChartingTheme = DEFAULT;
 
-	var copiedNotes:Array<Dynamic> = [];
-	var copiedEvents:Array<Dynamic> = [];
+	var copiedNotes:Array<Array<Dynamic>> = [];
+	var copiedEvents:Array<Array<Dynamic>> = [];
 
 	var _keysPressedBuffer:Array<Bool> = [];
 
@@ -3090,7 +3090,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var folder = getClipboardFolder();
 		var files = FileSystem.readDirectory(folder).filter(f -> f.endsWith(".clipboard"));
 		if (files.length == 0) return null;
-		files.sort((a, b) -> b.compare(a)); // newest first
+		files.sort((a, b) -> {
+			if (a > b) return -1;
+			if (a < b) return 1;
+			return 0;
+		});
 		return folder + files[0];
 	}
 

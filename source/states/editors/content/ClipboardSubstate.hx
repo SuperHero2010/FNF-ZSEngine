@@ -133,8 +133,8 @@ class ClipboardSubstate extends MusicBeatSubstate {
 
         listGroup.clear();
 
-        var startIdx = scrollOffset;
-        var endIdx = Math.min(startIdx + maxVisibleItems, fileList.length);
+        var startIdx:Int = scrollOffset;
+        var endIdx:Int = Std.int(Math.min(startIdx + maxVisibleItems, fileList.length));
 
         for (i in startIdx...endIdx) {
             var name = fileList[i];
@@ -266,14 +266,14 @@ class ClipboardSubstate extends MusicBeatSubstate {
         if (FlxG.keys.justPressed.ESCAPE) {
             onCancelPress();
         }
-        if (FlxG.keys.justPressed.PAGE_UP) {
+        if (FlxG.keys.justPressed.PAGEUP) {
             if (previewScroll > 0) {
                 previewScroll -= previewMaxLines;
                 if (previewScroll < 0) previewScroll = 0;
                 updatePreviewContent();
             }
         }
-        if (FlxG.keys.justPressed.PAGE_DOWN) {
+        if (FlxG.keys.justPressed.PAGEDOWN) {
             if (currentPreviewData != null) {
                 var maxScroll = 0;
                 if (currentPreviewData.notes != null) maxScroll += currentPreviewData.notes.length;
