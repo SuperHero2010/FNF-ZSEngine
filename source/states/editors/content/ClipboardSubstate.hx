@@ -129,7 +129,11 @@ class ClipboardSubstate extends MusicBeatSubstate {
         var folder = "clipboards/";
         if (!FileSystem.exists(folder)) FileSystem.createDirectory(folder);
         fileList = FileSystem.readDirectory(folder).filter(f -> f.endsWith(".clipboard"));
-        fileList.sort((a, b) -> b.compare(a));
+        fileList.sort((a, b) -> {
+            if (a > b) return -1;
+            if (a < b) return 1;
+            return 0;
+        });
 
         listGroup.clear();
 
