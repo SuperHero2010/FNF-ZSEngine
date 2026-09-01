@@ -221,6 +221,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         var cachedSectionTimes = chartingState.cachedSectionTimes;
         var cachedSectionRow = chartingState.cachedSectionRow;
         var gridBg = chartingState.gridBg;
+        var showEventColumn = ChartingState.SHOW_EVENT_COLUMN;
 
         // Render ALL notes
         if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
@@ -237,13 +238,19 @@ class ClipboardSubstate extends MusicBeatSubstate
                 if (metaNote != null)
                 {
                     var strumTime = noteData[0];
+                    var noteColumn = noteData[1];
                     var time = strumTime - sectionTime;
                     var noteYPos = (time / crochet) * gridSize * 4 * curZoom;
                     noteYPos += row * gridSize * curZoom;
                     noteYPos = Math.max(noteYPos, -150);
-                    metaNote.x = gridBgX + (i % 4) * gridSize;
+
+                    var xPos = gridBgX;
+                    if (showEventColumn) xPos += gridSize;
+                    xPos += noteColumn * gridSize;
+
+                    metaNote.x = xPos;
                     metaNote.y = gridBg.y + noteYPos - previewScroll;
-                    metaNote.scale.set(0.7, 0.7);
+                    metaNote.scale.set(1.0, 1.0);
                     previewContainer.add(metaNote);
                 }
             }
@@ -268,9 +275,10 @@ class ClipboardSubstate extends MusicBeatSubstate
                     var noteYPos = (time / crochet) * gridSize * 4 * curZoom;
                     noteYPos += row * gridSize * curZoom;
                     noteYPos = Math.max(noteYPos, -150);
-                    eventNote.x = gridBgX + gridSize * 4 + 20;
+
+                    eventNote.x = gridBgX;
                     eventNote.y = gridBg.y + noteYPos - previewScroll;
-                    eventNote.scale.set(0.7, 0.7);
+                    eventNote.scale.set(1.0, 1.0);
                     previewContainer.add(eventNote);
                 }
             }

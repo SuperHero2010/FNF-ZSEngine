@@ -1028,19 +1028,21 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					var notesToPaste:Array<Array<Dynamic>> = [];
 					var eventsToPaste:Array<Array<Dynamic>> = [];
 
-					var lastFile = getLastClipboardFile();
-					if (lastFile != null && FileSystem.exists(lastFile)) {
-						var data = loadClipboardFromFile(lastFile);
-						notesToPaste = data.notes;
-						eventsToPaste = data.events;
-						trace('Pasting from file: ' + lastFile);
-					} else if (copiedNotes.length > 0 || copiedEvents.length > 0) {
+					if (copiedNotes.length > 0 || copiedEvents.length > 0) {
 						notesToPaste = copiedNotes;
 						eventsToPaste = copiedEvents;
-						trace('Pasting from memory clipboard');
+						trace('Pasting from loaded clipboard');
 					} else {
-						showOutput('No clipboard found!', true);
-						return;
+						var lastFile = getLastClipboardFile();
+						if (lastFile != null && FileSystem.exists(lastFile)) {
+							var data = loadClipboardFromFile(lastFile);
+							notesToPaste = data.notes;
+							eventsToPaste = data.events;
+							trace('Pasting from file: ' + lastFile);
+						} else {
+							showOutput('No clipboard found!', true);
+							return;
+						}
 					}
 
 					if (notesToPaste.length > 0 || eventsToPaste.length > 0)
@@ -3847,12 +3849,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var copyButton:PsychUIButton = new PsychUIButton(objX, objY, 'Copy Section', copyNotesOnSection.bind());
 		var pasteButton:PsychUIButton = new PsychUIButton(objX + 100, objY, 'Paste Section', function()
 		{
-			var lastFile = getLastClipboardFile();
-			if (lastFile != null && FileSystem.exists(lastFile)) {
-				var data = loadClipboardFromFile(lastFile);
-				pasteCopiedNotesToSection(data.notes, data.events);
-			} else {
+			if (copiedNotes.length > 0 || copiedEvents.length > 0) {
 				pasteCopiedNotesToSection(copiedNotes, copiedEvents);
+			} else {
+				var lastFile = getLastClipboardFile();
+				if (lastFile != null && FileSystem.exists(lastFile)) {
+					var data = loadClipboardFromFile(lastFile);
+					pasteCopiedNotesToSection(data.notes, data.events);
+				}
 			}
 		});
 		var clearButton:PsychUIButton = new PsychUIButton(objX + 200, objY, 'Clear', function()
