@@ -215,7 +215,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         if (currentPreviewData == null) return;
 
         var gridBgX = chartingState.gridBg.x;
-        var gridSize = chartingState.GRID_SIZE;
+        var gridSize = ChartingState.GRID_SIZE;
         var curZoom = chartingState.curZoom;
         var cachedSectionCrochets = chartingState.cachedSectionCrochets;
         var cachedSectionTimes = chartingState.cachedSectionTimes;
