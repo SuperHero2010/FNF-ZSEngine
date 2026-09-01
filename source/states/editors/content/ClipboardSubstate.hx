@@ -244,7 +244,8 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
         {
-            for (note in currentPreviewData.notes)
+            var notes:Array<Array<Dynamic>> = cast currentPreviewData.notes;
+            for (note in notes)
             {
                 if (note != null && note[0] != null)
                 {
@@ -257,7 +258,8 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         if (currentPreviewData.events != null && currentPreviewData.events.length > 0)
         {
-            for (event in currentPreviewData.events)
+            var events:Array<Array<Dynamic>> = cast currentPreviewData.events;
+            for (event in events)
             {
                 if (event != null && event[0] != null)
                 {
@@ -282,7 +284,7 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
         {
-            var notes = currentPreviewData.notes;
+            var notes:Array<Array<Dynamic>> = cast currentPreviewData.notes;
             var sectionTime = cachedSectionTimes[0];
             var crochet = cachedSectionCrochets[0];
             var row = cachedSectionRow[0];
@@ -313,7 +315,7 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         if (currentPreviewData.events != null && currentPreviewData.events.length > 0)
         {
-            var events = currentPreviewData.events;
+            var events:Array<Array<Dynamic>> = cast currentPreviewData.events;
             var sectionTime = cachedSectionTimes[0];
             var crochet = cachedSectionCrochets[0];
             var row = cachedSectionRow[0];
