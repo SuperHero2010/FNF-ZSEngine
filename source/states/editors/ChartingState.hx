@@ -200,6 +200,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	public var playbackRate:Float = 1;
 
+	public function getGridBg():FlxSprite { return gridBg; }
+	public function getGRID_SIZE():Float { return GRID_SIZE; }
+	public function getCurZoom():Float { return curZoom; }
+	public function getCachedSectionCrochets():Array<Float> { return cachedSectionCrochets; }
+	public function getCachedSectionTimes():Array<Float> { return cachedSectionTimes; }
+	public function getCachedSectionRow():Array<Float> { return cachedSectionRow; }
+	public function getCreateNote(note:Dynamic, secNum:Int):MetaNote { return createNote(note, secNum); }
+	public function getCreateEvent(event:Dynamic):EventMetaNote { return createEvent(event); }
+
 	override function create()
 	{
 		if(Difficulty.list.length < 1) Difficulty.resetList();

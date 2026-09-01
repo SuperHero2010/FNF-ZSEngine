@@ -29,6 +29,16 @@ class ClipboardSubstate extends MusicBeatSubstate
     private var previewScroll:Float = 0;
     private var previewScrollSpeed:Float = 50;
 
+    var gridBgX = chartingState.getGridBg().x;
+    var gridSize = chartingState.getGRID_SIZE();
+    var curZoom = chartingState.getCurZoom();
+    var cachedSectionCrochets = chartingState.getCachedSectionCrochets();
+    var cachedSectionTimes = chartingState.getCachedSectionTimes();
+    var cachedSectionRow = chartingState.getCachedSectionRow();
+    var gridBg = chartingState.getGridBg();
+    var metaNote = chartingState.getCreateNote(noteData, 0);
+    var eventNote = chartingState.getCreateEvent(eventData);
+
     public function new(chartingState:ChartingState)
     {
         super();
@@ -73,7 +83,6 @@ class ClipboardSubstate extends MusicBeatSubstate
         add(listTitle);
 
         listGroup = new FlxTypedGroup<FlxText>();
-        listGroup.scrollFactor.set();
         add(listGroup);
 
         // Right panel: preview container
@@ -94,7 +103,6 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         // Preview container for ALL notes and events (no limit)
         previewContainer = new FlxTypedGroup<FlxSprite>();
-        previewContainer.scrollFactor.set();
         add(previewContainer);
 
         // Buttons
@@ -134,9 +142,6 @@ class ClipboardSubstate extends MusicBeatSubstate
         scrollDownButton.resize(30, 20);
         scrollDownButton.scrollFactor.set();
         add(scrollDownButton);
-
-        // Background click to close (optional)
-        bg.onClick = function() { close(); };
     }
 
     private function loadClipboardList():Void
