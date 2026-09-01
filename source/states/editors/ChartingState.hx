@@ -1051,34 +1051,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						stopMovingNotes();
 						resetSelectedNotes();
 						selectedNotes = pasteCopiedNotesToSection(notesToPaste, eventsToPaste);
-						selectedNotes.sort(PlayState.sortByTime);
-
-						var didFind:Bool = false;
-						var minNoteData:Float = Math.POSITIVE_INFINITY;
-						for (note in selectedNotes)
-						{
-							if(note == null || note.isEvent) continue;
-
-							if(minNoteData > note.songData[1]) minNoteData = note.songData[1];
-							didFind = true;
-						}
-						if(!didFind) minNoteData = 0;
-
-						var pushedNotes:Array<MetaNote> = [];
-						var pushedEvents:Array<EventMetaNote> = [];
-						for (note in selectedNotes)
-						{
-							if(note == null) continue;
-
-							if(!note.isEvent)
-							{
-								note.changeNoteData(Std.int(note.songData[1] - minNoteData));
-								pushedNotes.push(note);
-							}
-							else pushedEvents.push(cast (note, EventMetaNote));
-						}
-						addUndoAction(ADD_NOTE, {notes: pushedNotes, events: pushedEvents});
-						moveSelectedNotes(Std.int(minNoteData), selectedNotes[0].y);
 					}
 				}
 				else if(FlxG.keys.justPressed.A) // Select All (Ctrl + A)

@@ -36,6 +36,12 @@ class ClipboardSubstate extends MusicBeatSubstate
         this.persistentUpdate = true;
         createUI();
         loadClipboardList();
+
+        for (member in members)
+        {
+            if (member != null)
+                member.cameras = this.cameras;
+        }
     }
 
     private function createUI():Void
@@ -48,72 +54,80 @@ class ClipboardSubstate extends MusicBeatSubstate
         var bg = new FlxSprite().makeGraphic(FlxG.width, FlxG.height, FlxColor.BLACK);
         bg.alpha = 0.7;
         bg.scrollFactor.set();
+        bg.cameras = this.cameras;
         add(bg);
 
         var containerBg = new FlxSprite(x - 10, y - 10).makeGraphic(width + 20, height + 20, FlxColor.GRAY);
         containerBg.alpha = 0.95;
         containerBg.scrollFactor.set();
+        containerBg.cameras = this.cameras;
         add(containerBg);
 
         var title = new FlxText(x + width/2 - 50, y + 10, 100, "Clipboards", 24);
         title.color = FlxColor.WHITE;
         title.alignment = CENTER;
         title.scrollFactor.set();
+        title.cameras = this.cameras;
         add(title);
 
-        // Left panel: list
         var listBg = new FlxSprite(x, y + 40).makeGraphic(280, height - 80, FlxColor.GRAY);
         listBg.alpha = 0.8;
         listBg.scrollFactor.set();
+        listBg.cameras = this.cameras;
         add(listBg);
 
         var listTitle = new FlxText(x + 10, y + 50, 260, "Saved Clipboards", 16);
         listTitle.color = FlxColor.YELLOW;
         listTitle.scrollFactor.set();
+        listTitle.cameras = this.cameras;
         add(listTitle);
 
         listGroup = new FlxTypedGroup<FlxText>();
+        listGroup.cameras = this.cameras;
         add(listGroup);
 
-        // Right panel: preview container
         var previewBg = new FlxSprite(x + 290, y + 40).makeGraphic(width - 300, height - 80, FlxColor.GRAY);
         previewBg.alpha = 0.8;
         previewBg.scrollFactor.set();
+        previewBg.cameras = this.cameras;
         add(previewBg);
 
         var previewTitle = new FlxText(x + 300, y + 50, width - 320, "Preview", 16);
         previewTitle.color = FlxColor.YELLOW;
         previewTitle.scrollFactor.set();
+        previewTitle.cameras = this.cameras;
         add(previewTitle);
 
         previewText = new FlxText(x + 300, y + 70, width - 320, "", 14);
         previewText.color = FlxColor.WHITE;
         previewText.scrollFactor.set();
+        previewText.cameras = this.cameras;
         add(previewText);
 
-        // Preview container for ALL notes and events (no limit)
         previewContainer = new FlxTypedGroup<FlxSprite>();
+        previewContainer.cameras = this.cameras;
         add(previewContainer);
 
-        // Buttons
         deleteButton = new PsychUIButton(x + width - 310, y + height - 35, "Delete", onDeletePress);
         deleteButton.resize(80, 30);
         deleteButton.normalStyle.bgColor = FlxColor.RED;
         deleteButton.scrollFactor.set();
+        deleteButton.cameras = this.cameras;
         add(deleteButton);
 
         cancelButton = new PsychUIButton(x + width - 220, y + height - 35, "Cancel", onCancelPress);
         cancelButton.resize(80, 30);
         cancelButton.scrollFactor.set();
+        cancelButton.cameras = this.cameras;
         add(cancelButton);
 
         confirmButton = new PsychUIButton(x + width - 130, y + height - 35, "Load", onConfirmPress);
         confirmButton.resize(80, 30);
         confirmButton.normalStyle.bgColor = FlxColor.GREEN;
         confirmButton.scrollFactor.set();
+        confirmButton.cameras = this.cameras;
         add(confirmButton);
 
-        // Scroll for preview
         var scrollUpButton = new PsychUIButton(x + width - 70, y + 80, "▲", function()
         {
             previewScroll -= previewScrollSpeed;
@@ -122,6 +136,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         });
         scrollUpButton.resize(30, 20);
         scrollUpButton.scrollFactor.set();
+        scrollUpButton.cameras = this.cameras;
         add(scrollUpButton);
 
         var scrollDownButton = new PsychUIButton(x + width - 70, y + 100, "▼", function()
@@ -131,6 +146,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         });
         scrollDownButton.resize(30, 20);
         scrollDownButton.scrollFactor.set();
+        scrollDownButton.cameras = this.cameras;
         add(scrollDownButton);
     }
 
@@ -223,7 +239,47 @@ class ClipboardSubstate extends MusicBeatSubstate
         var gridBg = chartingState.gridBg;
         var showEventColumn = ChartingState.SHOW_EVENT_COLUMN;
 
-        // Render ALL notes
+        var minTime:Float = Math.POSITIVE_INFINITY;
+        var maxTime:Float = Math.NEGATIVE_INFINITY;
+
+        if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
+        {
+            for (note in currentPreviewData.notes)
+            {
+                if (note != null && note[0] != null)
+                {
+                    var time:Float = note[0];
+                    if (time < minTime) minTime = time;
+                    if (time > maxTime) maxTime = time;
+                }
+            }
+        }
+
+        if (currentPreviewData.events != null && currentPreviewData.events.length > 0)
+        {
+            for (event in currentPreviewData.events)
+            {
+                if (event != null && event[0] != null)
+                {
+                    var time:Float = event[0];
+                    if (time < minTime) minTime = time;
+                    if (time > maxTime) maxTime = time;
+                }
+            }
+        }
+
+        if (previewScroll == 0 && minTime != Math.POSITIVE_INFINITY)
+        {
+            var midTime:Float = (minTime + maxTime) / 2;
+            var sectionTime = cachedSectionTimes[0];
+            var crochet = cachedSectionCrochets[0];
+            var row = cachedSectionRow[0];
+            var midYPos = ((midTime - sectionTime) / crochet) * gridSize * 4 * curZoom;
+            midYPos += row * gridSize * curZoom;
+            var previewHeight = 600 - 80;
+            previewScroll = Math.max(0, midYPos - previewHeight / 2);
+        }
+
         if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
         {
             var notes = currentPreviewData.notes;
@@ -250,13 +306,11 @@ class ClipboardSubstate extends MusicBeatSubstate
 
                     metaNote.x = xPos;
                     metaNote.y = gridBg.y + noteYPos - previewScroll;
-                    metaNote.scale.set(1.0, 1.0);
                     previewContainer.add(metaNote);
                 }
             }
         }
 
-        // Render ALL events
         if (currentPreviewData.events != null && currentPreviewData.events.length > 0)
         {
             var events = currentPreviewData.events;
@@ -278,7 +332,6 @@ class ClipboardSubstate extends MusicBeatSubstate
 
                     eventNote.x = gridBgX;
                     eventNote.y = gridBg.y + noteYPos - previewScroll;
-                    eventNote.scale.set(1.0, 1.0);
                     previewContainer.add(eventNote);
                 }
             }
