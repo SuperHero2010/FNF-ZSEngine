@@ -5880,8 +5880,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		btnY++;
 		btnY += 20;
-		var loadClipboardButton:PsychUIButton = new PsychUIButton(btnX, btnY, "Load Clipboard", function() {
-			var substate = new ClipboardSubstate();
+		var loadClipboardButton:PsychUIButton = new PsychUIButton(btnX, btnY, "  Load Clipboard", function() {
+			var substate = new ClipboardSubstate(this);
 			substate.onConfirm = function(filePath:String) {
 				var data = loadClipboardFromFile(filePath);
 				copiedNotes = data.notes;
