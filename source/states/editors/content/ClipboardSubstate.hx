@@ -29,16 +29,6 @@ class ClipboardSubstate extends MusicBeatSubstate
     private var previewScroll:Float = 0;
     private var previewScrollSpeed:Float = 50;
 
-    var gridBgX = chartingState.getGridBg().x;
-    var gridSize = chartingState.getGRID_SIZE();
-    var curZoom = chartingState.getCurZoom();
-    var cachedSectionCrochets = chartingState.getCachedSectionCrochets();
-    var cachedSectionTimes = chartingState.getCachedSectionTimes();
-    var cachedSectionRow = chartingState.getCachedSectionRow();
-    var gridBg = chartingState.getGridBg();
-    var metaNote = chartingState.getCreateNote(noteData, 0);
-    var eventNote = chartingState.getCreateEvent(eventData);
-
     public function new(chartingState:ChartingState)
     {
         super();

@@ -138,13 +138,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var camUI:FlxCamera;
 
 	var prevGridBg:ChartingGridSprite;
-	var gridBg:ChartingGridSprite;
+	public var gridBg:ChartingGridSprite;
 	var nextGridBg:ChartingGridSprite;
 	var waveformSprite:FlxSprite;
 	var scrollY:Float = 0;
 
 	var zoomList:Array<Float> = [0.25, 0.5, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 36, 48, 64, 72, 96, 128, 192, 256];
-	var curZoom:Float = 1;
+	public var curZoom:Float = 1;
 
 	var mustHitIndicator:FlxSprite;
 	var eventIcon:FlxSprite;
@@ -199,15 +199,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var waveformTarget:WaveformTarget = INST;
 
 	public var playbackRate:Float = 1;
-
-	public function getGridBg():FlxSprite { return gridBg; }
-	public function getGRID_SIZE():Float { return GRID_SIZE; }
-	public function getCurZoom():Float { return curZoom; }
-	public function getCachedSectionCrochets():Array<Float> { return cachedSectionCrochets; }
-	public function getCachedSectionTimes():Array<Float> { return cachedSectionTimes; }
-	public function getCachedSectionRow():Array<Float> { return cachedSectionRow; }
-	public function getCreateNote(note:Dynamic, secNum:Int):MetaNote { return createNote(note, secNum); }
-	public function getCreateEvent(event:Dynamic):EventMetaNote { return createEvent(event); }
 
 	override function create()
 	{
@@ -2173,9 +2164,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 	}
 
-	var cachedSectionRow:Array<Int>;
-	var cachedSectionTimes:Array<Float>;
-	var cachedSectionCrochets:Array<Float>;
+	public var cachedSectionRow:Array<Int>;
+	public var cachedSectionTimes:Array<Float>;
+	public var cachedSectionCrochets:Array<Float>;
 	var cachedSectionBPMs:Array<Float>;
 	function loadChart(song:SwagSong)
 	{
@@ -2634,7 +2625,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		if (Main.isConsoleAvailable) Sys.stdout().writeString('\n');
 	}
 
-	function createNote(note:Dynamic, ?secNum:Null<Int> = null)
+	public function createNote(note:Dynamic, ?secNum:Null<Int> = null)
 	{
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
@@ -2666,7 +2657,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		return swagNote;
 	}
 
-	function createEvent(event:Dynamic)
+	public function createEvent(event:Dynamic)
 	{
 		var daStrumTime:Float = event[0];
 		var swagEvent:EventMetaNote = new EventMetaNote(daStrumTime, event);
