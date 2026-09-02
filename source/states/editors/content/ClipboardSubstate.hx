@@ -112,7 +112,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         confirmButton.scrollFactor.set();
         add(confirmButton);
 
-        var scrollUpButton = new PsychUIButton(x + width - 30, y + 80, "▲", function()
+        var scrollUpButton = new PsychUIButton(x + width - 100, y + 80, "▲", function()
         {
             previewScroll -= previewScrollSpeed;
             if (previewScroll < 0) previewScroll = 0;
@@ -122,7 +122,7 @@ class ClipboardSubstate extends MusicBeatSubstate
         scrollUpButton.scrollFactor.set();
         add(scrollUpButton);
 
-        var scrollDownButton = new PsychUIButton(x + width - 30, y + 100, "▼", function()
+        var scrollDownButton = new PsychUIButton(x + width - 100, y + 100, "▼", function()
         {
             previewScroll += previewScrollSpeed;
             updatePreviewContent();
@@ -155,7 +155,7 @@ class ClipboardSubstate extends MusicBeatSubstate
             {
                 displayName = parts[0] + ' ' + parts[1];
             }
-            var txt = new FlxText(listTitle.x, listTitle.y + i * 25, 400, displayName, 14);
+            var txt = new FlxText(listTitle.x, listTitle.y + 20 + i * 25, 400, displayName, 14);
             txt.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
             txt.ID = i;
             txt.scrollFactor.set();
