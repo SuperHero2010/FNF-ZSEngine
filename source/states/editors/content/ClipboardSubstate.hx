@@ -27,7 +27,6 @@ class ClipboardSubstate extends MusicBeatSubstate
     private var currentPreviewData:Dynamic = null;
     private var chartingState:ChartingState;
     private var previewScroll:Float = 0;
-    private var previewScrollSpeed:Float = 50;
     var listTitle:FlxText;
 
     public function new(chartingState:ChartingState)
@@ -111,25 +110,6 @@ class ClipboardSubstate extends MusicBeatSubstate
         confirmButton.normalStyle.bgColor = FlxColor.GREEN;
         confirmButton.scrollFactor.set();
         add(confirmButton);
-
-        var scrollUpButton = new PsychUIButton(x + width - 100, y + 80, "▲", function()
-        {
-            previewScroll -= previewScrollSpeed;
-            if (previewScroll < 0) previewScroll = 0;
-            updatePreviewContent();
-        });
-        scrollUpButton.resize(30, 20);
-        scrollUpButton.scrollFactor.set();
-        add(scrollUpButton);
-
-        var scrollDownButton = new PsychUIButton(x + width - 100, y + 100, "▼", function()
-        {
-            previewScroll += previewScrollSpeed;
-            updatePreviewContent();
-        });
-        scrollDownButton.resize(30, 20);
-        scrollDownButton.scrollFactor.set();
-        add(scrollDownButton);
     }
 
     private function loadClipboardList():Void
@@ -221,6 +201,12 @@ class ClipboardSubstate extends MusicBeatSubstate
         var gridBg = chartingState.gridBg;
         var showEventColumn = ChartingState.SHOW_EVENT_COLUMN;
 
+        var width:Int = 900;
+        var height:Int = 600;
+        var x:Float = (FlxG.width - width) / 2;
+        var y:Float = (FlxG.height - height) / 2;
+        var previewCenterY = y + height / 2;
+
         var minTime:Float = Math.POSITIVE_INFINITY;
         var maxTime:Float = Math.NEGATIVE_INFINITY;
 
@@ -252,24 +238,21 @@ class ClipboardSubstate extends MusicBeatSubstate
             }
         }
 
-        if (previewScroll == 0 && minTime != Math.POSITIVE_INFINITY)
+        var midTime:Float = 0;
+        if (minTime != Math.POSITIVE_INFINITY)
         {
-            var midTime:Float = (minTime + maxTime) / 2;
-            var sectionTime = cachedSectionTimes[0];
-            var crochet = cachedSectionCrochets[0];
-            var row = cachedSectionRow[0];
-            var midYPos = ((midTime - sectionTime) / crochet) * gridSize * 4 * curZoom;
-            midYPos += row * gridSize * curZoom;
-            var previewHeight = 600 - 80;
-            previewScroll = Math.max(0, midYPos - previewHeight / 2);
+            midTime = (minTime + maxTime) / 2;
         }
+
+        var sectionTime = cachedSectionTimes[0];
+        var crochet = cachedSectionCrochets[0];
+        var row = cachedSectionRow[0];
+        var midYPos = ((midTime - sectionTime) / crochet) * gridSize * 4 * curZoom;
+        midYPos += row * gridSize * curZoom;
 
         if (currentPreviewData.notes != null && currentPreviewData.notes.length > 0)
         {
             var notes:Array<Array<Dynamic>> = cast currentPreviewData.notes;
-            var sectionTime = cachedSectionTimes[0];
-            var crochet = cachedSectionCrochets[0];
-            var row = cachedSectionRow[0];
 
             for (i in 0...notes.length)
             {
@@ -282,14 +265,13 @@ class ClipboardSubstate extends MusicBeatSubstate
                     var time = strumTime - sectionTime;
                     var noteYPos = (time / crochet) * gridSize * 4 * curZoom;
                     noteYPos += row * gridSize * curZoom;
-                    noteYPos = Math.max(noteYPos, -150);
 
                     var xPos = gridBgX;
                     if (showEventColumn) xPos += gridSize;
                     xPos += noteColumn * gridSize;
 
                     metaNote.x = xPos;
-                    metaNote.y = gridBg.y + noteYPos - previewScroll;
+                    metaNote.y = previewCenterY + (noteYPos - midYPos);
                     previewContainer.add(metaNote);
                 }
             }
@@ -298,9 +280,6 @@ class ClipboardSubstate extends MusicBeatSubstate
         if (currentPreviewData.events != null && currentPreviewData.events.length > 0)
         {
             var events:Array<Array<Dynamic>> = cast currentPreviewData.events;
-            var sectionTime = cachedSectionTimes[0];
-            var crochet = cachedSectionCrochets[0];
-            var row = cachedSectionRow[0];
 
             for (i in 0...events.length)
             {
@@ -312,10 +291,9 @@ class ClipboardSubstate extends MusicBeatSubstate
                     var time = strumTime - sectionTime;
                     var noteYPos = (time / crochet) * gridSize * 4 * curZoom;
                     noteYPos += row * gridSize * curZoom;
-                    noteYPos = Math.max(noteYPos, -150);
 
                     eventNote.x = gridBgX;
-                    eventNote.y = gridBg.y + noteYPos - previewScroll;
+                    eventNote.y = previewCenterY + (noteYPos - midYPos);
                     previewContainer.add(eventNote);
                 }
             }
