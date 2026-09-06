@@ -118,7 +118,7 @@ class ResetScoreSubState extends MusicBeatSubstate
 		noText.scale.set(scales[1 - confirmInt], scales[1 - confirmInt]);
 		if(week == -1 && icon != null)
 		{
-			icon.setIconState(onYes ? 'win' : 'normal');
+			icon.setIconState(onYes ? 'lose' : 'normal');
 		}
 	}
 }
