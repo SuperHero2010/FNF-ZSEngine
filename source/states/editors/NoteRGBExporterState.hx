@@ -65,7 +65,7 @@ class NoteRGBExporterState extends MusicBeatState
 			var splash:NoteSplash = new NoteSplash(FlxG.width / 2 - 150 + (i * 100), 100);
 			splash.alpha = 1.0;
 			splash.noteData = i;
-			splash.reloadSplash();
+			splash.loadSplash();
 			if (splash.animation.curAnim != null)
 				splash.animation.curAnim.play();
 			splashes.add(splash);
