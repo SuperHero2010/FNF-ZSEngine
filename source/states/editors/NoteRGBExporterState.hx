@@ -7,8 +7,7 @@ import objects.StrumNote;
 import openfl.net.FileFilter;
 import flixel.group.FlxSpriteGroup.FlxTypedSpriteGroup;
 import flixel.input.keyboard.FlxKey;
-import flixel.ui.FlxButton;
-import flixel.addons.ui.FlxUICheckBox;
+import backend.ui.*;
 import openfl.events.Event;
 import openfl.events.IOErrorEvent;
 import openfl.net.FileReference;
@@ -21,10 +20,10 @@ class NoteRGBExporterState extends MusicBeatState
 	var splashes:FlxTypedSpriteGroup<NoteSplash> = new FlxTypedSpriteGroup();
 	var sustains:FlxTypedSpriteGroup<Note> = new FlxTypedSpriteGroup();
 
-	var backButton:FlxButton;
-	var exportButton:FlxButton;
-	var importButton:FlxButton;
-	var disableRGBCheckbox:FlxUICheckBox;
+	var backButton:PsychUIButton;
+	var exportButton:PsychUIButton;
+	var importButton:PsychUIButton;
+	var disableRGBCheckbox:PsychUICheckBox;
 
 	var _file:FileReference;
 	var disableNoteRGB:Bool = false;
@@ -83,31 +82,30 @@ class NoteRGBExporterState extends MusicBeatState
 		add(splashes);
 		add(sustains);
 
-		backButton = new FlxButton(20, FlxG.height - 50, "Back", function()
+		backButton = new PsychUIButton(20, FlxG.height - 50, "Back", function()
 		{
 			MusicBeatState.switchState(new states.editors.MasterEditorMenu());
 		});
 		add(backButton);
 
-		exportButton = new FlxButton(FlxG.width - 200, FlxG.height - 50, "Export Spritesheet", function()
+		exportButton = new PsychUIButton(FlxG.width - 200, FlxG.height - 50, "Export Spritesheet", function()
 		{
 			exportSpritesheet();
 		});
 		add(exportButton);
 
-		importButton = new FlxButton(20, 20, "Import Spritesheet", function()
+		importButton = new PsychUIButton(20, 20, "Import Spritesheet", function()
 		{
 			importSpritesheet();
 		});
 		add(importButton);
 
-		disableRGBCheckbox = new FlxUICheckBox(FlxG.width - 200, 20, "Disable note RGB", 100);
-		disableRGBCheckbox.checked = disableNoteRGB;
-		disableRGBCheckbox.callback = function()
+		disableRGBCheckbox = new PsychUICheckBox(FlxG.width - 200, 20, "Disable note RGB", 100, function()
 		{
 			disableNoteRGB = disableRGBCheckbox.checked;
 			updateRGB();
-		};
+		});
+		disableRGBCheckbox.checked = disableNoteRGB;
 		add(disableRGBCheckbox);
 
 		super.create();
