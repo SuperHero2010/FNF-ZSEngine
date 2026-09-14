@@ -210,7 +210,7 @@ class NoteRGBExporterState extends MusicBeatState
 			}
 		}
 
-		var pngData = openfl.display.PNGEncoder.encode(bitmapData);
+		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
 		_file = new FileReference();
 		_file.addEventListener(Event.COMPLETE, onSaveComplete);
@@ -256,11 +256,12 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (splash in splashes)
 		{
+			var rgb = (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null) ? splash.config.rgb[splash.noteData] : null;
 			data.splashes.push({
 				id: splash.ID,
-				r: splash.rgbShader != null ? splash.rgbShader.r : 0xFFFF0000,
-				g: splash.rgbShader != null ? splash.rgbShader.g : 0xFF00FF00,
-				b: splash.rgbShader != null ? splash.rgbShader.b : 0xFF0000FF
+				r: rgb != null && rgb.r != null ? rgb.r : 0xFFFF0000,
+				g: rgb != null && rgb.g != null ? rgb.g : 0xFF00FF00,
+				b: rgb != null && rgb.b != null ? rgb.b : 0xFF0000FF
 			});
 		}
 
@@ -282,17 +283,17 @@ class NoteRGBExporterState extends MusicBeatState
 		var xml:String = '<?xml version="1.0" encoding="UTF-8"?>\n';
 		xml += '<TextureAtlas imagePath="noteRGB.png">\n';
 
-		for (note in data.notes)
+		for (note in cast(data.notes, Array<Dynamic>))
 		{
 			xml += '  <SubTexture name="note${note.id}" x="${note.id * 100}" y="0" width="100" height="100" r="${note.r}" g="${note.g}" b="${note.b}"/>\n';
 		}
 
-		for (splash in data.splashes)
+		for (splash in cast(data.splashes, Array<Dynamic>))
 		{
 			xml += '  <SubTexture name="splash${splash.id}" x="${splash.id * 100}" y="100" width="100" height="100" r="${splash.r}" g="${splash.g}" b="${splash.b}"/>\n';
 		}
 
-		for (sustain in data.sustains)
+		for (sustain in cast(data.sustains, Array<Dynamic>))
 		{
 			xml += '  <SubTexture name="sustain${sustain.id}" x="${sustain.id * 100}" y="200" width="100" height="100" r="${sustain.r}" g="${sustain.g}" b="${sustain.b}"/>\n';
 		}
@@ -331,24 +332,18 @@ class NoteRGBExporterState extends MusicBeatState
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 
+		_file.addEventListener(Event.COMPLETE, onFileLoadComplete);
+		_file.load();
+	}
+
+	function onFileLoadComplete(_):Void
+	{
+		_file.removeEventListener(Event.COMPLETE, onFileLoadComplete);
+
 		try
 		{
 			var fileName:String = _file.name.toLowerCase();
-			var fileContent:Dynamic = null;
-
-			#if MODS_ALLOWED
-			if (_file.__path != null)
-			{
-				if (fileName.endsWith('.xml'))
-				{
-					try fileContent = sys.io.File.getContent(_file.__path) catch (e) fileContent = null;
-				}
-				else if (fileName.endsWith('.png'))
-				{
-					try fileContent = sys.io.File.getBytes(_file.__path) catch (e) fileContent = null;
-				}
-			}
-			#end
+			var fileContent:Dynamic = _file.data;
 
 			if (fileContent != null)
 			{
@@ -411,11 +406,13 @@ class NoteRGBExporterState extends MusicBeatState
 			{
 				var id = Std.parseInt(name.substr(6));
 				var splash = splashes.members[id];
-				if (splash != null && splash.rgbShader != null)
+				if (splash != null && splash.config != null)
 				{
-					splash.rgbShader.r = r;
-					splash.rgbShader.g = g;
-					splash.rgbShader.b = b;
+					if (splash.config.rgb == null) splash.config.rgb = [];
+					if (splash.config.rgb[splash.noteData] == null) splash.config.rgb[splash.noteData] = {r: null, g: null, b: null};
+					splash.config.rgb[splash.noteData].r = r;
+					splash.config.rgb[splash.noteData].g = g;
+					splash.config.rgb[splash.noteData].b = b;
 				}
 			}
 			else if (name.startsWith("sustain"))
@@ -434,28 +431,29 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function loadPNG(pngBytes:haxe.io.Bytes)
 	{
-		var bitmapData = openfl.display.BitmapData.loadFromBytes(pngBytes);
-
-		for (note in notes)
+		openfl.display.BitmapData.loadFromBytes(pngBytes).onComplete(function(bitmapData:openfl.display.BitmapData)
 		{
-			var noteBitmap = new openfl.display.BitmapData(100, 100, true);
-			noteBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(note.noteData * 100, 0, 100, 100), new openfl.geom.Point(0, 0));
-			note.loadGraphic(noteBitmap);
-		}
+			for (note in notes)
+			{
+				var noteBitmap = new openfl.display.BitmapData(100, 100, true);
+				noteBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(note.noteData * 100, 0, 100, 100), new openfl.geom.Point(0, 0));
+				note.loadGraphic(noteBitmap);
+			}
 
-		for (splash in splashes)
-		{
-			var splashBitmap = new openfl.display.BitmapData(100, 100, true);
-			splashBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(splash.ID * 100, 100, 100, 100), new openfl.geom.Point(0, 0));
-			splash.loadGraphic(splashBitmap);
-		}
+			for (splash in splashes)
+			{
+				var splashBitmap = new openfl.display.BitmapData(100, 100, true);
+				splashBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(splash.ID * 100, 100, 100, 100), new openfl.geom.Point(0, 0));
+				splash.loadGraphic(splashBitmap);
+			}
 
-		for (sustain in sustains)
-		{
-			var sustainBitmap = new openfl.display.BitmapData(100, 100, true);
-			sustainBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(sustain.noteData * 100, 200, 100, 100), new openfl.geom.Point(0, 0));
-			sustain.loadGraphic(sustainBitmap);
-		}
+			for (sustain in sustains)
+			{
+				var sustainBitmap = new openfl.display.BitmapData(100, 100, true);
+				sustainBitmap.copyPixels(bitmapData, new openfl.geom.Rectangle(sustain.noteData * 100, 200, 100, 100), new openfl.geom.Point(0, 0));
+				sustain.loadGraphic(sustainBitmap);
+			}
+		});
 	}
 
 	override function destroy()
