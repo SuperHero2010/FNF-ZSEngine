@@ -18,7 +18,8 @@ class MasterEditorMenu extends MusicBeatState
 		'Dialogue Editor',
 		'Dialogue Portrait Editor',
 		'Note Splash Editor',
-		'Chart Merger'
+		'Chart Merger',
+		'Note RGB Exporter'
 	];
 	private var grpTexts:FlxTypedGroup<Alphabet>;
 	private var directories:Array<String> = [null];
@@ -124,6 +125,8 @@ class MasterEditorMenu extends MusicBeatState
 					MusicBeatState.switchState(new NoteSplashEditorState());
 				case 'Chart Merger':
 					MusicBeatState.switchState(new MergeChartState());
+				case 'Note RGB Exporter':
+					MusicBeatState.switchState(new NoteRGBExporterState());
 			}
 			FlxG.sound.music.volume = 0;
 			FreeplayState.destroyFreeplayVocals();
