@@ -55,7 +55,7 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var note:Note = new Note(0, i);
 			note.x = FlxG.width - 200;
-			note.y = FlxG.height / 2 - 50 + (i * 50);
+			note.y = FlxG.height / 2 + 50 + (i * 50);
 			note.scrollFactor.set();
 			notes.add(note);
 		}
@@ -63,7 +63,11 @@ class NoteRGBExporterState extends MusicBeatState
 		for (i in 0...4)
 		{
 			var splash:NoteSplash = new NoteSplash(FlxG.width / 2 - 150 + (i * 100), 100);
-			splash.alpha = 0.5;
+			splash.alpha = 1.0;
+			splash.noteData = i;
+			splash.reloadSplash();
+			if (splash.animation.curAnim != null)
+				splash.animation.curAnim.play();
 			splashes.add(splash);
 		}
 
@@ -212,17 +216,17 @@ class NoteRGBExporterState extends MusicBeatState
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
-		_file = new FileReference();
-		_file.addEventListener(Event.COMPLETE, onSaveComplete);
-		_file.addEventListener(Event.CANCEL, onSaveCancel);
-		_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-		_file.save(pngData, "noteRGB.png");
+		var pngFile = new FileReference();
+		pngFile.addEventListener(Event.COMPLETE, onSaveComplete);
+		pngFile.addEventListener(Event.CANCEL, onSaveCancel);
+		pngFile.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
+		pngFile.save(pngData, "noteRGB.png");
 
-		_file = new FileReference();
-		_file.addEventListener(Event.COMPLETE, onSaveComplete);
-		_file.addEventListener(Event.CANCEL, onSaveCancel);
-		_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-		_file.save(xmlData, "noteRGB.xml");
+		var xmlFile = new FileReference();
+		xmlFile.addEventListener(Event.COMPLETE, onSaveComplete);
+		xmlFile.addEventListener(Event.CANCEL, onSaveCancel);
+		xmlFile.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
+		xmlFile.save(xmlData, "noteRGB.xml");
 	}
 
 	function importSpritesheet()
