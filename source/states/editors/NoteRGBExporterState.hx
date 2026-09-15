@@ -65,7 +65,7 @@ class NoteRGBExporterState extends MusicBeatState
 			var strum:StrumNote = strums.members[i];
 			var splash:NoteSplash = new NoteSplash();
 			splash.babyArrow = strum;
-			splash.spawnSplashNote(FlxG.width / 2 - 150 + (i * 100), 100, i, null, strum);
+			splash.spawnSplashNote(FlxG.width / 2 - 150 + (i * 100), 100, i, null);
 			splashes.add(splash);
 		}
 
