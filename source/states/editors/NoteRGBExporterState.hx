@@ -213,29 +213,52 @@ class NoteRGBExporterState extends MusicBeatState
 
 		var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
 
+		var renderCamera = new FlxCamera(0, 0, 400, 300);
+		renderCamera.bgColor = 0x00000000;
+
 		for (note in notes)
 		{
-			if (note != null && note.graphic != null)
+			if (note != null)
 			{
-				bitmapData.draw(note, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+				note.cameras = [renderCamera];
+				note.draw();
+				if (renderCamera.buffer != null)
+				{
+					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+				}
+				renderCamera.fill(0x00000000);
 			}
 		}
 
 		for (splash in splashes)
 		{
-			if (splash != null && splash.graphic != null)
+			if (splash != null)
 			{
-				bitmapData.draw(splash, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+				splash.cameras = [renderCamera];
+				splash.draw();
+				if (renderCamera.buffer != null)
+				{
+					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+				}
+				renderCamera.fill(0x00000000);
 			}
 		}
 
 		for (sustain in sustains)
 		{
-			if (sustain != null && sustain.graphic != null)
+			if (sustain != null)
 			{
-				bitmapData.draw(sustain, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+				sustain.cameras = [renderCamera];
+				sustain.draw();
+				if (renderCamera.buffer != null)
+				{
+					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+				}
+				renderCamera.fill(0x00000000);
 			}
 		}
+
+		renderCamera.destroy();
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
