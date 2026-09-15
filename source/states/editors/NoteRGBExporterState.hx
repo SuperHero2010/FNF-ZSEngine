@@ -67,16 +67,18 @@ class NoteRGBExporterState extends MusicBeatState
 			splash.noteData = i;
 			splash.loadSplash();
 
-			trace('DEBUG: Splash $i - rgbShader: ${splash.rgbShader != null}');
-			if (splash.rgbShader != null)
+			trace('DEBUG: Splash $i - config: ${splash.config != null}');
+			if (splash.config != null && splash.config.allowRGB)
 			{
+				if (splash.config.rgb == null) splash.config.rgb = [];
 				var colors = ClientPrefs.data.arrowRGB[i % Note.colArray.length];
 				trace('DEBUG: Splash $i - ClientPrefs colors: $colors');
-				splash.rgbShader.r = colors[0];
-				splash.rgbShader.g = colors[1];
-				splash.rgbShader.b = colors[2];
-				splash.rgbShader.enabled = true;
-				trace('DEBUG: Splash $i - Set RGB: R=${splash.rgbShader.r}, G=${splash.rgbShader.g}, B=${splash.rgbShader.b}');
+				splash.config.rgb[i] = {
+					r: colors[0],
+					g: colors[1],
+					b: colors[2]
+				};
+				trace('DEBUG: Splash $i - Set RGB: R=${splash.config.rgb[i].r}, G=${splash.config.rgb[i].g}, B=${splash.config.rgb[i].b}');
 			}
 
 			if (splash.animation.curAnim != null)
