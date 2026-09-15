@@ -215,7 +215,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (note in notes)
 		{
-			if (note.graphic != null)
+			if (note != null && note.graphic != null)
 			{
 				bitmapData.draw(note, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
 			}
@@ -223,7 +223,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (splash in splashes)
 		{
-			if (splash.graphic != null)
+			if (splash != null && splash.graphic != null)
 			{
 				bitmapData.draw(splash, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
 			}
@@ -231,7 +231,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (sustain in sustains)
 		{
-			if (sustain.graphic != null)
+			if (sustain != null && sustain.graphic != null)
 			{
 				bitmapData.draw(sustain, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
 			}
