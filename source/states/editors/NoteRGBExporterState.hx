@@ -97,7 +97,6 @@ class NoteRGBExporterState extends MusicBeatState
 			sustain.x = FlxG.width / 2 - 150 + (i * 100);
 			sustain.y = FlxG.height - 200;
 			sustain.scrollFactor.set();
-			sustain.updateSustain();
 			sustains.add(sustain);
 		}
 
@@ -226,7 +225,8 @@ class NoteRGBExporterState extends MusicBeatState
 
 		if (Paths.fileExists(noteSkinPath, IMAGE))
 		{
-			_originalBitmapData = Paths.image(noteSkinPath);
+			var graphic = Paths.image(noteSkinPath);
+			_originalBitmapData = graphic.bitmap;
 
 			var tintedBitmap = applyRGBTint(_originalBitmapData);
 
