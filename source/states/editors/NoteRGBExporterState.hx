@@ -46,7 +46,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (i in 0...4)
 		{
-			var strum:StrumNote = new StrumNote(100, FlxG.height / 2 - 50 + (i * 80), i, 0);
+			var strum:StrumNote = new StrumNote(100, FlxG.height / 1.5 - 50 + (i * 90), i, 0);
 			strum.ID = i;
 			strums.add(strum);
 		}
@@ -55,7 +55,7 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var note:Note = new Note(0, i);
 			note.x = FlxG.width - 200;
-			note.y = FlxG.height / 2 - 50 + (i * 80);
+			note.y = FlxG.height / 1.5 - 50 + (i * 90);
 			note.scrollFactor.set();
 			notes.add(note);
 		}
@@ -67,21 +67,16 @@ class NoteRGBExporterState extends MusicBeatState
 			splash.noteData = i;
 			splash.loadSplash();
 
-			if (splash.config != null && splash.config.allowRGB)
+			trace('DEBUG: Splash $i - rgbShader: ${splash.rgbShader != null}');
+			if (splash.rgbShader != null)
 			{
-				if (splash.config.rgb == null) splash.config.rgb = [];
-				if (splash.config.rgb[i] == null)
-				{
-					var colors = Note.globalRgbShaders;
-					if (colors != null && colors.length > i)
-					{
-						splash.config.rgb[i] = {
-							r: colors[i].r,
-							g: colors[i].g,
-							b: colors[i].b
-						};
-					}
-				}
+				var colors = ClientPrefs.data.arrowRGB[i % Note.colArray.length];
+				trace('DEBUG: Splash $i - ClientPrefs colors: $colors');
+				splash.rgbShader.r = colors[0];
+				splash.rgbShader.g = colors[1];
+				splash.rgbShader.b = colors[2];
+				splash.rgbShader.enabled = true;
+				trace('DEBUG: Splash $i - Set RGB: R=${splash.rgbShader.r}, G=${splash.rgbShader.g}, B=${splash.rgbShader.b}');
 			}
 
 			if (splash.animation.curAnim != null)
@@ -109,7 +104,7 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			MusicBeatState.switchState(new states.editors.MasterEditorMenu());
 		});
-		backButton.resize(150, 40);
+		backButton.resize(100, 40);
 		add(backButton);
 
 		exportButton = new PsychUIButton(FlxG.width - 200, FlxG.height - 50, "Export Spritesheet", function()
@@ -214,21 +209,16 @@ class NoteRGBExporterState extends MusicBeatState
 		_xmlData = generateXML(spritesheetData);
 
 		var noteSkinPath = Note.defaultNoteSkin;
-		var pngPath = 'images/$noteSkinPath.png';
+		trace('DEBUG: Export - Note skin path: $noteSkinPath');
 
-		#if MODS_ALLOWED
-		if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
-		{
-			pngPath = 'mods/${Mods.currentModDirectory}/images/$noteSkinPath.png';
-		}
-		#end
-
-		if (Paths.fileExists(noteSkinPath, IMAGE))
+		try
 		{
 			var graphic = Paths.image(noteSkinPath);
 			_originalBitmapData = graphic.bitmap;
+			trace('DEBUG: Export - Loaded original bitmap: ${_originalBitmapData.width}x${_originalBitmapData.height}');
 
 			var tintedBitmap = applyRGBTint(_originalBitmapData);
+			trace('DEBUG: Export - Applied tint, result: ${tintedBitmap.width}x${tintedBitmap.height}');
 
 			var pngData = tintedBitmap.encode(tintedBitmap.rect, new openfl.display.PNGEncoderOptions());
 
@@ -238,8 +228,10 @@ class NoteRGBExporterState extends MusicBeatState
 			pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 			pngFile.save(pngData, "noteRGB.png");
 		}
-		else
+		catch (e)
 		{
+			trace('DEBUG: Failed to load note skin: $e');
+
 			var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
 
 			for (note in notes)
@@ -279,6 +271,7 @@ class NoteRGBExporterState extends MusicBeatState
 	function applyRGBTint(original:openfl.display.BitmapData):openfl.display.BitmapData
 	{
 		var tinted = original.clone();
+		trace('DEBUG: applyRGBTint - Original cloned, processing ${notes.length} notes');
 
 		for (note in notes)
 		{
@@ -288,13 +281,21 @@ class NoteRGBExporterState extends MusicBeatState
 				var g = note.rgbShader.g;
 				var b = note.rgbShader.b;
 
+				var rMult = (r & 0xFF) / 255.0;
+				var gMult = (g & 0xFF) / 255.0;
+				var bMult = (b & 0xFF) / 255.0;
+
 				var noteRegion = new openfl.geom.Rectangle(note.noteData * 50, 0, 50, 50);
+				trace('DEBUG: applyRGBTint - Note ${note.noteData}: RGB=($r,$g,$b), Multipliers=($rMult,$gMult,$bMult), Region=$noteRegion');
+
 				tinted.colorTransform(noteRegion, new openfl.geom.ColorTransform(
-					(r & 0xFF) / 255.0,
-					(g & 0xFF) / 255.0,
-					(b & 0xFF) / 255.0,
-					1.0
+					rMult, gMult, bMult, 1.0,
+					0, 0, 0, 0
 				));
+			}
+			else
+			{
+				trace('DEBUG: applyRGBTint - Note ${note.noteData}: rgbShader is null');
 			}
 		}
 
