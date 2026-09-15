@@ -46,7 +46,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (i in 0...4)
 		{
-			var strum:StrumNote = new StrumNote(100, FlxG.height / 2 - 50 + (i * 50), i, 0);
+			var strum:StrumNote = new StrumNote(100, FlxG.height / 2 - 50 + (i * 80), i, 0);
 			strum.ID = i;
 			strums.add(strum);
 		}
@@ -55,7 +55,7 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var note:Note = new Note(0, i);
 			note.x = FlxG.width - 200;
-			note.y = FlxG.height / 2 + 50 + (i * 50);
+			note.y = FlxG.height / 2 - 50 + (i * 80);
 			note.scrollFactor.set();
 			notes.add(note);
 		}
@@ -66,6 +66,24 @@ class NoteRGBExporterState extends MusicBeatState
 			splash.alpha = 1.0;
 			splash.noteData = i;
 			splash.loadSplash();
+
+			if (splash.config != null && splash.config.allowRGB)
+			{
+				if (splash.config.rgb == null) splash.config.rgb = [];
+				if (splash.config.rgb[i] == null)
+				{
+					var colors = Note.globalRgbShaders;
+					if (colors != null && colors.length > i)
+					{
+						splash.config.rgb[i] = {
+							r: colors[i].r,
+							g: colors[i].g,
+							b: colors[i].b
+						};
+					}
+				}
+			}
+
 			if (splash.animation.curAnim != null)
 				splash.animation.curAnim.play();
 			splashes.add(splash);
@@ -75,9 +93,11 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var sustain:Note = new Note(0, i);
 			sustain.isSustainNote = true;
+			sustain.sustainLength = 100;
 			sustain.x = FlxG.width / 2 - 150 + (i * 100);
 			sustain.y = FlxG.height - 200;
 			sustain.scrollFactor.set();
+			sustain.updateSustain();
 			sustains.add(sustain);
 		}
 
@@ -90,18 +110,21 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			MusicBeatState.switchState(new states.editors.MasterEditorMenu());
 		});
+		backButton.resize(150, 40);
 		add(backButton);
 
 		exportButton = new PsychUIButton(FlxG.width - 200, FlxG.height - 50, "Export Spritesheet", function()
 		{
 			exportSpritesheet();
 		});
+		exportButton.resize(150, 40);
 		add(exportButton);
 
 		importButton = new PsychUIButton(20, 20, "Import Spritesheet", function()
 		{
 			importSpritesheet();
 		});
+		importButton.resize(150, 40);
 		add(importButton);
 
 		disableRGBCheckbox = new PsychUICheckBox(FlxG.width - 200, 20, "Disable note RGB", 100, function()
@@ -183,50 +206,168 @@ class NoteRGBExporterState extends MusicBeatState
 		}
 	}
 
+	var _xmlData:String = null;
+	var _originalBitmapData:openfl.display.BitmapData = null;
+
 	function exportSpritesheet()
 	{
 		var spritesheetData = generateSpritesheetData();
-		var xmlData = generateXML(spritesheetData);
+		_xmlData = generateXML(spritesheetData);
 
-		var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
+		var noteSkinPath = Note.defaultNoteSkin;
+		var pngPath = 'images/$noteSkinPath.png';
+
+		#if MODS_ALLOWED
+		if (Mods.currentModDirectory != null && Mods.currentModDirectory.length > 0)
+		{
+			pngPath = 'mods/${Mods.currentModDirectory}/images/$noteSkinPath.png';
+		}
+		#end
+
+		if (Paths.fileExists(noteSkinPath, IMAGE))
+		{
+			_originalBitmapData = Paths.image(noteSkinPath);
+
+			var tintedBitmap = applyRGBTint(_originalBitmapData);
+
+			var pngData = tintedBitmap.encode(tintedBitmap.rect, new openfl.display.PNGEncoderOptions());
+
+			var pngFile = new FileReference();
+			pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
+			pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
+			pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+			pngFile.save(pngData, "noteRGB.png");
+		}
+		else
+		{
+			var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
+
+			for (note in notes)
+			{
+				if (note.graphic != null)
+				{
+					bitmapData.draw(note.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+				}
+			}
+
+			for (splash in splashes)
+			{
+				if (splash.graphic != null)
+				{
+					bitmapData.draw(splash.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+				}
+			}
+
+			for (sustain in sustains)
+			{
+				if (sustain.graphic != null)
+				{
+					bitmapData.draw(sustain.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+				}
+			}
+
+			var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
+
+			var pngFile = new FileReference();
+			pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
+			pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
+			pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+			pngFile.save(pngData, "noteRGB.png");
+		}
+	}
+
+	function applyRGBTint(original:openfl.display.BitmapData):openfl.display.BitmapData
+	{
+		var tinted = original.clone();
 
 		for (note in notes)
 		{
-			if (note.graphic != null)
+			if (note.rgbShader != null)
 			{
-				bitmapData.draw(note.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+				var r = note.rgbShader.r;
+				var g = note.rgbShader.g;
+				var b = note.rgbShader.b;
+
+				var noteRegion = new openfl.geom.Rectangle(note.noteData * 50, 0, 50, 50);
+				tinted.colorTransform(noteRegion, new openfl.geom.ColorTransform(
+					(r & 0xFF) / 255.0,
+					(g & 0xFF) / 255.0,
+					(b & 0xFF) / 255.0,
+					1.0
+				));
 			}
 		}
 
-		for (splash in splashes)
+		return tinted;
+	}
+
+	function onPNGSaveComplete(_):Void
+	{
+		var pngFile = cast(_.target, FileReference);
+		pngFile.removeEventListener(Event.COMPLETE, onPNGSaveComplete);
+		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
+		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+
+		saveXML();
+	}
+
+	function onPNGSaveCancel(_):Void
+	{
+		var pngFile = cast(_.target, FileReference);
+		pngFile.removeEventListener(Event.COMPLETE, onPNGSaveComplete);
+		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
+		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+
+		saveXML();
+	}
+
+	function onPNGSaveError(_):Void
+	{
+		var pngFile = cast(_.target, FileReference);
+		pngFile.removeEventListener(Event.COMPLETE, onPNGSaveComplete);
+		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
+		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+
+		saveXML();
+	}
+
+	function saveXML()
+	{
+		if (_xmlData != null)
 		{
-			if (splash.graphic != null)
-			{
-				bitmapData.draw(splash.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
-			}
+			var xmlFile = new FileReference();
+			xmlFile.addEventListener(Event.COMPLETE, onXMLSaveComplete);
+			xmlFile.addEventListener(Event.CANCEL, onXMLSaveCancel);
+			xmlFile.addEventListener(IOErrorEvent.IO_ERROR, onXMLSaveError);
+			xmlFile.save(_xmlData, "noteRGB.xml");
 		}
+	}
 
-		for (sustain in sustains)
-		{
-			if (sustain.graphic != null)
-			{
-				bitmapData.draw(sustain.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
-			}
-		}
+	function onXMLSaveComplete(_):Void
+	{
+		var xmlFile = cast(_.target, FileReference);
+		xmlFile.removeEventListener(Event.COMPLETE, onXMLSaveComplete);
+		xmlFile.removeEventListener(Event.CANCEL, onXMLSaveCancel);
+		xmlFile.removeEventListener(IOErrorEvent.IO_ERROR, onXMLSaveError);
+		_xmlData = null;
+	}
 
-		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
+	function onXMLSaveCancel(_):Void
+	{
+		var xmlFile = cast(_.target, FileReference);
+		xmlFile.removeEventListener(Event.COMPLETE, onXMLSaveComplete);
+		xmlFile.removeEventListener(Event.CANCEL, onXMLSaveCancel);
+		xmlFile.removeEventListener(IOErrorEvent.IO_ERROR, onXMLSaveError);
+		_xmlData = null;
+	}
 
-		var pngFile = new FileReference();
-		pngFile.addEventListener(Event.COMPLETE, onSaveComplete);
-		pngFile.addEventListener(Event.CANCEL, onSaveCancel);
-		pngFile.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-		pngFile.save(pngData, "noteRGB.png");
-
-		var xmlFile = new FileReference();
-		xmlFile.addEventListener(Event.COMPLETE, onSaveComplete);
-		xmlFile.addEventListener(Event.CANCEL, onSaveCancel);
-		xmlFile.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
-		xmlFile.save(xmlData, "noteRGB.xml");
+	function onXMLSaveError(_):Void
+	{
+		var xmlFile = cast(_.target, FileReference);
+		xmlFile.removeEventListener(Event.COMPLETE, onXMLSaveComplete);
+		xmlFile.removeEventListener(Event.CANCEL, onXMLSaveCancel);
+		xmlFile.removeEventListener(IOErrorEvent.IO_ERROR, onXMLSaveError);
+		_xmlData = null;
 	}
 
 	function importSpritesheet()
