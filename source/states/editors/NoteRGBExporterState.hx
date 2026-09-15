@@ -46,7 +46,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (i in 0...4)
 		{
-			var strum:StrumNote = new StrumNote(100, FlxG.height * 1.5 - 50 + (i * 120), i, 0);
+			var strum:StrumNote = new StrumNote(100, FlxG.height / 3 - 50 + (i * 120), i, 0);
 			strum.ID = i;
 			strums.add(strum);
 		}
@@ -55,36 +55,17 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var note:Note = new Note(0, i);
 			note.x = FlxG.width - 200;
-			note.y = FlxG.height * 1.5 - 50 + (i * 120);
+			note.y = FlxG.height / 3 - 50 + (i * 120);
 			note.scrollFactor.set();
 			notes.add(note);
 		}
 
 		for (i in 0...4)
 		{
-			var splash:NoteSplash = new NoteSplash(FlxG.width / 2 - 150 + (i * 100), 100);
-			splash.alpha = 1.0;
-			splash.noteData = i;
-			splash.loadSplash();
-
-			trace('DEBUG: Splash $i - config: ${splash.config != null}');
-			if (splash.config != null && splash.config.allowRGB)
-			{
-				if (splash.config.rgb == null) splash.config.rgb = [];
-				var colors = ClientPrefs.data.arrowRGB[i % Note.colArray.length];
-				trace('DEBUG: Splash $i - ClientPrefs colors: $colors');
-				splash.config.rgb[i] = {
-					r: colors[0],
-					g: colors[1],
-					b: colors[2]
-				};
-				trace('DEBUG: Splash $i - Set RGB: R=${splash.config.rgb[i].r}, G=${splash.config.rgb[i].g}, B=${splash.config.rgb[i].b}');
-
-				splash.loadSplash();
-			}
-
-			if (splash.animation.curAnim != null)
-				splash.animation.curAnim.play();
+			var strum:StrumNote = strums.members[i];
+			var splash:NoteSplash = new NoteSplash();
+			splash.babyArrow = strum;
+			splash.spawnSplashNote(FlxG.width / 2 - 150 + (i * 100), 100, i, null, strum);
 			splashes.add(splash);
 		}
 
@@ -206,6 +187,29 @@ class NoteRGBExporterState extends MusicBeatState
 
 	var _xmlData:String = null;
 
+	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor)
+	{
+		var rVal = (r >> 16) & 0xFF;
+		var gVal = (g >> 8) & 0xFF;
+		var bVal = b & 0xFF;
+
+		for (x in 0...bitmap.width)
+		{
+			for (y in 0...bitmap.height)
+			{
+				var pixel = bitmap.getPixel32(x, y);
+				var alpha = (pixel >> 24) & 0xFF;
+				if (alpha > 0)
+				{
+					var red = Std.int(((pixel >> 16) & 0xFF) * (rVal / 255.0));
+					var green = Std.int(((pixel >> 8) & 0xFF) * (gVal / 255.0));
+					var blue = Std.int((pixel & 0xFF) * (bVal / 255.0));
+					bitmap.setPixel32(x, y, (alpha << 24) | (red << 16) | (green << 8) | blue);
+				}
+			}
+		}
+	}
+
 	function exportSpritesheet()
 	{
 		var spritesheetData = generateSpritesheetData();
@@ -213,52 +217,45 @@ class NoteRGBExporterState extends MusicBeatState
 
 		var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
 
-		var renderCamera = new FlxCamera(0, 0, 400, 300);
-		renderCamera.bgColor = 0x00000000;
-
 		for (note in notes)
 		{
-			if (note != null)
+			if (note != null && note.graphic != null)
 			{
-				note.cameras = [renderCamera];
-				note.draw();
-				if (renderCamera.buffer != null)
+				var tempBitmap = note.graphic.bitmap.clone();
+				if (note.rgbShader != null)
 				{
-					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+					applyRGBBlend(tempBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b);
 				}
-				renderCamera.fill(0x00000000);
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
 			}
 		}
 
 		for (splash in splashes)
 		{
-			if (splash != null)
+			if (splash != null && splash.graphic != null)
 			{
-				splash.cameras = [renderCamera];
-				splash.draw();
-				if (renderCamera.buffer != null)
+				var tempBitmap = splash.graphic.bitmap.clone();
+				if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
 				{
-					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+					var rgb = splash.config.rgb[splash.noteData];
+					applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b);
 				}
-				renderCamera.fill(0x00000000);
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
 			}
 		}
 
 		for (sustain in sustains)
 		{
-			if (sustain != null)
+			if (sustain != null && sustain.graphic != null)
 			{
-				sustain.cameras = [renderCamera];
-				sustain.draw();
-				if (renderCamera.buffer != null)
+				var tempBitmap = sustain.graphic.bitmap.clone();
+				if (sustain.rgbShader != null)
 				{
-					bitmapData.draw(renderCamera.buffer, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+					applyRGBBlend(tempBitmap, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b);
 				}
-				renderCamera.fill(0x00000000);
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
 			}
 		}
-
-		renderCamera.destroy();
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
