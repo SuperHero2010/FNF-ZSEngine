@@ -46,7 +46,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 		for (i in 0...4)
 		{
-			var strum:StrumNote = new StrumNote(100, FlxG.height / 1.5 - 50 + (i * 90), i, 0);
+			var strum:StrumNote = new StrumNote(100, FlxG.height * 1.5 - 50 + (i * 120), i, 0);
 			strum.ID = i;
 			strums.add(strum);
 		}
@@ -55,7 +55,7 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var note:Note = new Note(0, i);
 			note.x = FlxG.width - 200;
-			note.y = FlxG.height / 1.5 - 50 + (i * 90);
+			note.y = FlxG.height * 1.5 - 50 + (i * 120);
 			note.scrollFactor.set();
 			notes.add(note);
 		}
@@ -79,6 +79,8 @@ class NoteRGBExporterState extends MusicBeatState
 					b: colors[2]
 				};
 				trace('DEBUG: Splash $i - Set RGB: R=${splash.config.rgb[i].r}, G=${splash.config.rgb[i].g}, B=${splash.config.rgb[i].b}');
+
+				splash.loadSplash();
 			}
 
 			if (splash.animation.curAnim != null)
@@ -203,105 +205,45 @@ class NoteRGBExporterState extends MusicBeatState
 	}
 
 	var _xmlData:String = null;
-	var _originalBitmapData:openfl.display.BitmapData = null;
 
 	function exportSpritesheet()
 	{
 		var spritesheetData = generateSpritesheetData();
 		_xmlData = generateXML(spritesheetData);
 
-		var noteSkinPath = Note.defaultNoteSkin;
-		trace('DEBUG: Export - Note skin path: $noteSkinPath');
-
-		try
-		{
-			var graphic = Paths.image(noteSkinPath);
-			_originalBitmapData = graphic.bitmap;
-			trace('DEBUG: Export - Loaded original bitmap: ${_originalBitmapData.width}x${_originalBitmapData.height}');
-
-			var tintedBitmap = applyRGBTint(_originalBitmapData);
-			trace('DEBUG: Export - Applied tint, result: ${tintedBitmap.width}x${tintedBitmap.height}');
-
-			var pngData = tintedBitmap.encode(tintedBitmap.rect, new openfl.display.PNGEncoderOptions());
-
-			var pngFile = new FileReference();
-			pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
-			pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
-			pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
-			pngFile.save(pngData, "noteRGB.png");
-		}
-		catch (e)
-		{
-			trace('DEBUG: Failed to load note skin: $e');
-
-			var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
-
-			for (note in notes)
-			{
-				if (note.graphic != null)
-				{
-					bitmapData.draw(note.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
-				}
-			}
-
-			for (splash in splashes)
-			{
-				if (splash.graphic != null)
-				{
-					bitmapData.draw(splash.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
-				}
-			}
-
-			for (sustain in sustains)
-			{
-				if (sustain.graphic != null)
-				{
-					bitmapData.draw(sustain.graphic.bitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
-				}
-			}
-
-			var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
-
-			var pngFile = new FileReference();
-			pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
-			pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
-			pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
-			pngFile.save(pngData, "noteRGB.png");
-		}
-	}
-
-	function applyRGBTint(original:openfl.display.BitmapData):openfl.display.BitmapData
-	{
-		var tinted = original.clone();
-		trace('DEBUG: applyRGBTint - Original cloned, processing ${notes.length} notes');
+		var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
 
 		for (note in notes)
 		{
-			if (note.rgbShader != null)
+			if (note.graphic != null)
 			{
-				var r = note.rgbShader.r;
-				var g = note.rgbShader.g;
-				var b = note.rgbShader.b;
-
-				var rMult = (r & 0xFF) / 255.0;
-				var gMult = (g & 0xFF) / 255.0;
-				var bMult = (b & 0xFF) / 255.0;
-
-				var noteRegion = new openfl.geom.Rectangle(note.noteData * 50, 0, 50, 50);
-				trace('DEBUG: applyRGBTint - Note ${note.noteData}: RGB=($r,$g,$b), Multipliers=($rMult,$gMult,$bMult), Region=$noteRegion');
-
-				tinted.colorTransform(noteRegion, new openfl.geom.ColorTransform(
-					rMult, gMult, bMult, 1.0,
-					0, 0, 0, 0
-				));
-			}
-			else
-			{
-				trace('DEBUG: applyRGBTint - Note ${note.noteData}: rgbShader is null');
+				bitmapData.draw(note, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
 			}
 		}
 
-		return tinted;
+		for (splash in splashes)
+		{
+			if (splash.graphic != null)
+			{
+				bitmapData.draw(splash, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+			}
+		}
+
+		for (sustain in sustains)
+		{
+			if (sustain.graphic != null)
+			{
+				bitmapData.draw(sustain, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+			}
+		}
+
+		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
+
+		var pngFile = new FileReference();
+		pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
+		pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
+		pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
+		pngFile.save(pngData, "noteRGB.png");
 	}
 
 	function onPNGSaveComplete(_):Void
@@ -311,7 +253,10 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		saveXML();
+		new FlxTimer().start(0.5, function(tmr:FlxTimer)
+		{
+			saveXML();
+		});
 	}
 
 	function onPNGSaveCancel(_):Void
@@ -321,7 +266,10 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		saveXML();
+		new FlxTimer().start(0.5, function(tmr:FlxTimer)
+		{
+			saveXML();
+		});
 	}
 
 	function onPNGSaveError(_):Void
@@ -331,7 +279,10 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		saveXML();
+		new FlxTimer().start(0.5, function(tmr:FlxTimer)
+		{
+			saveXML();
+		});
 	}
 
 	function saveXML()
