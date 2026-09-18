@@ -225,7 +225,22 @@ class NoteRGBExporterState extends MusicBeatState
 				if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
 				{
 					var rgb = splash.config.rgb[splash.noteData];
-					var mult = splash.rgbShader != null ? splash.rgbShader.mult : 1.0;
+					var mult = 1.0;
+					if (splash.rgbShader != null)
+					{
+						if (Reflect.hasField(splash.rgbShader, 'mult'))
+						{
+							mult = Reflect.field(splash.rgbShader, 'mult');
+						}
+						else if (Reflect.hasField(splash.rgbShader, 'parent'))
+						{
+							var parent = Reflect.field(splash.rgbShader, 'parent');
+							if (parent != null && Reflect.hasField(parent, 'mult'))
+							{
+								mult = Reflect.field(parent, 'mult');
+							}
+						}
+					}
 					applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
 				}
 				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, i * splashWidth, 0));
@@ -314,7 +329,22 @@ class NoteRGBExporterState extends MusicBeatState
 					if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
 					{
 						var rgb = splash.config.rgb[splash.noteData];
-						var mult = splash.rgbShader != null ? splash.rgbShader.mult : 1.0;
+						var mult = 1.0;
+						if (splash.rgbShader != null)
+						{
+							if (Reflect.hasField(splash.rgbShader, 'mult'))
+							{
+								mult = Reflect.field(splash.rgbShader, 'mult');
+							}
+							else if (Reflect.hasField(splash.rgbShader, 'parent'))
+							{
+								var parent = Reflect.field(splash.rgbShader, 'parent');
+								if (parent != null && Reflect.hasField(parent, 'mult'))
+								{
+									mult = Reflect.field(parent, 'mult');
+								}
+							}
+						}
 						applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
 					}
 					bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * noteWidth, noteHeight));
