@@ -55,6 +55,8 @@ class NoteRGBExporterState extends MusicBeatState
 		for (i in 0...4)
 		{
 			var note:Note = new Note(0, i);
+			Note.initializeGlobalRGBShader(i);
+			note.defaultRGB();
 			note.x = FlxG.width - 200;
 			note.y = FlxG.height / 3 - 50 + (i * 120);
 			note.scrollFactor.set();
@@ -78,6 +80,8 @@ class NoteRGBExporterState extends MusicBeatState
 		for (i in 0...4)
 		{
 			var sustain:Note = new Note(0, i);
+			Note.initializeGlobalRGBShader(i);
+			sustain.defaultRGB();
 			sustain.isSustainNote = true;
 			sustain.sustainLength = 100;
 			sustain.x = FlxG.width / 2 - 150 + (i * 100);
@@ -301,7 +305,7 @@ class NoteRGBExporterState extends MusicBeatState
 		var noteWidth = originalBitmap.width;
 		var noteHeight = originalBitmap.height;
 		var totalWidth = noteWidth * 4;
-		var totalHeight = noteHeight * 3;
+		var totalHeight = noteHeight * 2;
 
 		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
@@ -315,40 +319,6 @@ class NoteRGBExporterState extends MusicBeatState
 					applyRGBBlend(tempBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
 				}
 				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * noteWidth, 0));
-			}
-		}
-
-		for (splash in splashes)
-		{
-			if (splash != null && splash.texture != null)
-			{
-				var splashGraphic = Paths.image(splash.texture);
-				if (splashGraphic != null)
-				{
-					var tempBitmap = splashGraphic.bitmap.clone();
-					if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
-					{
-						var rgb = splash.config.rgb[splash.noteData];
-						var mult = 1.0;
-						if (splash.rgbShader != null)
-						{
-							if (Reflect.hasField(splash.rgbShader, 'mult'))
-							{
-								mult = Reflect.field(splash.rgbShader, 'mult');
-							}
-							else if (Reflect.hasField(splash.rgbShader, 'parent'))
-							{
-								var parent = Reflect.field(splash.rgbShader, 'parent');
-								if (parent != null && Reflect.hasField(parent, 'mult'))
-								{
-									mult = Reflect.field(parent, 'mult');
-								}
-							}
-						}
-						applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
-					}
-					bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * noteWidth, noteHeight));
-				}
 			}
 		}
 
