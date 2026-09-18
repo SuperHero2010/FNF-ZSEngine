@@ -259,9 +259,13 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0)
 	{
-		var rVec = [r.redFloat, r.greenFloat, r.blueFloat];
-		var gVec = [g.redFloat, g.greenFloat, g.blueFloat];
-		var bVec = [b.redFloat, b.greenFloat, b.blueFloat];
+		var rColor:FlxColor = Std.isOfType(r, FlxColor) ? r : FlxColor.fromInt(cast r);
+		var gColor:FlxColor = Std.isOfType(g, FlxColor) ? g : FlxColor.fromInt(cast g);
+		var bColor:FlxColor = Std.isOfType(b, FlxColor) ? b : FlxColor.fromInt(cast b);
+
+		var rVec = [rColor.redFloat, rColor.greenFloat, rColor.blueFloat];
+		var gVec = [gColor.redFloat, gColor.greenFloat, gColor.blueFloat];
+		var bVec = [bColor.redFloat, bColor.greenFloat, bColor.blueFloat];
 
 		for (x in 0...bitmap.width)
 		{
@@ -302,46 +306,71 @@ class NoteRGBExporterState extends MusicBeatState
 		var originalGraphic = Paths.image(noteSkinPath);
 		var originalBitmap = originalGraphic.bitmap;
 
-		var noteWidth = originalBitmap.width;
-		var noteHeight = originalBitmap.height;
-		var totalWidth = noteWidth * 4;
-		var totalHeight = noteHeight * 2;
+		var noteWidth:Int = Std.int(originalBitmap.width / 4);
+		var noteHeight:Int = originalBitmap.height;
+		var totalWidth:Int = noteWidth * 4;
+		var totalHeight:Int = noteHeight * 2;
 
 		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
 		for (note in notes)
 		{
-			if (note != null)
+			if (note == null) continue;
+
+			var singleNote = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
+			singleNote.copyPixels(originalBitmap,
+				new openfl.geom.Rectangle(note.noteData * noteWidth, 0, noteWidth, noteHeight),
+				new openfl.geom.Point(0, 0));
+
+			if (note.rgbShader != null && !disableNoteRGB)
 			{
-				var tempBitmap = originalBitmap.clone();
-				if (note.rgbShader != null)
-				{
-					applyRGBBlend(tempBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
-				}
-				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * noteWidth, 0));
+				applyRGBBlend(singleNote, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
 			}
+
+			bitmapData.draw(singleNote, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * noteWidth, 0));
 		}
 
 		for (sustain in sustains)
 		{
-			if (sustain != null)
+			if (sustain == null) continue;
+
+			var singleSustain = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
+			singleSustain.copyPixels(originalBitmap,
+				new openfl.geom.Rectangle(sustain.noteData * noteWidth, noteHeight, noteWidth, noteHeight),
+				new openfl.geom.Point(0, 0));
+
+			if (sustain.rgbShader != null && !disableNoteRGB)
 			{
-				var tempBitmap = originalBitmap.clone();
-				if (sustain.rgbShader != null)
-				{
-					applyRGBBlend(tempBitmap, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b, sustain.rgbShader.mult);
-				}
-				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * noteWidth, noteHeight * 2));
+				applyRGBBlend(singleSustain, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b, sustain.rgbShader.mult);
 			}
+
+			bitmapData.draw(singleSustain, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * noteWidth, noteHeight));
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
+		#if sys
+		try
+		{
+			sys.io.File.saveBytes("noteRGB.png", pngData);
+			if (_xmlData != null)
+			{
+				sys.io.File.saveContent("noteRGB.xml", _xmlData);
+				_xmlData = null;
+			}
+			trace("Saved noteRGB.png and noteRGB.xml");
+		}
+		catch (e:Dynamic)
+		{
+			trace("Failed to save files: " + e);
+		}
+		#else
 		var pngFile = new FileReference();
 		pngFile.addEventListener(Event.COMPLETE, onPNGSaveComplete);
 		pngFile.addEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.addEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 		pngFile.save(pngData, "noteRGB.png");
+		#end
 	}
 
 	function onPNGSaveComplete(_):Void
@@ -351,10 +380,7 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		new FlxTimer().start(0.5, function(tmr:FlxTimer)
-		{
-			saveXML();
-		});
+		saveXML();
 	}
 
 	function onPNGSaveCancel(_):Void
@@ -364,10 +390,7 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		new FlxTimer().start(0.5, function(tmr:FlxTimer)
-		{
-			saveXML();
-		});
+		saveXML();
 	}
 
 	function onPNGSaveError(_):Void
@@ -377,10 +400,7 @@ class NoteRGBExporterState extends MusicBeatState
 		pngFile.removeEventListener(Event.CANCEL, onPNGSaveCancel);
 		pngFile.removeEventListener(IOErrorEvent.IO_ERROR, onPNGSaveError);
 
-		new FlxTimer().start(0.5, function(tmr:FlxTimer)
-		{
-			saveXML();
-		});
+		saveXML();
 	}
 
 	function saveXML()
