@@ -22,6 +22,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 	var backButton:PsychUIButton;
 	var exportButton:PsychUIButton;
+	var exportSplashButton:PsychUIButton;
 	var importButton:PsychUIButton;
 	var disableRGBCheckbox:PsychUICheckBox;
 
@@ -64,8 +65,13 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			var strum:StrumNote = strums.members[i];
 			var splash:NoteSplash = new NoteSplash();
+			splash.inEditor = true;
 			splash.babyArrow = strum;
 			splash.spawnSplashNote(FlxG.width / 2 - 150 + (i * 100), 100, i, null);
+			if (splash.animation.curAnim != null)
+			{
+				splash.animation.curAnim.looped = true;
+			}
 			splashes.add(splash);
 		}
 
@@ -98,6 +104,13 @@ class NoteRGBExporterState extends MusicBeatState
 		});
 		exportButton.resize(150, 40);
 		add(exportButton);
+
+		exportSplashButton = new PsychUIButton(180, 70, "Export Splash", function()
+		{
+			exportSplashTexture();
+		});
+		exportSplashButton.resize(150, 40);
+		add(exportSplashButton);
 
 		importButton = new PsychUIButton(20, 20, "Import Spritesheet", function()
 		{
@@ -187,11 +200,49 @@ class NoteRGBExporterState extends MusicBeatState
 
 	var _xmlData:String = null;
 
-	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor)
+	function exportSplashTexture()
 	{
-		var rVal = (r >> 16) & 0xFF;
-		var gVal = (g >> 8) & 0xFF;
-		var bVal = b & 0xFF;
+		var splashTexture = splashes.members[0].texture;
+		if (splashTexture == null) return;
+
+		var splashGraphic = Paths.image(splashTexture);
+		if (splashGraphic == null) return;
+
+		var originalBitmap = splashGraphic.bitmap;
+		var splashWidth = originalBitmap.width;
+		var splashHeight = originalBitmap.height;
+		var totalWidth = splashWidth * 4;
+		var totalHeight = splashHeight;
+
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
+
+		for (i in 0...4)
+		{
+			var splash = splashes.members[i];
+			if (splash != null)
+			{
+				var tempBitmap = originalBitmap.clone();
+				if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
+				{
+					var rgb = splash.config.rgb[splash.noteData];
+					var mult = splash.rgbShader != null ? splash.rgbShader.mult : 1.0;
+					applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
+				}
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, i * splashWidth, 0));
+			}
+		}
+
+		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
+
+		var pngFile = new FileReference();
+		pngFile.save(pngData, "splashRGB.png");
+	}
+
+	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0)
+	{
+		var rVec = [r.redFloat, r.greenFloat, r.blueFloat];
+		var gVec = [g.redFloat, g.greenFloat, g.blueFloat];
+		var bVec = [b.redFloat, b.greenFloat, b.blueFloat];
 
 		for (x in 0...bitmap.width)
 		{
@@ -201,9 +252,22 @@ class NoteRGBExporterState extends MusicBeatState
 				var alpha = (pixel >> 24) & 0xFF;
 				if (alpha > 0)
 				{
-					var red = Std.int(((pixel >> 16) & 0xFF) * (rVal / 255.0));
-					var green = Std.int(((pixel >> 8) & 0xFF) * (gVal / 255.0));
-					var blue = Std.int((pixel & 0xFF) * (bVal / 255.0));
+					var origR = ((pixel >> 16) & 0xFF) / 255.0;
+					var origG = ((pixel >> 8) & 0xFF) / 255.0;
+					var origB = (pixel & 0xFF) / 255.0;
+
+					var newR = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
+					var newG = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
+					var newB = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
+
+					var finalR = origR * (1.0 - mult) + newR * mult;
+					var finalG = origG * (1.0 - mult) + newG * mult;
+					var finalB = origB * (1.0 - mult) + newB * mult;
+
+					var red = Std.int(finalR * 255);
+					var green = Std.int(finalG * 255);
+					var blue = Std.int(finalB * 255);
+
 					bitmap.setPixel32(x, y, (alpha << 24) | (red << 16) | (green << 8) | blue);
 				}
 			}
@@ -215,11 +279,16 @@ class NoteRGBExporterState extends MusicBeatState
 		var spritesheetData = generateSpritesheetData();
 		_xmlData = generateXML(spritesheetData);
 
-		var bitmapData = new openfl.display.BitmapData(400, 300, true, 0x00000000);
-
 		var noteSkinPath = Note.defaultNoteSkin;
 		var originalGraphic = Paths.image(noteSkinPath);
 		var originalBitmap = originalGraphic.bitmap;
+
+		var noteWidth = originalBitmap.width;
+		var noteHeight = originalBitmap.height;
+		var totalWidth = noteWidth * 4;
+		var totalHeight = noteHeight * 3;
+
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
 		for (note in notes)
 		{
@@ -228,9 +297,9 @@ class NoteRGBExporterState extends MusicBeatState
 				var tempBitmap = originalBitmap.clone();
 				if (note.rgbShader != null)
 				{
-					applyRGBBlend(tempBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b);
+					applyRGBBlend(tempBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
 				}
-				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * 100, 0));
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * noteWidth, 0));
 			}
 		}
 
@@ -245,9 +314,10 @@ class NoteRGBExporterState extends MusicBeatState
 					if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
 					{
 						var rgb = splash.config.rgb[splash.noteData];
-						applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b);
+						var mult = splash.rgbShader != null ? splash.rgbShader.mult : 1.0;
+						applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
 					}
-					bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * 100, 100));
+					bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, splash.ID * noteWidth, noteHeight));
 				}
 			}
 		}
@@ -259,9 +329,9 @@ class NoteRGBExporterState extends MusicBeatState
 				var tempBitmap = originalBitmap.clone();
 				if (sustain.rgbShader != null)
 				{
-					applyRGBBlend(tempBitmap, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b);
+					applyRGBBlend(tempBitmap, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b, sustain.rgbShader.mult);
 				}
-				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * 100, 200));
+				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * noteWidth, noteHeight * 2));
 			}
 		}
 
