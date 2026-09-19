@@ -231,12 +231,12 @@ class NoteRGBExporterState extends MusicBeatState
 
 			if (splash.rgbShader != null && !disableNoteRGB)
 			{
-				applyRGBBlend(singleBitmap, splash.rgbShader.r, splash.rgbShader.g, splash.rgbShader.b, splash.rgbShader.mult);
-			}
-			else if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
-			{
-				var rgb = splash.config.rgb[splash.noteData];
-				applyRGBBlend(singleBitmap, rgb.r, rgb.g, rgb.b, 1.0);
+				var rVec:Array<Float> = splash.rgbShader.shader.r.value;
+				var gVec:Array<Float> = splash.rgbShader.shader.g.value;
+				var bVec:Array<Float> = splash.rgbShader.shader.b.value;
+				var multVal:Float = splash.rgbShader.shader.mult.value[0];
+
+				applyRGBBlendFromVectors(singleBitmap, rVec, gVec, bVec, multVal);
 			}
 
 			bitmapData.copyPixels(singleBitmap,
@@ -277,6 +277,39 @@ class NoteRGBExporterState extends MusicBeatState
 				var pixel:Int = bitmap.getPixel32(x, y);
 				var alpha:Int = (pixel >> 24) & 0xFF;
 
+				if (alpha == 0 || multClamped == 0.0) continue;
+
+				var origR:Float = ((pixel >> 16) & 0xFF) / 255.0;
+				var origG:Float = ((pixel >> 8) & 0xFF) / 255.0;
+				var origB:Float = (pixel & 0xFF) / 255.0;
+
+				var newR:Float = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
+				var newG:Float = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
+				var newB:Float = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
+
+				var finalR:Float = origR * (1.0 - multClamped) + newR * multClamped;
+				var finalG:Float = origG * (1.0 - multClamped) + newG * multClamped;
+				var finalB:Float = origB * (1.0 - multClamped) + newB * multClamped;
+
+				var red:Int = Std.int(Math.min(finalR, 1.0) * 255);
+				var green:Int = Std.int(Math.min(finalG, 1.0) * 255);
+				var blue:Int = Std.int(Math.min(finalB, 1.0) * 255);
+
+				bitmap.setPixel32(x, y, (alpha << 24) | (red << 16) | (green << 8) | blue);
+			}
+		}
+	}
+
+	function applyRGBBlendFromVectors(bitmap:openfl.display.BitmapData, rVec:Array<Float>, gVec:Array<Float>, bVec:Array<Float>, mult:Float = 1.0):Void
+	{
+		var multClamped:Float = Math.max(0.0, Math.min(1.0, mult));
+
+		for (x in 0...bitmap.width)
+		{
+			for (y in 0...bitmap.height)
+			{
+				var pixel:Int = bitmap.getPixel32(x, y);
+				var alpha:Int = (pixel >> 24) & 0xFF;
 				if (alpha == 0 || multClamped == 0.0) continue;
 
 				var origR:Float = ((pixel >> 16) & 0xFF) / 255.0;
