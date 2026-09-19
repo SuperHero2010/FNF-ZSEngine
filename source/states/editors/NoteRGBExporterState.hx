@@ -220,31 +220,43 @@ class NoteRGBExporterState extends MusicBeatState
 		var totalWidth:Int = splashWidth * 4;
 		var totalHeight:Int = splashHeight;
 
-		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
+		var tempSprites:Array<FlxSprite> = [];
 
 		for (i in 0...4)
 		{
 			var splash = splashes.members[i];
 			if (splash == null) continue;
 
+			var temp = new FlxSprite();
 			var singleBitmap = originalBitmap.clone();
-
-			var bmp = new openfl.display.Bitmap(singleBitmap);
+			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (splash.rgbShader != null && !disableNoteRGB)
 			{
-				var shaderFilter = new openfl.filters.ShaderFilter(splash.rgbShader.shader);
-				bmp.filters = [shaderFilter];
-			}
-			else if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
-			{
-				var rgb = splash.config.rgb[splash.noteData];
-				applyRGBBlend(singleBitmap, rgb.r, rgb.g, rgb.b, 1.0);
+				temp.shader = splash.rgbShader.shader;
 			}
 
-			var matrix = new openfl.geom.Matrix();
-			matrix.translate(i * splashWidth, 0);
-			bitmapData.draw(bmp, matrix);
+			temp.x = i * splashWidth;
+			temp.y = 0;
+			temp.scrollFactor.set(0, 0);
+			tempSprites.push(temp);
+		}
+
+		for (sprite in tempSprites)
+		{
+			add(sprite);
+		}
+
+		FlxG.camera.update(0);
+		FlxG.camera.draw();
+
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
+		bitmapData.draw(FlxG.camera.canvas);
+
+		for (sprite in tempSprites)
+		{
+			remove(sprite);
+			sprite.destroy();
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
@@ -315,50 +327,65 @@ class NoteRGBExporterState extends MusicBeatState
 		var totalWidth:Int = noteWidth * 4;
 		var totalHeight:Int = noteHeight * 2;
 
-		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
+		var tempSprites:Array<FlxSprite> = [];
 
 		for (note in notes)
 		{
 			if (note == null) continue;
-
+			var temp = new FlxSprite();
 			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
 			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(note.noteData * noteWidth, 0, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
-
-			var bmp = new openfl.display.Bitmap(singleBitmap);
+			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (note.rgbShader != null && !disableNoteRGB)
 			{
-				var shaderFilter = new openfl.filters.ShaderFilter(note.rgbShader.parent.shader);
-				bmp.filters = [shaderFilter];
+				temp.shader = note.rgbShader.parent.shader;
 			}
 
-			var matrix = new openfl.geom.Matrix();
-			matrix.translate(note.noteData * noteWidth, 0);
-			bitmapData.draw(bmp, matrix);
+			temp.x = note.noteData * noteWidth;
+			temp.y = 0;
+			temp.scrollFactor.set(0, 0);
+			tempSprites.push(temp);
 		}
 
 		for (sustain in sustains)
 		{
 			if (sustain == null) continue;
-
+			var temp = new FlxSprite();
 			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
 			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(sustain.noteData * noteWidth, noteHeight, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
-
-			var bmp = new openfl.display.Bitmap(singleBitmap);
+			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (sustain.rgbShader != null && !disableNoteRGB)
 			{
-				var shaderFilter = new openfl.filters.ShaderFilter(sustain.rgbShader.parent.shader);
-				bmp.filters = [shaderFilter];
+				temp.shader = sustain.rgbShader.parent.shader;
 			}
 
-			var matrix = new openfl.geom.Matrix();
-			matrix.translate(sustain.noteData * noteWidth, noteHeight);
-			bitmapData.draw(bmp, matrix);
+			temp.x = sustain.noteData * noteWidth;
+			temp.y = noteHeight;
+			temp.scrollFactor.set(0, 0);
+			tempSprites.push(temp);
+		}
+
+		for (sprite in tempSprites)
+		{
+			add(sprite);
+		}
+
+		FlxG.camera.update(0);
+		FlxG.camera.draw();
+
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
+		bitmapData.draw(FlxG.camera.canvas);
+
+		for (sprite in tempSprites)
+		{
+			remove(sprite);
+			sprite.destroy();
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
