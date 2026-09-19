@@ -220,43 +220,28 @@ class NoteRGBExporterState extends MusicBeatState
 		var totalWidth:Int = splashWidth * 4;
 		var totalHeight:Int = splashHeight;
 
-		var tempSprites:Array<FlxSprite> = [];
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
 		for (i in 0...4)
 		{
 			var splash = splashes.members[i];
 			if (splash == null) continue;
 
-			var temp = new FlxSprite();
 			var singleBitmap = originalBitmap.clone();
-			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (splash.rgbShader != null && !disableNoteRGB)
 			{
-				temp.shader = splash.rgbShader.shader;
+				applyRGBBlend(singleBitmap, splash.rgbShader.r, splash.rgbShader.g, splash.rgbShader.b, splash.rgbShader.mult);
+			}
+			else if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
+			{
+				var rgb = splash.config.rgb[splash.noteData];
+				applyRGBBlend(singleBitmap, rgb.r, rgb.g, rgb.b, 1.0);
 			}
 
-			temp.x = i * splashWidth;
-			temp.y = 0;
-			temp.scrollFactor.set(0, 0);
-			tempSprites.push(temp);
-		}
-
-		for (sprite in tempSprites)
-		{
-			add(sprite);
-		}
-
-		FlxG.camera.update(0);
-		FlxG.camera.draw();
-
-		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
-		bitmapData.draw(FlxG.camera.canvas);
-
-		for (sprite in tempSprites)
-		{
-			remove(sprite);
-			sprite.destroy();
+			bitmapData.copyPixels(singleBitmap,
+				new openfl.geom.Rectangle(0, 0, splashWidth, splashHeight),
+				new openfl.geom.Point(i * splashWidth, 0));
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
@@ -277,38 +262,40 @@ class NoteRGBExporterState extends MusicBeatState
 		#end
 	}
 
-	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0)
+	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0):Void
 	{
 		var rVec = [r.redFloat, r.greenFloat, r.blueFloat];
 		var gVec = [g.redFloat, g.greenFloat, g.blueFloat];
 		var bVec = [b.redFloat, b.greenFloat, b.blueFloat];
 
+		var multClamped:Float = Math.max(0.0, Math.min(1.0, mult));
+
 		for (x in 0...bitmap.width)
 		{
 			for (y in 0...bitmap.height)
 			{
-				var pixel = bitmap.getPixel32(x, y);
-				var alpha = (pixel >> 24) & 0xFF;
-				if (alpha > 0)
-				{
-					var origR = ((pixel >> 16) & 0xFF) / 255.0;
-					var origG = ((pixel >> 8) & 0xFF) / 255.0;
-					var origB = (pixel & 0xFF) / 255.0;
+				var pixel:Int = bitmap.getPixel32(x, y);
+				var alpha:Int = (pixel >> 24) & 0xFF;
 
-					var newR = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
-					var newG = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
-					var newB = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
+				if (alpha == 0 || multClamped == 0.0) continue;
 
-					var finalR = origR * (1.0 - mult) + newR * mult;
-					var finalG = origG * (1.0 - mult) + newG * mult;
-					var finalB = origB * (1.0 - mult) + newB * mult;
+				var origR:Float = ((pixel >> 16) & 0xFF) / 255.0;
+				var origG:Float = ((pixel >> 8) & 0xFF) / 255.0;
+				var origB:Float = (pixel & 0xFF) / 255.0;
 
-					var red = Std.int(finalR * 255);
-					var green = Std.int(finalG * 255);
-					var blue = Std.int(finalB * 255);
+				var newR:Float = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
+				var newG:Float = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
+				var newB:Float = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
 
-					bitmap.setPixel32(x, y, (alpha << 24) | (red << 16) | (green << 8) | blue);
-				}
+				var finalR:Float = origR * (1.0 - multClamped) + newR * multClamped;
+				var finalG:Float = origG * (1.0 - multClamped) + newG * multClamped;
+				var finalB:Float = origB * (1.0 - multClamped) + newB * multClamped;
+
+				var red:Int = Std.int(Math.min(finalR, 1.0) * 255);
+				var green:Int = Std.int(Math.min(finalG, 1.0) * 255);
+				var blue:Int = Std.int(Math.min(finalB, 1.0) * 255);
+
+				bitmap.setPixel32(x, y, (alpha << 24) | (red << 16) | (green << 8) | blue);
 			}
 		}
 	}
@@ -327,65 +314,44 @@ class NoteRGBExporterState extends MusicBeatState
 		var totalWidth:Int = noteWidth * 4;
 		var totalHeight:Int = noteHeight * 2;
 
-		var tempSprites:Array<FlxSprite> = [];
+		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
 		for (note in notes)
 		{
 			if (note == null) continue;
-			var temp = new FlxSprite();
+
 			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
 			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(note.noteData * noteWidth, 0, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
-			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (note.rgbShader != null && !disableNoteRGB)
 			{
-				temp.shader = note.rgbShader.parent.shader;
+				applyRGBBlend(singleBitmap, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
 			}
 
-			temp.x = note.noteData * noteWidth;
-			temp.y = 0;
-			temp.scrollFactor.set(0, 0);
-			tempSprites.push(temp);
+			bitmapData.copyPixels(singleBitmap,
+				new openfl.geom.Rectangle(0, 0, noteWidth, noteHeight),
+				new openfl.geom.Point(note.noteData * noteWidth, 0));
 		}
 
 		for (sustain in sustains)
 		{
 			if (sustain == null) continue;
-			var temp = new FlxSprite();
+
 			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
 			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(sustain.noteData * noteWidth, noteHeight, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
-			temp.loadGraphic(flixel.graphics.FlxGraphic.fromBitmapData(singleBitmap));
 
 			if (sustain.rgbShader != null && !disableNoteRGB)
 			{
-				temp.shader = sustain.rgbShader.parent.shader;
+				applyRGBBlend(singleBitmap, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b, sustain.rgbShader.mult);
 			}
 
-			temp.x = sustain.noteData * noteWidth;
-			temp.y = noteHeight;
-			temp.scrollFactor.set(0, 0);
-			tempSprites.push(temp);
-		}
-
-		for (sprite in tempSprites)
-		{
-			add(sprite);
-		}
-
-		FlxG.camera.update(0);
-		FlxG.camera.draw();
-
-		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
-		bitmapData.draw(FlxG.camera.canvas);
-
-		for (sprite in tempSprites)
-		{
-			remove(sprite);
-			sprite.destroy();
+			bitmapData.copyPixels(singleBitmap,
+				new openfl.geom.Rectangle(0, 0, noteWidth, noteHeight),
+				new openfl.geom.Point(sustain.noteData * noteWidth, noteHeight));
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
