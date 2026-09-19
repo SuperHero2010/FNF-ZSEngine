@@ -267,13 +267,9 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0)
 	{
-		var rColor:FlxColor = Std.isOfType(r, FlxColor) ? r : FlxColor.fromInt(cast r);
-		var gColor:FlxColor = Std.isOfType(g, FlxColor) ? g : FlxColor.fromInt(cast g);
-		var bColor:FlxColor = Std.isOfType(b, FlxColor) ? b : FlxColor.fromInt(cast b);
-
-		var rVec = [rColor.redFloat, rColor.greenFloat, rColor.blueFloat];
-		var gVec = [gColor.redFloat, gColor.greenFloat, gColor.blueFloat];
-		var bVec = [bColor.redFloat, bColor.greenFloat, bColor.blueFloat];
+		var rVec = [r.redFloat, r.greenFloat, r.blueFloat];
+		var gVec = [g.redFloat, g.greenFloat, g.blueFloat];
+		var bVec = [b.redFloat, b.greenFloat, b.blueFloat];
 
 		for (x in 0...bitmap.width)
 		{
