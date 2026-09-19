@@ -233,7 +233,7 @@ class NoteRGBExporterState extends MusicBeatState
 
 			if (splash.rgbShader != null && !disableNoteRGB)
 			{
-				var shaderFilter = new openfl.filters.ShaderFilter(splash.rgbShader.parent.shader);
+				var shaderFilter = new openfl.filters.ShaderFilter(splash.rgbShader.shader);
 				bmp.filters = [shaderFilter];
 			}
 			else if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
