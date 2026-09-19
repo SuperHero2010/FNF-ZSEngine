@@ -206,6 +206,8 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function exportSplashTexture()
 	{
+		if (splashes.members.length == 0) return;
+
 		var splashTexture = splashes.members[0].texture;
 		if (splashTexture == null) return;
 
@@ -213,48 +215,54 @@ class NoteRGBExporterState extends MusicBeatState
 		if (splashGraphic == null) return;
 
 		var originalBitmap = splashGraphic.bitmap;
-		var splashWidth = originalBitmap.width;
-		var splashHeight = originalBitmap.height;
-		var totalWidth = splashWidth * 4;
-		var totalHeight = splashHeight;
+		var splashWidth:Int = originalBitmap.width;
+		var splashHeight:Int = originalBitmap.height;
+		var totalWidth:Int = splashWidth * 4;
+		var totalHeight:Int = splashHeight;
 
 		var bitmapData = new openfl.display.BitmapData(totalWidth, totalHeight, true, 0x00000000);
 
 		for (i in 0...4)
 		{
 			var splash = splashes.members[i];
-			if (splash != null)
+			if (splash == null) continue;
+
+			var singleBitmap = originalBitmap.clone();
+
+			var bmp = new openfl.display.Bitmap(singleBitmap);
+
+			if (splash.rgbShader != null && !disableNoteRGB)
 			{
-				var tempBitmap = originalBitmap.clone();
-				if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
-				{
-					var rgb = splash.config.rgb[splash.noteData];
-					var mult = 1.0;
-					if (splash.rgbShader != null)
-					{
-						if (Reflect.hasField(splash.rgbShader, 'mult'))
-						{
-							mult = Reflect.field(splash.rgbShader, 'mult');
-						}
-						else if (Reflect.hasField(splash.rgbShader, 'parent'))
-						{
-							var parent = Reflect.field(splash.rgbShader, 'parent');
-							if (parent != null && Reflect.hasField(parent, 'mult'))
-							{
-								mult = Reflect.field(parent, 'mult');
-							}
-						}
-					}
-					applyRGBBlend(tempBitmap, rgb.r, rgb.g, rgb.b, mult);
-				}
-				bitmapData.draw(tempBitmap, new openfl.geom.Matrix(1, 0, 0, 1, i * splashWidth, 0));
+				var shaderFilter = new openfl.filters.ShaderFilter(splash.rgbShader.shader);
+				bmp.filters = [shaderFilter];
 			}
+			else if (splash.config != null && splash.config.rgb != null && splash.config.rgb[splash.noteData] != null)
+			{
+				var rgb = splash.config.rgb[splash.noteData];
+				applyRGBBlend(singleBitmap, rgb.r, rgb.g, rgb.b, 1.0);
+			}
+
+			var matrix = new openfl.geom.Matrix();
+			matrix.translate(i * splashWidth, 0);
+			bitmapData.draw(bmp, matrix);
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
 
+		#if sys
+		try
+		{
+			sys.io.File.saveBytes("splashRGB.png", pngData);
+			trace("Saved splashRGB.png");
+		}
+		catch (e:Dynamic)
+		{
+			trace("Failed to save splash: " + e);
+		}
+		#else
 		var pngFile = new FileReference();
 		pngFile.save(pngData, "splashRGB.png");
+		#end
 	}
 
 	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0)
@@ -307,7 +315,7 @@ class NoteRGBExporterState extends MusicBeatState
 		var originalBitmap = originalGraphic.bitmap;
 
 		var noteWidth:Int = Std.int(originalBitmap.width / 4);
-		var noteHeight:Int = originalBitmap.height;
+		var noteHeight:Int = Std.int(originalBitmap.height / 2);
 		var totalWidth:Int = noteWidth * 4;
 		var totalHeight:Int = noteHeight * 2;
 
@@ -317,34 +325,44 @@ class NoteRGBExporterState extends MusicBeatState
 		{
 			if (note == null) continue;
 
-			var singleNote = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
-			singleNote.copyPixels(originalBitmap,
+			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
+			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(note.noteData * noteWidth, 0, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
 
+			var bmp = new openfl.display.Bitmap(singleBitmap);
+
 			if (note.rgbShader != null && !disableNoteRGB)
 			{
-				applyRGBBlend(singleNote, note.rgbShader.r, note.rgbShader.g, note.rgbShader.b, note.rgbShader.mult);
+				var shaderFilter = new openfl.filters.ShaderFilter(note.rgbShader.shader);
+				bmp.filters = [shaderFilter];
 			}
 
-			bitmapData.draw(singleNote, new openfl.geom.Matrix(1, 0, 0, 1, note.noteData * noteWidth, 0));
+			var matrix = new openfl.geom.Matrix();
+			matrix.translate(note.noteData * noteWidth, 0);
+			bitmapData.draw(bmp, matrix);
 		}
 
 		for (sustain in sustains)
 		{
 			if (sustain == null) continue;
 
-			var singleSustain = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
-			singleSustain.copyPixels(originalBitmap,
+			var singleBitmap = new openfl.display.BitmapData(noteWidth, noteHeight, true, 0x00000000);
+			singleBitmap.copyPixels(originalBitmap,
 				new openfl.geom.Rectangle(sustain.noteData * noteWidth, noteHeight, noteWidth, noteHeight),
 				new openfl.geom.Point(0, 0));
 
+			var bmp = new openfl.display.Bitmap(singleBitmap);
+
 			if (sustain.rgbShader != null && !disableNoteRGB)
 			{
-				applyRGBBlend(singleSustain, sustain.rgbShader.r, sustain.rgbShader.g, sustain.rgbShader.b, sustain.rgbShader.mult);
+				var shaderFilter = new openfl.filters.ShaderFilter(sustain.rgbShader.shader);
+				bmp.filters = [shaderFilter];
 			}
 
-			bitmapData.draw(singleSustain, new openfl.geom.Matrix(1, 0, 0, 1, sustain.noteData * noteWidth, noteHeight));
+			var matrix = new openfl.geom.Matrix();
+			matrix.translate(sustain.noteData * noteWidth, noteHeight);
+			bitmapData.draw(bmp, matrix);
 		}
 
 		var pngData = bitmapData.encode(bitmapData.rect, new openfl.display.PNGEncoderOptions());
@@ -362,7 +380,7 @@ class NoteRGBExporterState extends MusicBeatState
 		}
 		catch (e:Dynamic)
 		{
-			trace("Failed to save files: " + e);
+			trace("Failed to save: " + e);
 		}
 		#else
 		var pngFile = new FileReference();
