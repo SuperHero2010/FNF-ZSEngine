@@ -295,22 +295,11 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function applyRGBBlend(bitmap:openfl.display.BitmapData, r:FlxColor, g:FlxColor, b:FlxColor, mult:Float = 1.0):Void
 	{
-		trace('=== applyRGBBlend ===');
-		trace('r: 0x' + StringTools.hex(r) + ' (' + r.redFloat + ', ' + r.greenFloat + ', ' + r.blueFloat + ')');
-		trace('g: 0x' + StringTools.hex(g) + ' (' + g.redFloat + ', ' + g.greenFloat + ', ' + g.blueFloat + ')');
-		trace('b: 0x' + StringTools.hex(b) + ' (' + b.redFloat + ', ' + b.greenFloat + ', ' + b.blueFloat + ')');
-		trace('mult: ' + mult);
-		trace('bitmap size: ' + bitmap.width + 'x' + bitmap.height);
-
-		var rVec = [r.redFloat, r.greenFloat, r.blueFloat];
-		var gVec = [g.redFloat, g.greenFloat, g.blueFloat];
-		var bVec = [b.redFloat, b.greenFloat, b.blueFloat];
-		trace('rVec: ' + rVec);
-		trace('gVec: ' + gVec);
-		trace('bVec: ' + bVec);
+		var rv = [r.redFloat, r.greenFloat, r.blueFloat];
+		var gv = [g.redFloat, g.greenFloat, g.blueFloat];
+		var bv = [b.redFloat, b.greenFloat, b.blueFloat];
 
 		var multClamped:Float = Math.max(0.0, Math.min(1.0, mult));
-		var sampledCount:Int = 0;
 
 		for (x in 0...bitmap.width)
 		{
@@ -324,19 +313,13 @@ class NoteRGBExporterState extends MusicBeatState
 				var origG:Float = ((pixel >> 8) & 0xFF) / 255.0;
 				var origB:Float = (pixel & 0xFF) / 255.0;
 
-				var newR:Float = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
-				var newG:Float = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
-				var newB:Float = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
+				var newR:Float = Math.min(origR * rv[0] + origG * gv[0] + origB * bv[0], 1.0);
+				var newG:Float = Math.min(origR * rv[1] + origG * gv[1] + origB * bv[1], 1.0);
+				var newB:Float = Math.min(origR * rv[2] + origG * gv[2] + origB * bv[2], 1.0);
 
 				var finalR:Float = origR * (1.0 - multClamped) + newR * multClamped;
 				var finalG:Float = origG * (1.0 - multClamped) + newG * multClamped;
 				var finalB:Float = origB * (1.0 - multClamped) + newB * multClamped;
-
-				if (sampledCount < 3 && alpha > 200)
-				{
-					trace('  pixel(' + x + ',' + y + '): orig=(' + origR + ',' + origG + ',' + origB + ') new=(' + newR + ',' + newG + ',' + newB + ') final=(' + finalR + ',' + finalG + ',' + finalB + ')');
-					sampledCount++;
-				}
 
 				var red:Int = Std.int(Math.min(finalR, 1.0) * 255);
 				var green:Int = Std.int(Math.min(finalG, 1.0) * 255);
@@ -349,26 +332,10 @@ class NoteRGBExporterState extends MusicBeatState
 
 	function applyRGBBlendFromVectors(bitmap:openfl.display.BitmapData, rVec:Array<Float>, gVec:Array<Float>, bVec:Array<Float>, mult:Float = 1.0):Void
 	{
-		trace('=== applyRGBBlendFromVectors ===');
-		trace('rVec: ' + rVec);
-		trace('gVec: ' + gVec);
-		trace('bVec: ' + bVec);
-		trace('mult: ' + mult);
-		trace('bitmap: ' + bitmap.width + 'x' + bitmap.height);
-
-		if (rVec == null || gVec == null || bVec == null)
-		{
-			trace('ERROR: One or more vectors is null!');
-			return;
-		}
-		if (rVec.length < 3 || gVec.length < 3 || bVec.length < 3)
-		{
-			trace('ERROR: Vector length < 3!');
-			return;
-		}
+		if (rVec == null || gVec == null || bVec == null) return;
+		if (rVec.length < 3 || gVec.length < 3 || bVec.length < 3) return;
 
 		var multClamped:Float = Math.max(0.0, Math.min(1.0, mult));
-		var sampledCount:Int = 0;
 
 		for (x in 0...bitmap.width)
 		{
@@ -382,19 +349,13 @@ class NoteRGBExporterState extends MusicBeatState
 				var origG:Float = ((pixel >> 8) & 0xFF) / 255.0;
 				var origB:Float = (pixel & 0xFF) / 255.0;
 
-				var newR:Float = Math.min(origR * rVec[0] + origG * rVec[1] + origB * rVec[2], 1.0);
-				var newG:Float = Math.min(origR * gVec[0] + origG * gVec[1] + origB * gVec[2], 1.0);
-				var newB:Float = Math.min(origR * bVec[0] + origG * bVec[1] + origB * bVec[2], 1.0);
+				var newR:Float = Math.min(origR * rVec[0] + origG * gVec[0] + origB * bVec[0], 1.0);
+				var newG:Float = Math.min(origR * rVec[1] + origG * gVec[1] + origB * bVec[1], 1.0);
+				var newB:Float = Math.min(origR * rVec[2] + origG * gVec[2] + origB * bVec[2], 1.0);
 
 				var finalR:Float = origR * (1.0 - multClamped) + newR * multClamped;
 				var finalG:Float = origG * (1.0 - multClamped) + newG * multClamped;
 				var finalB:Float = origB * (1.0 - multClamped) + newB * multClamped;
-
-				if (sampledCount < 3 && alpha > 200)
-				{
-					trace('  pixel(' + x + ',' + y + '): orig=(' + origR + ',' + origG + ',' + origB + ') new=(' + newR + ',' + newG + ',' + newB + ') final=(' + finalR + ',' + finalG + ',' + finalB + ')');
-					sampledCount++;
-				}
 
 				var red:Int = Std.int(Math.min(finalR, 1.0) * 255);
 				var green:Int = Std.int(Math.min(finalG, 1.0) * 255);
