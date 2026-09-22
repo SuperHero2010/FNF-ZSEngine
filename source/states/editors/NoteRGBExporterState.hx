@@ -345,7 +345,6 @@ class NoteRGBExporterState extends MusicBeatState
 
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(splashBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
-            sp.graphic.bitmap.dirty = true;
         }
 
         for (i in 0...4) {
@@ -359,7 +358,6 @@ class NoteRGBExporterState extends MusicBeatState
 
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
-            sp.graphic.bitmap.dirty = true;
         }
 
         if (FlxG.keys.justPressed.ESCAPE) {
