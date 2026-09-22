@@ -446,7 +446,7 @@ class NoteRGBExporterState extends MusicBeatState
         }
     }
 
-    function refreshUI()
+    function refreshUI(_name:String, _value:String)
     {
         for (i in 0...4) {
             var tempNote = new Note(0, i);
