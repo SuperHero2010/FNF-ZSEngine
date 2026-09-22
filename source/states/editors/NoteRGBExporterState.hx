@@ -48,10 +48,12 @@ class NoteRGBExporterState extends MusicBeatState
     var splashSprites:Array<FlxSprite> = [];
     var confirmSprites:Array<FlxSprite> = [];
     var noteSprites:Array<FlxSprite> = [];
+    var normalStrumSprites:Array<FlxSprite> = [];
     var strumSprites:Array<FlxSprite> = [];
     var sustainSprites:Array<FlxSprite> = [];
     var sustainEndSprites:Array<FlxSprite> = [];
     var splashAnimTime:Float = 0;
+    var strumAnimTime:Float = 0;
 
     var rSteppers:Array<PsychUINumericStepper> = [];
     var gSteppers:Array<PsychUINumericStepper> = [];
@@ -114,6 +116,7 @@ class NoteRGBExporterState extends MusicBeatState
 
         disableRGBCheckbox = new PsychUICheckBox(FlxG.width - 220, FlxG.height - 50, 'Disable Note RGB', 150, function() {
             disableNoteRGB = disableRGBCheckbox.checked;
+            refreshUI();
         });
         disableRGBCheckbox.checked = disableNoteRGB;
         add(disableRGBCheckbox);
@@ -144,6 +147,24 @@ class NoteRGBExporterState extends MusicBeatState
     {
         for (f in frames) if (f.name == name) return f;
         return null;
+    }
+
+    function getSplashAnimSets(frames:Array<SpriteFrame>):Array<Int>
+    {
+        var sets:Array<Int> = [];
+        var setMap:Map<Int, Bool> = new Map();
+        for (f in frames) {
+            var regex = ~/note splash \w+ (\d+)000\d/;
+            if (regex.match(f.name)) {
+                var setNum = Std.parseInt(regex.matched(1));
+                if (!setMap.exists(setNum)) {
+                    setMap.set(setNum, true);
+                    sets.push(setNum);
+                }
+            }
+        }
+        sets.sort(function(a, b) return a - b);
+        return sets;
     }
 
     function makeSprite(f:SpriteFrame, source:BitmapData, scale:Float):FlxSprite
@@ -241,18 +262,44 @@ class NoteRGBExporterState extends MusicBeatState
 
         for (i in 0...4) {
             var dir = orderDirLower[i];
+            var f = findFrame(noteFrames, 'arrow${orderDirs[i]}0000');
+            var spr = makeSprite(f, noteBitmap, 0.35);
+            if (spr == null) {
+                normalStrumSprites.push(null);
+                continue;
+            }
+
+            var tempNote = new Note(0, i);
+            Note.initializeGlobalRGBShader(i);
+            tempNote.defaultRGB();
+            if (tempNote.rgbShader != null && tempNote.rgbShader.parent != null && !disableNoteRGB) {
+                spr.shader = tempNote.rgbShader.parent.shader;
+            }
+
+            spr.x = 50 + i * cellW;
+            spr.y = startY + rowGap * 3;
+            add(spr);
+            normalStrumSprites.push(spr);
+
+            var lbl = new FlxText(50 + i * cellW, startY + rowGap * 3 - 16, cellW, 'Normal strum ${orderDirs[i]}', 11);
+            lbl.color = FlxColor.WHITE;
+            add(lbl);
+        }
+
+        for (i in 0...4) {
+            var dir = orderDirLower[i];
             var f = findFrame(noteFrames, '${dir} press0000');
             var spr = makeSprite(f, noteBitmap, 0.35);
             if (spr == null) {
                 strumSprites.push(null);
                 continue;
             }
-            spr.x = startX + i * cellW;
+            spr.x = FlxG.width - 50 - (4 - i) * cellW;
             spr.y = startY + rowGap * 3;
             add(spr);
             strumSprites.push(spr);
 
-            var lbl = new FlxText(startX + i * cellW, startY + rowGap * 3 - 16, cellW, 'Strum ${orderDirs[i]}', 11);
+            var lbl = new FlxText(FlxG.width - 50 - (4 - i) * cellW, startY + rowGap * 3 - 16, cellW, 'Pressed strum ${orderDirs[i]}', 11);
             lbl.color = FlxColor.WHITE;
             add(lbl);
         }
@@ -314,10 +361,13 @@ class NoteRGBExporterState extends MusicBeatState
             var baseY:Float = startY + rowGap * 5 + 55;
             var stepX:Float = startX + i * cellW + 5;
 
-            var rStep = new PsychUINumericStepper(stepX, baseY, 1, defaultColors[0].red, 0, 255, 0, 45);
-            var gStep = new PsychUINumericStepper(stepX, baseY + 22, 1, defaultColors[1].green, 0, 255, 0, 45);
-            var bStep = new PsychUINumericStepper(stepX, baseY + 44, 1, defaultColors[2].blue, 0, 255, 0, 45);
+            var rStep = new PsychUINumericStepper(stepX, baseY, 1, defaultColors[0].red, 0, 255, 0);
+            var gStep = new PsychUINumericStepper(stepX, baseY + 22, 1, defaultColors[1].green, 0, 255, 0);
+            var bStep = new PsychUINumericStepper(stepX, baseY + 44, 1, defaultColors[2].blue, 0, 255, 0);
             rStep.name = 'r$i'; gStep.name = 'g$i'; bStep.name = 'b$i';
+            rStep.onChange = refreshUI;
+            gStep.onChange = refreshUI;
+            bStep.onChange = refreshUI;
             add(rStep); add(gStep); add(bStep);
 
             rSteppers.push(rStep);
@@ -345,6 +395,11 @@ class NoteRGBExporterState extends MusicBeatState
 
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(splashBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+
+            if (!disableNoteRGB) {
+                var rgb = getStepperRGB(i);
+                applyRGBBlend(sp.graphic.bitmap, rgb.r, rgb.g, rgb.b);
+            }
         }
 
         for (i in 0...4) {
@@ -358,10 +413,79 @@ class NoteRGBExporterState extends MusicBeatState
 
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+
+            if (!disableNoteRGB) {
+                var rgb = getStepperRGB(i);
+                applyRGBBlend(sp.graphic.bitmap, rgb.r, rgb.g, rgb.b);
+            }
+        }
+
+        strumAnimTime += elapsed;
+        var strumIdx:Int = Std.int(strumAnimTime * 24) % 4;
+
+        for (i in 0...4) {
+            var dir = orderDirLower[i];
+            var name = '${dir} press000$strumIdx';
+            var f = findFrame(noteFrames, name);
+            if (f == null) continue;
+
+            var sp = strumSprites[i];
+            if (sp == null || sp.graphic == null) continue;
+
+            sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
+            sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+
+            if (!disableNoteRGB) {
+                var rgb = getStepperRGB(i);
+                applyRGBBlend(sp.graphic.bitmap, rgb.r, rgb.g, rgb.b);
+            }
         }
 
         if (FlxG.keys.justPressed.ESCAPE) {
             MusicBeatState.switchState(new MasterEditorMenu());
+        }
+    }
+
+    function refreshUI()
+    {
+        for (i in 0...4) {
+            var tempNote = new Note(0, i);
+            Note.initializeGlobalRGBShader(i);
+            tempNote.defaultRGB();
+
+            var rgb = getStepperRGB(i);
+
+            if (noteSprites[i] != null && tempNote.rgbShader != null && tempNote.rgbShader.parent != null) {
+                if (!disableNoteRGB) {
+                    noteSprites[i].shader = tempNote.rgbShader.parent.shader;
+                } else {
+                    noteSprites[i].shader = null;
+                }
+            }
+
+            if (normalStrumSprites[i] != null && tempNote.rgbShader != null && tempNote.rgbShader.parent != null) {
+                if (!disableNoteRGB) {
+                    normalStrumSprites[i].shader = tempNote.rgbShader.parent.shader;
+                } else {
+                    normalStrumSprites[i].shader = null;
+                }
+            }
+
+            if (sustainSprites[i] != null && tempNote.rgbShader != null && tempNote.rgbShader.parent != null) {
+                if (!disableNoteRGB) {
+                    sustainSprites[i].shader = tempNote.rgbShader.parent.shader;
+                } else {
+                    sustainSprites[i].shader = null;
+                }
+            }
+
+            if (sustainEndSprites[i] != null && tempNote.rgbShader != null && tempNote.rgbShader.parent != null) {
+                if (!disableNoteRGB) {
+                    sustainEndSprites[i].shader = tempNote.rgbShader.parent.shader;
+                } else {
+                    sustainEndSprites[i].shader = null;
+                }
+            }
         }
     }
 
@@ -412,32 +536,21 @@ class NoteRGBExporterState extends MusicBeatState
             if (end != null) packed.push({frame: end, rgb: rgb, source: 'note', colorIndex: i});
         }
 
-        for (i in 0...4) {
-            var dir = orderDirLower[i];
-            var strum = findFrame(noteFrames, '${dir} press0000');
-            if (strum != null) packed.push({frame: strum, rgb: null, source: 'note', colorIndex: -1});
-        }
+        var totalW:Int = 0;
+        var totalH:Int = 0;
+        var curX:Int = 0;
+        var curY:Int = 0;
+        var rowH:Int = 0;
 
-        var maxW:Int = 0;
-        var maxH:Int = 0;
-        for (p in packed) {
-            if (p.frame.w > maxW) maxW = p.frame.w;
-            if (p.frame.h > maxH) maxH = p.frame.h;
-        }
-        var cols:Int = 4;
-        var rows:Int = Std.int(Math.ceil(packed.length / cols));
-        var totalW:Int = maxW * cols;
-        var totalH:Int = maxH * rows;
-
-        var out = new BitmapData(totalW, totalH, true, 0x00000000);
+        var out = new BitmapData(4096, 4096, true, 0x00000000);
         var xmlEntries:Array<String> = [];
 
-        for (idx in 0...packed.length) {
-            var p = packed[idx];
-            var col = idx % cols;
-            var row = Std.int(idx / cols);
-            var px = col * maxW;
-            var py = row * maxH;
+        for (p in packed) {
+            if (curX + p.frame.w > 4096) {
+                curX = 0;
+                curY += rowH;
+                rowH = 0;
+            }
 
             var bmd = new BitmapData(p.frame.w, p.frame.h, true, 0x00000000);
             bmd.copyPixels(noteBitmap, new Rectangle(p.frame.x, p.frame.y, p.frame.w, p.frame.h), new Point(0, 0));
@@ -446,55 +559,61 @@ class NoteRGBExporterState extends MusicBeatState
                 applyRGBBlend(bmd, p.rgb.r, p.rgb.g, p.rgb.b);
             }
 
-            out.copyPixels(bmd, bmd.rect, new Point(px, py));
+            out.copyPixels(bmd, bmd.rect, new Point(curX, curY));
 
-            xmlEntries.push('  <SubTexture name="${p.frame.name}" x="$px" y="$py" width="${p.frame.w}" height="${p.frame.h}"/>');
+            xmlEntries.push('  <SubTexture name="${p.frame.name}" x="$curX" y="$curY" width="${p.frame.w}" height="${p.frame.h}"/>');
+
+            curX += p.frame.w;
+            if (p.frame.h > rowH) rowH = p.frame.h;
+            if (curX > totalW) totalW = curX;
         }
+
+        totalH = curY + rowH;
+
+        var finalOut = new BitmapData(totalW, totalH, true, 0x00000000);
+        finalOut.copyPixels(out, new Rectangle(0, 0, totalW, totalH), new Point(0, 0));
 
         var xml:String = '<?xml version="1.0" encoding="utf-8"?>\n';
         xml += '<TextureAtlas imagePath="noteRGB.png">\n';
         for (e in xmlEntries) xml += e + '\n';
         xml += '</TextureAtlas>';
 
-        saveBoth(out, xml, 'noteRGB');
+        saveBoth(finalOut, xml, 'noteRGB');
     }
 
     function exportSplashSpritesheet()
     {
         var packed:Array<{frame:SpriteFrame, rgb:{r:FlxColor, g:FlxColor, b:FlxColor}}> = [];
+        var animSets = getSplashAnimSets(splashFrames);
 
         for (i in 0...4) {
             var col = orderColors[i];
             var rgb = getStepperRGB(i);
 
-            for (frameIdx in 0...4) {
-                var f = findFrame(splashFrames, 'note splash ${col} 2000$frameIdx');
-                if (f == null) continue;
-                packed.push({frame: f, rgb: rgb});
+            for (animSet in animSets) {
+                for (frameIdx in 0...4) {
+                    var f = findFrame(splashFrames, 'note splash ${col} ${animSet}000$frameIdx');
+                    if (f == null) continue;
+                    packed.push({frame: f, rgb: rgb});
+                }
             }
         }
 
-        var maxW:Int = 0;
-        var maxH:Int = 0;
-        for (p in packed) {
-            if (p.frame.w > maxW) maxW = p.frame.w;
-            if (p.frame.h > maxH) maxH = p.frame.h;
-        }
+        var totalW:Int = 0;
+        var totalH:Int = 0;
+        var curX:Int = 0;
+        var curY:Int = 0;
+        var rowH:Int = 0;
 
-        var cols:Int = 4;
-        var rows:Int = Std.int(Math.ceil(packed.length / cols));
-        var totalW:Int = maxW * cols;
-        var totalH:Int = maxH * rows;
-
-        var out = new BitmapData(totalW, totalH, true, 0x00000000);
+        var out = new BitmapData(4096, 4096, true, 0x00000000);
         var xmlEntries:Array<String> = [];
 
-        for (idx in 0...packed.length) {
-            var p = packed[idx];
-            var col = idx % cols;
-            var row = Std.int(idx / cols);
-            var px = col * maxW;
-            var py = row * maxH;
+        for (p in packed) {
+            if (curX + p.frame.w > 4096) {
+                curX = 0;
+                curY += rowH;
+                rowH = 0;
+            }
 
             var bmd = new BitmapData(p.frame.w, p.frame.h, true, 0x00000000);
             bmd.copyPixels(splashBitmap, new Rectangle(p.frame.x, p.frame.y, p.frame.w, p.frame.h), new Point(0, 0));
@@ -503,17 +622,26 @@ class NoteRGBExporterState extends MusicBeatState
                 applyRGBBlend(bmd, p.rgb.r, p.rgb.g, p.rgb.b);
             }
 
-            out.copyPixels(bmd, bmd.rect, new Point(px, py));
+            out.copyPixels(bmd, bmd.rect, new Point(curX, curY));
 
-            xmlEntries.push('  <SubTexture name="${p.frame.name}" x="$px" y="$py" width="${p.frame.w}" height="${p.frame.h}"/>');
+            xmlEntries.push('  <SubTexture name="${p.frame.name}" x="$curX" y="$curY" width="${p.frame.w}" height="${p.frame.h}"/>');
+
+            curX += p.frame.w;
+            if (p.frame.h > rowH) rowH = p.frame.h;
+            if (curX > totalW) totalW = curX;
         }
+
+        totalH = curY + rowH;
+
+        var finalOut = new BitmapData(totalW, totalH, true, 0x00000000);
+        finalOut.copyPixels(out, new Rectangle(0, 0, totalW, totalH), new Point(0, 0));
 
         var xml:String = '<?xml version="1.0" encoding="utf-8"?>\n';
         xml += '<TextureAtlas imagePath="splashRGB.png">\n';
         for (e in xmlEntries) xml += e + '\n';
         xml += '</TextureAtlas>';
 
-        saveBoth(out, xml, 'splashRGB');
+        saveBoth(finalOut, xml, 'splashRGB');
     }
 
     function saveBoth(bitmap:BitmapData, xml:String, baseName:String)
