@@ -795,7 +795,7 @@ class PlayState extends MusicBeatState
 				}
 				#end
 				#if ZS_ALLOWED
-				if (file.toLowerCase().endsWith('.zs') && zsScript) 
+				if (file.toLowerCase().endsWith('.zs') && zsScript)
 					loadZSScript(folder + file);
 				#end
 			}
@@ -1483,10 +1483,7 @@ class PlayState extends MusicBeatState
 			str += ' (${percent}%) - ' + Language.getPhrase(ratingFC);
 		}
 
-		// CoolUtils Shortcut from H-Slice
 		var numFormat = CoolUtil.floatToStringPrecision;
-
-		// HP counter implementation from H-Slice
 		var targetHealth:Float = health * 50;
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
@@ -1666,13 +1663,11 @@ class PlayState extends MusicBeatState
 
 	private function generateSong():Void
 	{
-		// Initialize timing variables
 		loadTime = Date.now().getTime();
 		loadNoteTime = Date.now().getTime();
 		syncTime = Date.now().getTime();
 
 		#if sys
-		// H-Slice approach: Use MemoryUtil for GC control
 		if (ClientPrefs.data.disableGC) {
 			MemoryUtil.enable();
 			MemoryUtil.collect(true);
@@ -1856,6 +1851,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 				makeEvent(event, i);
 
 		unspawnNotes.sort(sortByTime);
+
 		trace('[FAST NOTE PARSING] Generated ${unspawnNotes.length} Notes for song "${SONG.song}"');
 		trace('Loading ${SONG.song} (${unspawnNotes.length} notes)');
 
@@ -2209,7 +2205,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if (unspawnNotes[0] != null)
 		{
 			var time:Float = spawnTime;
-			// Apply H-Slice bounds checking for songSpeed
 			if(songSpeed < 1) time = Math.max(spawnTime / songSpeed, Conductor.stepCrochet);
 			else time /= songSpeed;
 			if(unspawnNotes[0].multSpeed < 1) time /= unspawnNotes[0].multSpeed;
@@ -2249,7 +2244,6 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 							daNote = notes.members[i];
 							if (daNote == null || !daNote.exists) continue;
 
-							// H-Slice approach: Check hit/miss first, then follow strum
 							//NOTE to SuperHero: canBeHit and tooLate are already defined, use them.
 							canBeHit = Conductor.songPosition - daNote.strumTime > 0;
 							tooLate = Conductor.songPosition - daNote.strumTime > noteKillOffset;

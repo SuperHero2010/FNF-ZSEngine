@@ -19,6 +19,7 @@ class ZSPatternGenerator {
         var patterns = [];
 
         patterns = patterns.concat(generateSpecificPatterns());
+        patterns = patterns.concat(generateSetPatterns());
         patterns = patterns.concat(generatePlayStatePatterns());
         patterns = patterns.concat(generateSpritePatterns());
         patterns = patterns.concat(generateTextPatterns());
@@ -2079,48 +2080,6 @@ class ZSPatternGenerator {
         });
 
         patterns.push({
-            pattern: "∅",
-            replacement: "{}",
-            description: "Empty set",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "([^ ]+) ∈ ([^ ]+)",
-            replacement: "tableContains($2, $1)",
-            description: "Element of set",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "([^ ]+) ∉ ([^ ]+)",
-            replacement: "not tableContains($2, $1)",
-            description: "Not element of set",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "([^ ]+) ∩ ([^ ]+)",
-            replacement: "tableIntersection($1, $2)",
-            description: "Set intersection",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "([^ ]+) ∪ ([^ ]+)",
-            replacement: "tableUnion($1, $2)",
-            description: "Set union",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "∁\\(<([^>]+)>, <([^>]+)>\\)",
-            replacement: "tableComplement($1, $2)",
-            description: "Complement of A in B (elements in B not in A)",
-            category: "sets"
-        });
-        patterns.push({
-            pattern: "([^ ]+) \\\\ ([^ ]+)",
-            replacement: "tableDifference($1, $2)",
-            description: "Set difference",
-            category: "sets"
-        });
-        patterns.push({
             pattern: "∧",
             replacement: "and",
             description: "Logical AND",
@@ -2144,6 +2103,72 @@ class ZSPatternGenerator {
             replacement: "$1($2)",
             description: "Function call one arg",
             category: "function"
+        });
+
+        patterns.push({
+            pattern: "\\bcorrect\\b",
+            replacement: "true",
+            description: "Boolean true",
+            category: "keywords"
+        });
+        patterns.push({
+            pattern: "\\bwrong\\b",
+            replacement: "false",
+            description: "Boolean false",
+            category: "keywords"
+        });
+
+        // is correct / is true
+        patterns.push({
+            pattern: " <([^>]+)> is correct ",
+            replacement: " $1 ",
+            description: "is correct -> true",
+            category: "comparison"
+        });
+        patterns.push({
+            pattern: " <([^>]+)> is true ",
+            replacement: " $1 ",
+            description: "is true -> true",
+            category: "comparison"
+        });
+        // is not wrong / is not false
+        patterns.push({
+            pattern: " <([^>]+)> is not wrong ",
+            replacement: " $1 ",
+            description: "is not wrong -> true",
+            category: "comparison"
+        });
+        patterns.push({
+            pattern: " <([^>]+)> is not false ",
+            replacement: " $1 ",
+            description: "is not false -> true",
+            category: "comparison"
+        });
+
+        // is not correct / is wrong / is not true / is false
+        patterns.push({
+            pattern: " <([^>]+)> is not correct ",
+            replacement: " not $1 ",
+            description: "is not correct -> false",
+            category: "comparison"
+        });
+        patterns.push({
+            pattern: " <([^>]+)> is wrong ",
+            replacement: " not $1 ",
+            description: "is wrong -> false",
+            category: "comparison"
+        });
+        patterns.push({
+            pattern: " <([^>]+)> is not true ",
+            replacement: " not $1 ",
+            description: "is not true -> false",
+            category: "comparison"
+        });
+        patterns.push({
+            pattern: " <([^>]+)> is false ",
+            replacement: " not $1 ",
+            description: "is false -> false",
+            category: "comparison"
         });
 
         return patterns;
@@ -2460,6 +2485,61 @@ class ZSPatternGenerator {
             replacement: 'getProperty($1)',
             description: "Read a property (nested)",
             category: "reflection"
+        });
+
+        return patterns;
+    }
+
+    static function generateSetPatterns():Array<Pattern> {
+        var patterns = [];
+
+        patterns.push({
+            pattern: "∅",
+            replacement: "{}",
+            description: "Empty set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∈ ([^ }]+)",
+            replacement: "tableContains($2, $1)",
+            description: "Element of set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∉ ([^ }]+)",
+            replacement: "notTableContains($2, $1)",
+            description: "Not element of set",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∩ ([^ ]+)",
+            replacement: "tableIntersection($1, $2)",
+            description: "Set intersection",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) ∪ ([^ ]+)",
+            replacement: "tableUnion($1, $2)",
+            description: "Set union",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "∁\\(([^,]+), ([^\\)]+)\\)",
+            replacement: "tableComplement($1, $2)",
+            description: "Complement of A in B (elements in B not in A)",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: "([^ ]+) \\\\ ([^ ]+)",
+            replacement: "tableDifference($1, $2)",
+            description: "Set difference",
+            category: "sets"
+        });
+        patterns.push({
+            pattern: '\\{([^|}]+)\\|([^}]+)\\}',
+            replacement: 'tableCondition({$1}, function() return $2 end)',
+            description: "Table condition with filter",
+            category: 'sets'
         });
 
         return patterns;

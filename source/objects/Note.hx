@@ -33,7 +33,7 @@ typedef NoteSplashData = {
 
 /**
  * The note object used as a data structure to spawn and manage notes during gameplay.
- * 
+ *
  * If you want to make a custom note type, you should search for: "function set_noteType"
 **/
 class Note extends FlxSprite
