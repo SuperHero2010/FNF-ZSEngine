@@ -574,7 +574,7 @@ class NoteRGBExporterState extends MusicBeatState
         _file.addEventListener(Event.COMPLETE, function(_) {
             _file.removeEventListener(Event.COMPLETE, function(_) {});
         });
-        _file.save(bmd.encode(new PNGEncoderOptions()), fileName);
+        _file.save(bmd.encode(bmd.rect, new PNGEncoderOptions()), fileName);
     }
 
     function saveBoth(bitmap:BitmapData, xml:String, baseName:String)
