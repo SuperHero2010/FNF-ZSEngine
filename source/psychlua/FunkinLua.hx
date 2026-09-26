@@ -1687,6 +1687,10 @@ class FunkinLua {
 			return game.tableContains(table, value);
 		});
 
+		Lua_helper.add_callback(lua, "notTableContains", function(table:Dynamic, value:Dynamic):Bool {
+			return game.notTableContains(table, value);
+		});
+
 		Lua_helper.add_callback(lua, "tableIntersection", function(A:Dynamic, B:Dynamic):Array<Dynamic> {
 			return game.tableIntersection(A, B);
 		});
