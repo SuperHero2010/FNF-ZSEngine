@@ -61,6 +61,8 @@ class NoteRGBExporterState extends MusicBeatState
     var disableRGBCheckbox:PsychUICheckBox;
     var disableNoteRGB:Bool = false;
 
+    var dirtyFlags:Array<Bool> = [false, false, false, false];
+
     var splashExportButtons:Array<PsychUIButton> = [];
     var confirmExportButtons:Array<PsychUIButton> = [];
     var noteExportButtons:Array<PsychUIButton> = [];
@@ -138,6 +140,7 @@ class NoteRGBExporterState extends MusicBeatState
         }
 
         buildLayout();
+        refreshUI();
 
         backButton = new PsychUIButton(20, FlxG.height - 50, 'Back', function() {
             MusicBeatState.switchState(new MasterEditorMenu());
@@ -449,22 +452,26 @@ class NoteRGBExporterState extends MusicBeatState
 
     function updateObjectRGB(index:Int)
     {
+        var rVal:Float = Std.int(rSteppers[index].value) / 255.0;
+        var gVal:Float = Std.int(gSteppers[index].value) / 255.0;
+        var bVal:Float = Std.int(bSteppers[index].value) / 255.0;
+
         if (noteObjects[index] != null && noteObjects[index].rgbShader != null) {
-            noteObjects[index].rgbShader.r = FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0);
-            noteObjects[index].rgbShader.g = FlxColor.fromRGB(0, Std.int(gSteppers[index].value), 0);
-            noteObjects[index].rgbShader.b = FlxColor.fromRGB(0, 0, Std.int(bSteppers[index].value));
+            noteObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
+            noteObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
+            noteObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
         }
 
         if (sustainObjects[index] != null && sustainObjects[index].rgbShader != null) {
-            sustainObjects[index].rgbShader.r = FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0);
-            sustainObjects[index].rgbShader.g = FlxColor.fromRGB(0, Std.int(gSteppers[index].value), 0);
-            sustainObjects[index].rgbShader.b = FlxColor.fromRGB(0, 0, Std.int(bSteppers[index].value));
+            sustainObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
+            sustainObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
+            sustainObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
         }
 
         if (strumObjects[index] != null && strumObjects[index].rgbShader != null) {
-            strumObjects[index].rgbShader.r = FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0);
-            strumObjects[index].rgbShader.g = FlxColor.fromRGB(0, Std.int(gSteppers[index].value), 0);
-            strumObjects[index].rgbShader.b = FlxColor.fromRGB(0, 0, Std.int(bSteppers[index].value));
+            strumObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
+            strumObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
+            strumObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
         }
 
         if (splashObjects[index] != null && splashObjects[index].rgbShader != null) {
@@ -479,10 +486,12 @@ class NoteRGBExporterState extends MusicBeatState
             }
             if (splashObjects[index].config.rgb == null) splashObjects[index].config.rgb = [];
             if (splashObjects[index].config.rgb[index] == null) splashObjects[index].config.rgb[index] = {r: null, g: null, b: null};
-            splashObjects[index].config.rgb[index].r = FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0);
-            splashObjects[index].config.rgb[index].g = FlxColor.fromRGB(0, Std.int(gSteppers[index].value), 0);
-            splashObjects[index].config.rgb[index].b = FlxColor.fromRGB(0, 0, Std.int(bSteppers[index].value));
+            splashObjects[index].config.rgb[index].r = rVal;
+            splashObjects[index].config.rgb[index].g = gVal;
+            splashObjects[index].config.rgb[index].b = bVal;
         }
+
+        dirtyFlags[index] = true;
     }
 
     override function update(elapsed:Float)
@@ -567,6 +576,8 @@ class NoteRGBExporterState extends MusicBeatState
     function refreshUI(?name:String, ?value:String)
     {
         for (i in 0...4) {
+            if (!dirtyFlags[i]) continue;
+
             if (noteSprites[i] != null && noteSprites[i].graphic != null) {
                 var col = orderColors[i];
                 var f = findFrame(noteFrames, '${col}0000');
@@ -614,6 +625,8 @@ class NoteRGBExporterState extends MusicBeatState
                     }
                 }
             }
+
+            dirtyFlags[i] = false;
         }
     }
 
