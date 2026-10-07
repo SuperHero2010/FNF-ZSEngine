@@ -486,9 +486,9 @@ class NoteRGBExporterState extends MusicBeatState
             }
             if (splashObjects[index].config.rgb == null) splashObjects[index].config.rgb = [];
             if (splashObjects[index].config.rgb[index] == null) splashObjects[index].config.rgb[index] = {r: null, g: null, b: null};
-            splashObjects[index].config.rgb[index].r = rVal;
-            splashObjects[index].config.rgb[index].g = gVal;
-            splashObjects[index].config.rgb[index].b = bVal;
+            splashObjects[index].config.rgb[index].r = Std.int(rVal * 255);
+            splashObjects[index].config.rgb[index].g = Std.int(gVal * 255);
+            splashObjects[index].config.rgb[index].b = Std.int(bVal * 255);
         }
 
         dirtyFlags[index] = true;
