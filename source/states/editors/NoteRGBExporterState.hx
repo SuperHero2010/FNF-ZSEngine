@@ -436,9 +436,9 @@ class NoteRGBExporterState extends MusicBeatState
             var gStep = new PsychUINumericStepper(stepX, baseY + 22, 1, defaultColors[1].green, 0, 255, 0);
             var bStep = new PsychUINumericStepper(stepX, baseY + 44, 1, defaultColors[2].blue, 0, 255, 0);
             rStep.name = 'r$i'; gStep.name = 'g$i'; bStep.name = 'b$i';
-            rStep.onChange = function() { updateObjectRGB(i); refreshUI(); };
-            gStep.onChange = function() { updateObjectRGB(i); refreshUI(); };
-            bStep.onChange = function() { updateObjectRGB(i); refreshUI(); };
+            rStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
+            gStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
+            bStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
             add(rStep); add(gStep); add(bStep);
 
             rSteppers.push(rStep);
@@ -468,7 +468,15 @@ class NoteRGBExporterState extends MusicBeatState
         }
 
         if (splashObjects[index] != null && splashObjects[index].rgbShader != null) {
-            if (splashObjects[index].config == null) splashObjects[index].config = {};
+            if (splashObjects[index].config == null) {
+                splashObjects[index].config = {
+                    scale: 1.0,
+                    rgb: [],
+                    animations: [],
+                    allowRGB: true,
+                    allowPixel: false
+                };
+            }
             if (splashObjects[index].config.rgb == null) splashObjects[index].config.rgb = [];
             if (splashObjects[index].config.rgb[index] == null) splashObjects[index].config.rgb[index] = {r: null, g: null, b: null};
             splashObjects[index].config.rgb[index].r = FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0);
