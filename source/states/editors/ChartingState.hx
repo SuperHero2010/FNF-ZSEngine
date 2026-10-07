@@ -2855,37 +2855,63 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var minTime:Float = getMinNoteTime(curSec);
 		var maxTime:Float = getMaxNoteTime(curSec);
-
-		function curSecFilter(note:MetaNote)
+		inline function curSecFilter(note:MetaNote)
 		{
 			return (note.strumTime >= minTime && note.strumTime < maxTime);
 		}
+
+		var sec = getCurChartSection();
+		var noteCount:Int = (sec != null) ? sec.sectionNotes.length : 0;
+		var skipFullRender:Bool = (noteCount > 10000);
 
 		var firstNote:Bool = false;
 		var firstEvent:Bool = false;
 		sectionFirstNoteID = 0;
 		sectionFirstEventID = 0;
-		var totalNotes:Int = 0;
-		var filteredNotes:Int = 0;
-		var nullNotes:Int = 0;
 
-		for (num => note in notes)
+		if(skipFullRender)
 		{
-			totalNotes++;
-			if(note == null) {
-				nullNotes++;
-				continue;
-			}
+			var visibleTimeRange:Float = 5000;
+			var minVisibleTime:Float = Conductor.songPosition - visibleTimeRange;
+			var maxVisibleTime:Float = Conductor.songPosition + visibleTimeRange;
 
-			var inSection = curSecFilter(note);
-
-			if(inSection)
+			for (num => note in notes)
 			{
-				filteredNotes++;
-				if(!firstNote) sectionFirstNoteID = num;
-				curRenderedNotes.add(note);
-				note.alpha = (note.strumTime >= Conductor.songPosition) ? 1 : 0.6;
-				if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+				if(note != null && curSecFilter(note))
+				{
+					if(note.strumTime >= minVisibleTime && note.strumTime <= maxVisibleTime)
+					{
+						if(!firstNote) sectionFirstNoteID = num;
+						curRenderedNotes.add(note);
+						note.alpha = (note.strumTime >= Conductor.songPosition) ? 1 : 0.6;
+						if (noRGBCheckBox != null && noRGBCheckBox.checked)
+							note.shader = null;
+						else if (note.rgbShader != null)
+							note.shader = note.rgbShader.parent.shader;
+						if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+					}
+					else
+					{
+						note.alpha = 0;
+					}
+				}
+			}
+		}
+		else
+		{
+			for (num => note in notes)
+			{
+				if(note != null && curSecFilter(note))
+				{
+					if(!firstNote) sectionFirstNoteID = num;
+					curRenderedNotes.add(note);
+					note.alpha = (note.strumTime >= Conductor.songPosition) ? 1 : 0.6;
+					if (noRGBCheckBox != null && noRGBCheckBox.checked)
+						note.shader = null;
+					else if (note.rgbShader != null)
+						note.shader = note.rgbShader.parent.shader;
+					if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+				}
 			}
 		}
 
@@ -2911,26 +2937,39 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var prevMaxTime:Float = getMaxNoteTime(curSec-1);
 				var nextMinTime:Float = getMinNoteTime(curSec+1);
 				var nextMaxTime:Float = getMaxNoteTime(curSec+1);
-				function otherSecFilter(note:MetaNote)
-				{
-					return (prevGridBg.visible && (note.strumTime >= prevMinTime && note.strumTime < prevMaxTime)) ||
-						(nextGridBg.visible && (note.strumTime >= nextMinTime && note.strumTime < nextMaxTime));
-				}
 
-				for(note in notes.filter(otherSecFilter))
+				for (note in notes)
 				{
-					behindRenderedNotes.add(note);
-					note.alpha = 0.4;
-					if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+					if (note == null) continue;
+					var inPrev = prevGridBg.visible && (note.strumTime >= prevMinTime && note.strumTime < prevMaxTime);
+					var inNext = nextGridBg.visible && (note.strumTime >= nextMinTime && note.strumTime < nextMaxTime);
+
+					if (inPrev || inNext)
+					{
+						behindRenderedNotes.add(note);
+						note.alpha = 0.4;
+						if (noRGBCheckBox != null && noRGBCheckBox.checked)
+							note.shader = null;
+						else if (note.rgbShader != null)
+							note.shader = note.rgbShader.parent.shader;
+						if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+					}
 				}
 
 				if(SHOW_EVENT_COLUMN)
 				{
-					for(event in events.filter(otherSecFilter))
+					for (event in events)
 					{
-						behindRenderedNotes.add(event);
-						event.alpha = 0.4;
-						event.eventText.visible = false;
+						if (event == null) continue;
+						var inPrev = prevGridBg.visible && (event.strumTime >= prevMinTime && event.strumTime < prevMaxTime);
+						var inNext = nextGridBg.visible && (event.strumTime >= nextMinTime && event.strumTime < nextMaxTime);
+
+						if (inPrev || inNext)
+						{
+							behindRenderedNotes.add(event);
+							event.alpha = 0.4;
+							event.eventText.visible = false;
+						}
 					}
 				}
 			}
@@ -6479,9 +6518,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
-
-		for (note in strumLineNotes)
-			note.rgbShader.enabled = !noRGBCheckBox.checked;
 	}
 
 	function updateGridVisibility()
