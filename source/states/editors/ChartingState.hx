@@ -1363,9 +1363,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							}
 							else
 							{
-								var allNotes:Array<MetaNote> = notes.copy();
-								for (note in allNotes)
+								var allNotes:Array<Dynamic> = notes.copy();
+								for (i => rawData in allNotes)
 								{
+									if(rawData == null || rawData.length < 3 || rawData[1] < 0) continue;
+
+									var note = getNote(i);
 									if(note == null || note.isEvent) continue;
 
 									var noteColumn:Int = note.songData[1];
@@ -6583,21 +6586,25 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				{
 					trace('failsafe, cancel early and delete notes after this');
 					var changedSelected:Bool = false;
-					for(i in num...notes.length)
+					var j:Int = num;
+					while(j < notes.length)
 					{
-						var rawData = notes[i];
+						var rawData = notes[j];
 						if(rawData != null)
 						{
-							var note = getNote(i);
+							var note = getNote(j);
 							if(note != null && selectedNotes.contains(note))
 							{
 								selectedNotes.remove(note);
 								changedSelected = true;
 							}
-							invalidateNoteCache(i);
-							notes.splice(i, 1);
+							invalidateNoteCache(j);
+							notes.splice(j, 1);
 							if(note != null) note.destroy();
-							i--;
+						}
+						else
+						{
+							j++;
 						}
 					}
 					if(changedSelected) onSelectNote();
