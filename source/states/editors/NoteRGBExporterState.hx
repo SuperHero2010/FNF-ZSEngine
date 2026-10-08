@@ -468,9 +468,12 @@ class NoteRGBExporterState extends MusicBeatState
             var gStep = new PsychUINumericStepper(stepX, baseY + 22, 1, defaultColors[1].green, 0, 255, 0);
             var bStep = new PsychUINumericStepper(stepX, baseY + 44, 1, defaultColors[2].blue, 0, 255, 0);
             rStep.name = 'r$i'; gStep.name = 'g$i'; bStep.name = 'b$i';
-            rStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
-            gStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
-            bStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
+            rStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
+            gStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
+            bStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
+            rStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
+            gStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
+            bStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
             add(rStep); add(gStep); add(bStep);
 
             rSteppers.push(rStep);
@@ -528,7 +531,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(splashBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && dirtyFlags[i] && splashObjects[i] != null && splashObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && splashObjects[i] != null && splashObjects[i].rgbShader != null) {
                 var rVec = splashObjects[i].rgbShader.shader.r.value;
                 var gVec = splashObjects[i].rgbShader.shader.g.value;
                 var bVec = splashObjects[i].rgbShader.shader.b.value;
@@ -549,7 +552,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && dirtyFlags[i] && noteObjects[i] != null && noteObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && noteObjects[i] != null && noteObjects[i].rgbShader != null) {
                 var rVec = noteObjects[i].rgbShader.parent.shader.r.value;
                 var gVec = noteObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = noteObjects[i].rgbShader.parent.shader.b.value;
@@ -573,7 +576,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && dirtyFlags[i] && strumObjects[i] != null && strumObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && strumObjects[i] != null && strumObjects[i].rgbShader != null) {
                 var rVec = strumObjects[i].rgbShader.parent.shader.r.value;
                 var gVec = strumObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = strumObjects[i].rgbShader.parent.shader.b.value;
