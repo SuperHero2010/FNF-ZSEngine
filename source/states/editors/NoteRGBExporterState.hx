@@ -61,13 +61,16 @@ class NoteRGBExporterState extends MusicBeatState
     var disableRGBCheckbox:PsychUICheckBox;
     var disableNoteRGB:Bool = false;
 
-    var dirtyFlags:Array<Bool> = [false, false, false, false];
+    var dirtyFlags:Array<Bool> = [true, true, true, true];
 
     var splashExportButtons:Array<PsychUIButton> = [];
+    var splashExportAllButtons:Array<PsychUIButton> = [];
     var confirmExportButtons:Array<PsychUIButton> = [];
+    var confirmExportAllButtons:Array<PsychUIButton> = [];
     var noteExportButtons:Array<PsychUIButton> = [];
     var normalStrumExportButtons:Array<PsychUIButton> = [];
     var strumExportButtons:Array<PsychUIButton> = [];
+    var strumExportAllButtons:Array<PsychUIButton> = [];
     var sustainExportButtons:Array<PsychUIButton> = [];
     var sustainEndExportButtons:Array<PsychUIButton> = [];
 
@@ -140,7 +143,6 @@ class NoteRGBExporterState extends MusicBeatState
         }
 
         buildLayout();
-        refreshUI();
 
         backButton = new PsychUIButton(20, FlxG.height - 50, 'Back', function() {
             MusicBeatState.switchState(new MasterEditorMenu());
@@ -150,6 +152,9 @@ class NoteRGBExporterState extends MusicBeatState
 
         disableRGBCheckbox = new PsychUICheckBox(FlxG.width - 220, FlxG.height - 50, 'Disable Note RGB', 150, function() {
             disableNoteRGB = disableRGBCheckbox.checked;
+            for (i in 0...4) {
+                dirtyFlags[i] = true;
+            }
             refreshUI();
         });
         disableRGBCheckbox.checked = disableNoteRGB;
@@ -238,6 +243,7 @@ class NoteRGBExporterState extends MusicBeatState
             if (sp == null) {
                 splashSprites.push(null);
                 splashExportButtons.push(null);
+                splashExportAllButtons.push(null);
                 continue;
             }
             sp.x = startX + i * cellW;
@@ -259,6 +265,13 @@ class NoteRGBExporterState extends MusicBeatState
             exportBtn.resize(80, 20);
             add(exportBtn);
             splashExportButtons.push(exportBtn);
+
+            var exportAllBtn = new PsychUIButton(startX + i * cellW + 10, startY + 75, 'Export All', function() {
+                exportAnimationFrames('note splash ${col} 2000*', splashFrames, splashBitmap, i, 'splash', 'splash_${orderColors[i]}');
+            });
+            exportAllBtn.resize(80, 20);
+            add(exportAllBtn);
+            splashExportAllButtons.push(exportAllBtn);
         }
 
         for (i in 0...4) {
@@ -269,6 +282,7 @@ class NoteRGBExporterState extends MusicBeatState
             if (sp == null) {
                 confirmSprites.push(null);
                 confirmExportButtons.push(null);
+                confirmExportAllButtons.push(null);
                 continue;
             }
             sp.x = startX + i * cellW;
@@ -290,6 +304,13 @@ class NoteRGBExporterState extends MusicBeatState
             exportBtn.resize(80, 20);
             add(exportBtn);
             confirmExportButtons.push(exportBtn);
+
+            var exportAllBtn = new PsychUIButton(startX + i * cellW + 10, startY + rowGap + 75, 'Export All', function() {
+                exportAnimationFrames('${dir} confirm000*', noteFrames, noteBitmap, i, 'confirm', 'confirm_${orderDirLower[i]}');
+            });
+            exportAllBtn.resize(80, 20);
+            add(exportAllBtn);
+            confirmExportAllButtons.push(exportAllBtn);
         }
 
         for (i in 0...4) {
@@ -353,6 +374,7 @@ class NoteRGBExporterState extends MusicBeatState
             if (spr == null) {
                 strumSprites.push(null);
                 strumExportButtons.push(null);
+                strumExportAllButtons.push(null);
                 continue;
             }
             spr.x = FlxG.width - 50 - (4 - i) * cellW;
@@ -374,6 +396,13 @@ class NoteRGBExporterState extends MusicBeatState
             exportBtn.resize(80, 20);
             add(exportBtn);
             strumExportButtons.push(exportBtn);
+
+            var exportAllBtn = new PsychUIButton(FlxG.width - 50 - (4 - i) * cellW + 10, startY + rowGap * 3 + 75, 'Export All', function() {
+                exportAnimationFrames('${dir} press000*', noteFrames, noteBitmap, i, 'pressedStrum', 'pressed_${orderDirLower[i]}');
+            });
+            exportAllBtn.resize(80, 20);
+            add(exportAllBtn);
+            strumExportAllButtons.push(exportAllBtn);
         }
 
         for (i in 0...4) {
@@ -448,47 +477,32 @@ class NoteRGBExporterState extends MusicBeatState
             gSteppers.push(gStep);
             bSteppers.push(bStep);
         }
+
+        refreshUI();
     }
 
     function updateObjectRGB(index:Int)
     {
-        var rVal:Float = Std.int(rSteppers[index].value) / 255.0;
-        var gVal:Float = Std.int(gSteppers[index].value) / 255.0;
-        var bVal:Float = Std.int(bSteppers[index].value) / 255.0;
+        var rVal:Int = Std.int(rSteppers[index].value);
+        var gVal:Int = Std.int(gSteppers[index].value);
+        var bVal:Int = Std.int(bSteppers[index].value);
 
         if (noteObjects[index] != null && noteObjects[index].rgbShader != null) {
-            noteObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
-            noteObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
-            noteObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
+            noteObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
+            noteObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
+            noteObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
         }
 
         if (sustainObjects[index] != null && sustainObjects[index].rgbShader != null) {
-            sustainObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
-            sustainObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
-            sustainObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
+            sustainObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
+            sustainObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
+            sustainObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
         }
 
         if (strumObjects[index] != null && strumObjects[index].rgbShader != null) {
-            strumObjects[index].rgbShader.parent.shader.r.value = [rVal, 0, 0];
-            strumObjects[index].rgbShader.parent.shader.g.value = [0, gVal, 0];
-            strumObjects[index].rgbShader.parent.shader.b.value = [0, 0, bVal];
-        }
-
-        if (splashObjects[index] != null && splashObjects[index].rgbShader != null) {
-            if (splashObjects[index].config == null) {
-                splashObjects[index].config = {
-                    scale: 1.0,
-                    rgb: [],
-                    animations: [],
-                    allowRGB: true,
-                    allowPixel: false
-                };
-            }
-            if (splashObjects[index].config.rgb == null) splashObjects[index].config.rgb = [];
-            if (splashObjects[index].config.rgb[index] == null) splashObjects[index].config.rgb[index] = {r: null, g: null, b: null};
-            splashObjects[index].config.rgb[index].r = Std.int(rVal * 255);
-            splashObjects[index].config.rgb[index].g = Std.int(gVal * 255);
-            splashObjects[index].config.rgb[index].b = Std.int(bVal * 255);
+            strumObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
+            strumObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
+            strumObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
         }
 
         dirtyFlags[index] = true;
@@ -514,7 +528,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(splashBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && splashObjects[i] != null && splashObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && dirtyFlags[i] && splashObjects[i] != null && splashObjects[i].rgbShader != null) {
                 var rVec = splashObjects[i].rgbShader.shader.r.value;
                 var gVec = splashObjects[i].rgbShader.shader.g.value;
                 var bVec = splashObjects[i].rgbShader.shader.b.value;
@@ -535,7 +549,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && noteObjects[i] != null && noteObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && dirtyFlags[i] && noteObjects[i] != null && noteObjects[i].rgbShader != null) {
                 var rVec = noteObjects[i].rgbShader.parent.shader.r.value;
                 var gVec = noteObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = noteObjects[i].rgbShader.parent.shader.b.value;
@@ -559,7 +573,7 @@ class NoteRGBExporterState extends MusicBeatState
             sp.graphic.bitmap.fillRect(sp.graphic.bitmap.rect, 0x00000000);
             sp.graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
 
-            if (!disableNoteRGB && strumObjects[i] != null && strumObjects[i].rgbShader != null) {
+            if (!disableNoteRGB && dirtyFlags[i] && strumObjects[i] != null && strumObjects[i].rgbShader != null) {
                 var rVec = strumObjects[i].rgbShader.parent.shader.r.value;
                 var gVec = strumObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = strumObjects[i].rgbShader.parent.shader.b.value;
@@ -576,8 +590,6 @@ class NoteRGBExporterState extends MusicBeatState
     function refreshUI(?name:String, ?value:String)
     {
         for (i in 0...4) {
-            if (!dirtyFlags[i]) continue;
-
             if (noteSprites[i] != null && noteSprites[i].graphic != null) {
                 var col = orderColors[i];
                 var f = findFrame(noteFrames, '${col}0000');
@@ -738,6 +750,56 @@ class NoteRGBExporterState extends MusicBeatState
             _file.removeEventListener(Event.COMPLETE, function(_) {});
         });
         _file.save(bmd.encode(bmd.rect, new PNGEncoderOptions()), fileName);
+    }
+
+    function exportAnimationFrames(basePattern:String, frames:Array<SpriteFrame>, bitmap:BitmapData, colorIndex:Int, source:String, animName:String)
+    {
+        var exportedCount:Int = 0;
+        var patternRegex = new EReg(StringTools.replace(basePattern, '*', '\\d+'), '');
+
+        for (f in frames) {
+            if (!patternRegex.match(f.name)) continue;
+
+            var bmd = new BitmapData(f.w, f.h, true, 0x00000000);
+            bmd.copyPixels(bitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+
+            if (!disableNoteRGB && colorIndex >= 0) {
+                var rVec:Array<Float> = null;
+                var gVec:Array<Float> = null;
+                var bVec:Array<Float> = null;
+                var multVal:Float = 1.0;
+
+                if (source == 'splash' && splashObjects[colorIndex] != null && splashObjects[colorIndex].rgbShader != null) {
+                    rVec = splashObjects[colorIndex].rgbShader.shader.r.value;
+                    gVec = splashObjects[colorIndex].rgbShader.shader.g.value;
+                    bVec = splashObjects[colorIndex].rgbShader.shader.b.value;
+                    multVal = splashObjects[colorIndex].rgbShader.shader.mult.value[0];
+                } else if (source == 'confirm' && noteObjects[colorIndex] != null && noteObjects[colorIndex].rgbShader != null) {
+                    rVec = noteObjects[colorIndex].rgbShader.parent.shader.r.value;
+                    gVec = noteObjects[colorIndex].rgbShader.parent.shader.g.value;
+                    bVec = noteObjects[colorIndex].rgbShader.parent.shader.b.value;
+                    multVal = noteObjects[colorIndex].rgbShader.parent.shader.mult.value[0];
+                } else if (source == 'pressedStrum' && strumObjects[colorIndex] != null && strumObjects[colorIndex].rgbShader != null) {
+                    rVec = strumObjects[colorIndex].rgbShader.parent.shader.r.value;
+                    gVec = strumObjects[colorIndex].rgbShader.parent.shader.g.value;
+                    bVec = strumObjects[colorIndex].rgbShader.parent.shader.b.value;
+                    multVal = strumObjects[colorIndex].rgbShader.parent.shader.mult.value[0];
+                }
+
+                if (rVec != null && gVec != null && bVec != null) {
+                    applyRGBBlendFromVectors(bmd, rVec, gVec, bVec, multVal);
+                }
+            }
+
+            var fileName = '${f.name}_RGB.png';
+            _file = new FileReference();
+            _file.addEventListener(Event.COMPLETE, function(_) {
+                _file.removeEventListener(Event.COMPLETE, function(_) {});
+            });
+            _file.save(bmd.encode(bmd.rect, new PNGEncoderOptions()), fileName);
+            exportedCount++;
+        }
+        trace('Exported $exportedCount frames for $animName');
     }
 
     function saveBoth(bitmap:BitmapData, xml:String, baseName:String)
