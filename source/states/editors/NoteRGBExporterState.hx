@@ -210,6 +210,41 @@ class NoteRGBExporterState extends MusicBeatState
         return sets;
     }
 
+    function getSplashVariantFrames(frames:Array<SpriteFrame>, color:String):Array<String>
+    {
+        var variantStrings:Array<String> = [];
+        var setMap:Map<Int, Array<Int>> = new Map();
+
+        for (f in frames) {
+            var regex = ~/note splash $color (\d+)000(\d+)/;
+            if (regex.match(f.name)) {
+                var setNum = Std.parseInt(regex.matched(1));
+                var frameNum = Std.parseInt(regex.matched(2));
+
+                if (!setMap.exists(setNum)) {
+                    setMap.set(setNum, []);
+                }
+                var frameArray = setMap.get(setNum);
+                if (!frameArray.contains(frameNum)) {
+                    frameArray.push(frameNum);
+                }
+            }
+        }
+
+        var setKeys:Array<Int> = [for (k in setMap.keys()) k];
+        setKeys.sort(function(a, b) return a - b);
+
+        for (setNum in setKeys) {
+            var frameArray = setMap.get(setNum);
+            frameArray.sort(function(a, b) return a - b);
+            for (frameNum in frameArray) {
+                variantStrings.push('${setNum}000$frameNum');
+            }
+        }
+
+        return variantStrings;
+    }
+
     function makeSprite(f:SpriteFrame, source:BitmapData, scale:Float):FlxSprite
     {
         if (f == null) return null;
@@ -241,9 +276,9 @@ class NoteRGBExporterState extends MusicBeatState
 
         for (i in 0...4) {
             var col = orderColors[i];
-            var splashSets = getAnimationSets('note splash ${col} ', splashFrames);
-            splashVariantSets.push(splashSets);
-            var firstFrameName = splashSets.length > 0 ? 'note splash ${col} ${splashSets[0]}' : null;
+            var variantStrings = getSplashVariantFrames(splashFrames, col);
+            splashVariantSets.push(variantStrings);
+            var firstFrameName = variantStrings.length > 0 ? 'note splash ${col} ${variantStrings[0]}' : null;
             var f = findFrame(splashFrames, firstFrameName);
             var sp = makeSprite(f, splashBitmap, 0.35);
             if (sp == null) {
