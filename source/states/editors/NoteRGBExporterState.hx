@@ -258,15 +258,6 @@ class NoteRGBExporterState extends MusicBeatState
         return spr;
     }
 
-    function getStepperRGB(index:Int):{r:FlxColor, g:FlxColor, b:FlxColor}
-    {
-        return {
-            r: FlxColor.fromRGB(Std.int(rSteppers[index].value), 0, 0),
-            g: FlxColor.fromRGB(0, Std.int(gSteppers[index].value), 0),
-            b: FlxColor.fromRGB(0, 0, Std.int(bSteppers[index].value))
-        };
-    }
-
     function buildLayout()
     {
         var cellW:Float = 120;
@@ -289,6 +280,7 @@ class NoteRGBExporterState extends MusicBeatState
             }
             sp.x = startX + i * cellW;
             sp.y = startY;
+            sp.visible = true;
             add(sp);
             splashSprites.push(sp);
 
@@ -512,9 +504,9 @@ class NoteRGBExporterState extends MusicBeatState
             rStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
             gStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
             bStep.onChange = function(name:String, value:String) { updateObjectRGB(i); };
-            rStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
-            gStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
-            bStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
+            rStep.onValueChange = function() { updateObjectRGB(i); };
+            gStep.onValueChange = function() { updateObjectRGB(i); };
+            bStep.onValueChange = function() { updateObjectRGB(i); };
             add(rStep); add(gStep); add(bStep);
 
             rSteppers.push(rStep);
@@ -561,6 +553,60 @@ class NoteRGBExporterState extends MusicBeatState
     override function update(elapsed:Float)
     {
         super.update(elapsed);
+
+        for (i in 0...4) {
+            if (dirtyFlags[i]) {
+                if (noteSprites[i] != null && noteSprites[i].graphic != null) {
+                    var col = orderColors[i];
+                    var f = findFrame(noteFrames, '${col}0000');
+                    if (f != null) {
+                        noteSprites[i].graphic.bitmap.fillRect(noteSprites[i].graphic.bitmap.rect, 0x00000000);
+                        noteSprites[i].graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+                        if (!disableNoteRGB && noteObjects[i] != null && noteObjects[i].rgbShader != null) {
+                            var rVec = noteObjects[i].rgbShader.parent.shader.r.value;
+                            var gVec = noteObjects[i].rgbShader.parent.shader.g.value;
+                            var bVec = noteObjects[i].rgbShader.parent.shader.b.value;
+                            var multVal = noteObjects[i].rgbShader.parent.shader.mult.value[0];
+                            applyRGBBlendFromVectors(noteSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
+                        }
+                    }
+                }
+
+                if (sustainSprites[i] != null && sustainSprites[i].graphic != null) {
+                    var col = orderColors[i];
+                    var f = findFrame(noteFrames, '${col} hold piece0000');
+                    if (f != null) {
+                        sustainSprites[i].graphic.bitmap.fillRect(sustainSprites[i].graphic.bitmap.rect, 0x00000000);
+                        sustainSprites[i].graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+                        if (!disableNoteRGB && sustainObjects[i] != null && sustainObjects[i].rgbShader != null) {
+                            var rVec = sustainObjects[i].rgbShader.parent.shader.r.value;
+                            var gVec = sustainObjects[i].rgbShader.parent.shader.g.value;
+                            var bVec = sustainObjects[i].rgbShader.parent.shader.b.value;
+                            var multVal = sustainObjects[i].rgbShader.parent.shader.mult.value[0];
+                            applyRGBBlendFromVectors(sustainSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
+                        }
+                    }
+                }
+
+                if (sustainEndSprites[i] != null && sustainEndSprites[i].graphic != null) {
+                    var col = orderColors[i];
+                    var f = findFrame(noteFrames, '${col} hold end0000');
+                    if (f != null) {
+                        sustainEndSprites[i].graphic.bitmap.fillRect(sustainEndSprites[i].graphic.bitmap.rect, 0x00000000);
+                        sustainEndSprites[i].graphic.bitmap.copyPixels(noteBitmap, new Rectangle(f.x, f.y, f.w, f.h), new Point(0, 0));
+                        if (!disableNoteRGB && sustainObjects[i] != null && sustainObjects[i].rgbShader != null) {
+                            var rVec = sustainObjects[i].rgbShader.parent.shader.r.value;
+                            var gVec = sustainObjects[i].rgbShader.parent.shader.g.value;
+                            var bVec = sustainObjects[i].rgbShader.parent.shader.b.value;
+                            var multVal = sustainObjects[i].rgbShader.parent.shader.mult.value[0];
+                            applyRGBBlendFromVectors(sustainEndSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
+                        }
+                    }
+                }
+
+                dirtyFlags[i] = false;
+            }
+        }
 
         splashAnimTime += elapsed;
         var confirmIdx:Int = Std.int(splashAnimTime * 24) % 4;
