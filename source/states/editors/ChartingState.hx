@@ -2771,6 +2771,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 			for (note in section.sectionNotes)
 			{
+				if(note == null || note.length < 1) continue;
 				if(secNum > 0 && note[0] < lastTime) note[0] = lastTime;
 				else if(secNum < PlayState.SONG.notes.length && note[0] >= time - 0.000001) note[0] = time - 0.000001;
 			}
@@ -3968,17 +3969,34 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		});
 		var clearButton:PsychUIButton = new PsychUIButton(objX + 200, objY, 'Clear', function()
 		{
+			var indicesToRemove:Array<Int> = [];
+			var eventsToRemove:Array<EventMetaNote> = [];
+
 			for (note in curRenderedNotes)
 			{
 				if(note == null) continue;
 
 				if(!note.isEvent && affectNotes.checked)
-					notes.remove(note);
+				{
+					var idx = notes.indexOf(note.songData);
+					if(idx >= 0) indicesToRemove.push(idx);
+				}
 				if(note.isEvent && affectEvents.checked)
-					events.remove(cast (note, EventMetaNote));
+					eventsToRemove.push(cast (note, EventMetaNote));
 
 				selectedNotes.remove(note);
 			}
+
+			indicesToRemove.sort(function(a, b) return b - a);
+			for (idx in indicesToRemove)
+			{
+				invalidateNoteCache(idx);
+				notes.splice(idx, 1);
+			}
+
+			for (event in eventsToRemove)
+				events.remove(event);
+
 			softReloadNotes(true);
 		});
 		clearButton.normalStyle.bgColor = FlxColor.RED;
@@ -6429,20 +6447,23 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var nextSectionTime:Float = cachedSectionTimes[noteSec + 1];
 		var curSectionTime:Float = cachedSectionTimes[noteSec];
 
-		for (num => note in notes)
+		for (num => rawData in notes)
 		{
-			if(note == null) continue;
+			if(rawData == null || rawData.length < 3) continue;
 
-			while(cachedSectionTimes[noteSec + 1] <= note.strumTime)
+			var noteTime:Float = rawData[0];
+			while(noteSec + 1 < cachedSectionTimes.length && cachedSectionTimes[noteSec + 1] <= noteTime)
 			{
 				noteSec++;
-				nextSectionTime = cachedSectionTimes[noteSec + 1];
-				curSectionTime = cachedSectionTimes[noteSec];
+				if(noteSec + 1 < cachedSectionTimes.length)
+				{
+					nextSectionTime = cachedSectionTimes[noteSec + 1];
+					curSectionTime = cachedSectionTimes[noteSec];
+				}
 			}
 
 			var arr:Array<Dynamic> = PlayState.SONG.notes[noteSec].sectionNotes;
-			//trace('Added note with time ${note.songData[0]} at section $noteSec');
-			arr.push(note.songData);
+			arr.push(rawData);
 		}
 
 		events.sort(PlayState.sortByTime);

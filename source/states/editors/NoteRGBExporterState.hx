@@ -78,6 +78,10 @@ class NoteRGBExporterState extends MusicBeatState
     var gSteppers:Array<PsychUINumericStepper> = [];
     var bSteppers:Array<PsychUINumericStepper> = [];
 
+    var splashVariantSets:Array<Array<String>> = [];
+    var confirmVariantSets:Array<Array<String>> = [];
+    var strumVariantSets:Array<Array<String>> = [];
+
     var _file:FileReference;
 
     override function create()
@@ -237,8 +241,10 @@ class NoteRGBExporterState extends MusicBeatState
 
         for (i in 0...4) {
             var col = orderColors[i];
-            var f = findFrame(splashFrames, 'note splash ${col} 20000');
-            if (f == null) f = findFrame(splashFrames, 'note splash ${col} 20001');
+            var splashSets = getAnimationSets('note splash ${col} ', splashFrames);
+            splashVariantSets.push(splashSets);
+            var firstFrameName = splashSets.length > 0 ? 'note splash ${col} ${splashSets[0]}' : null;
+            var f = findFrame(splashFrames, firstFrameName);
             var sp = makeSprite(f, splashBitmap, 0.35);
             if (sp == null) {
                 splashSprites.push(null);
@@ -256,8 +262,8 @@ class NoteRGBExporterState extends MusicBeatState
             add(lbl);
 
             var exportBtn = new PsychUIButton(startX + i * cellW + 10, startY + 50, 'Export', function() {
-                var animIdx:Int = Std.int(splashAnimTime * 24) % 4;
-                var currentF = findFrame(splashFrames, 'note splash ${col} 2000$animIdx');
+                var animIdx:Int = Std.int(splashAnimTime * 24) % splashVariantSets[i].length;
+                var currentF = findFrame(splashFrames, 'note splash ${col} ${splashVariantSets[i][animIdx]}');
                 if (currentF != null) {
                     exportSingleFrame(currentF, splashBitmap, i, 'splash');
                 }
@@ -267,7 +273,7 @@ class NoteRGBExporterState extends MusicBeatState
             splashExportButtons.push(exportBtn);
 
             var exportAllBtn = new PsychUIButton(startX + i * cellW + 10, startY + 75, 'Export All', function() {
-                exportAnimationFrames('note splash ${col} 2000*', splashFrames, splashBitmap, i, 'splash', 'splash_${orderColors[i]}');
+                exportAnimationFrames('note splash ${col} *', splashFrames, splashBitmap, i, 'splash', 'splash_${orderColors[i]}');
             });
             exportAllBtn.resize(80, 20);
             add(exportAllBtn);
@@ -491,21 +497,27 @@ class NoteRGBExporterState extends MusicBeatState
         var bVal:Int = Std.int(bSteppers[index].value);
 
         if (noteObjects[index] != null && noteObjects[index].rgbShader != null) {
-            noteObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
-            noteObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
-            noteObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
+            noteObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
+            noteObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
+            noteObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
         }
 
         if (sustainObjects[index] != null && sustainObjects[index].rgbShader != null) {
-            sustainObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
-            sustainObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
-            sustainObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
+            sustainObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
+            sustainObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
+            sustainObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
         }
 
         if (strumObjects[index] != null && strumObjects[index].rgbShader != null) {
-            strumObjects[index].rgbShader.parent.r = FlxColor.fromRGB(rVal, 0, 0);
-            strumObjects[index].rgbShader.parent.g = FlxColor.fromRGB(0, gVal, 0);
-            strumObjects[index].rgbShader.parent.b = FlxColor.fromRGB(0, 0, bVal);
+            strumObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
+            strumObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
+            strumObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
+        }
+
+        if (splashObjects[index] != null && splashObjects[index].rgbShader != null) {
+            splashObjects[index].rgbShader.shader.r.value = [rVal / 255.0];
+            splashObjects[index].rgbShader.shader.g.value = [gVal / 255.0];
+            splashObjects[index].rgbShader.shader.b.value = [bVal / 255.0];
         }
 
         dirtyFlags[index] = true;
@@ -516,12 +528,14 @@ class NoteRGBExporterState extends MusicBeatState
         super.update(elapsed);
 
         splashAnimTime += elapsed;
-        var splashIdx:Int = Std.int(splashAnimTime * 24) % 4;
         var confirmIdx:Int = Std.int(splashAnimTime * 24) % 4;
 
         for (i in 0...4) {
             var col = orderColors[i];
-            var name = 'note splash ${col} 2000$splashIdx';
+            var variantCount = splashVariantSets[i].length;
+            if (variantCount == 0) continue;
+            var splashIdx:Int = Std.int(splashAnimTime * 24) % variantCount;
+            var name = 'note splash ${col} ${splashVariantSets[i][splashIdx]}';
             var f = findFrame(splashFrames, name);
             if (f == null) continue;
 
