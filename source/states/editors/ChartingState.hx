@@ -4613,6 +4613,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var pushedNotes:Array<MetaNote> = [];
 		var nts:Array<MetaNote> = [];
 		var evs:Array<EventMetaNote> = [];
+		var addedRawData:Array<Array<Dynamic>> = [];
 		clearNoteCache();
 
 		if(canCopyNotes && notesData.length > 0)
@@ -4623,13 +4624,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				var dataCopy:Array<Dynamic> = makeNoteDataCopy(note, false);
 				dataCopy[0] += curSectionTime;
 				notes.push(dataCopy);
+				addedRawData.push(dataCopy);
 			}
 			notes.sort(PlayState.sortByTime);
-			for (i => rawData in notes)
+			for (rawData in addedRawData)
 			{
-				if(rawData != null && rawData.length >= 3 && rawData[1] >= 0)
+				var idx = notes.indexOf(rawData);
+				if(idx >= 0)
 				{
-					var note = getNote(i);
+					var note = getNote(idx);
 					if(note != null) nts.push(note);
 				}
 			}
@@ -4650,6 +4653,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			events.sort(PlayState.sortByTime);
 		}
 
+		_cacheSections();
 		loadSection();
 
 		if(showMessage && (nts.length > 0 || evs.length > 0))
@@ -4727,11 +4731,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			notes.sort(PlayState.sortByTime);
 			events.sort(PlayState.sortByTime);
-			for (i => rawData in notes)
+			_cacheSections();
+			for (rawData in newNotesData)
 			{
-				if(rawData != null && rawData.length >= 3 && rawData[1] >= 0)
+				var idx = notes.indexOf(rawData);
+				if(idx >= 0)
 				{
-					var note = getNote(i);
+					var note = getNote(idx);
 					if(note != null) pushedNotes.push(note);
 				}
 			}
@@ -5077,7 +5083,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					if(copiedNotes[i] == null || copiedNotes[i].length < 3) continue;
 
 					var original = copiedNotes[i];
-					var newNote:Array<Dynamic> = [original[0], original[1], original[2]];
+					var newNote:Array<Dynamic> = [Std.parseFloat('${original[0]}'), original[1], original[2]];
 					if(original.length > 3) newNote.push(original[3]);
 					newNote[0] += timeOffset;
 					newNotes[index++] = newNote;
@@ -5087,8 +5093,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			sec.sectionNotes = sec.sectionNotes.concat(newNotes);
 
 			newNotes = null;
-
-			_cacheSections();
 
 			sec.sectionNotes.length <= 30000 ? updateCurrentSectionNotes() : jumpNextSection();
 
