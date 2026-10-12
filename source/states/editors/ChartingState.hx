@@ -4484,8 +4484,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if (sourceNotes.length > 30000) cpp.vm.Gc.enable(true);
 			#end
 
-			notes.sort(PlayState.sortByTime);
-			clearNoteCache();
+			updateChartData();
 			_cacheSections();
 
 			var finalSection:Int = curSec + (nextCount * repeatTimes);
@@ -4728,7 +4727,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			notes.sort(PlayState.sortByTime);
 			events.sort(PlayState.sortByTime);
-			_cacheSections();
 			for (i => rawData in notes)
 			{
 				if(rawData != null && rawData.length >= 3 && rawData[1] >= 0)
@@ -4980,31 +4978,32 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var shrinkNotesButton:PsychUIButton = new PsychUIButton(objX, doubleShrinker.y + 30, "Stretch Notes", function()
 		{
+			updateChartData();
 			var sec = getCurChartSection();
-			if(sec == null) return;
+			if(sec == null || sec.sectionNotes == null) return;
 
 			var minimumTime:Float = cachedSectionTimes[curSec];
-			var sectionEndTime:Float = cachedSectionTimes[curSec + 1];
 
-			for (i => rawData in notes)
+			for (i in 0...sec.sectionNotes.length)
 			{
-				if(rawData == null || rawData.length < 3) continue;
-				if(rawData[1] < 0) continue;
-				if(rawData[0] < minimumTime || rawData[0] >= sectionEndTime) continue;
+				var note:Array<Dynamic> = sec.sectionNotes[i];
+				if (note == null || note.length < 3) continue;
 
-				if (rawData[2] > 0) rawData[2] *= stepperShrinkAmount.value;
+				if (note[1] < 0) continue;
 
-				var originalStartTime:Float = rawData[0];
+				if (note[2] > 0) note[2] *= stepperShrinkAmount.value;
+
+				var originalStartTime:Float = note[0];
 				originalStartTime = originalStartTime - minimumTime;
 
 				var stretchedStartTime:Float = originalStartTime * stepperShrinkAmount.value;
 				var newStartTime:Float = minimumTime + stretchedStartTime;
 
-				rawData[0] = Math.max(newStartTime, minimumTime);
-				if (rawData[0] < minimumTime) rawData[0] = minimumTime;
+				note[0] = Math.max(newStartTime, minimumTime);
+				if (note[0] < minimumTime) note[0] = minimumTime;
+				sec.sectionNotes[i] = note;
 			}
-			notes.sort(PlayState.sortByTime);
-			clearNoteCache();
+
 			_cacheSections();
 			updateCurrentSectionNotes();
 		});
@@ -5014,22 +5013,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var shiftNotesButton:PsychUIButton = new PsychUIButton(objX, stepperShiftSteps.y + 20, "Shift Notes", function()
 		{
+			updateChartData();
 			var sec = getCurChartSection();
-			if(sec == null) return;
+			if(sec == null || sec.sectionNotes == null) return;
 
-			var sectionStartTime:Float = cachedSectionTimes[curSec];
-			var sectionEndTime:Float = cachedSectionTimes[curSec + 1];
-
-			for (i => rawData in notes)
+			for (i in 0...sec.sectionNotes.length)
 			{
-				if(rawData == null || rawData.length < 1) continue;
-				if(rawData[1] < 0) continue;
-				if(rawData[0] < sectionStartTime || rawData[0] >= sectionEndTime) continue;
+				if(sec.sectionNotes[i] == null || sec.sectionNotes[i].length < 1) continue;
 
-				rawData[0] += (stepperShiftSteps.value) * (15000/Conductor.bpm);
+				if (sec.sectionNotes[i][1] < 0) continue;
+
+				sec.sectionNotes[i][0] += (stepperShiftSteps.value) * (15000/Conductor.bpm);
 			}
-			notes.sort(PlayState.sortByTime);
-			clearNoteCache();
 			_cacheSections();
 			updateCurrentSectionNotes();
 		});
@@ -5039,27 +5034,29 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		var dupeNotesButton:PsychUIButton = new PsychUIButton(objX, stepperDuplicateAmount.y + 20, "Duplicate Notes", function()
 		{
+			updateChartData();
 			var sec = getCurChartSection();
-			if(sec == null) return;
-
-			var sectionStartTime:Float = cachedSectionTimes[curSec];
-			var sectionEndTime:Float = cachedSectionTimes[curSec + 1];
+			if(sec == null || sec.sectionNotes == null) return;
 
 			#if sys
 			cpp.vm.Gc.run(true);
+
+			var totalNewNotes:Int = Std.int(stepperDuplicateAmount.value) * sec.sectionNotes.length;
+			if (totalNewNotes > 1000000) {
+				cpp.vm.Gc.enable(false);
+			}
 			#end
 
 			var copiedNotes:Array<Dynamic> = [];
-			for (i => rawData in notes)
+			for (i in 0...sec.sectionNotes.length)
 			{
-				if(rawData != null && rawData.length >= 3 && rawData[1] >= 0 && rawData[0] >= sectionStartTime && rawData[0] < sectionEndTime)
-				{
-					copiedNotes.push(rawData);
-				}
+				var note:Array<Dynamic> = sec.sectionNotes[i];
+				if(note != null && note.length > 1 && note[1] >= 0) copiedNotes.push(note);
 			}
 
 			if(copiedNotes.length == 0)
 			{
+				#if cpp cpp.vm.Gc.enable(true); #end
 				showOutput('No notes to duplicate!');
 				return;
 			}
@@ -5068,12 +5065,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var shiftAmount:Float = (stepperShiftSteps.value) * (15000/Conductor.bpm);
 			var copiedLength:Int = copiedNotes.length;
 			var totalNewNotes:Int = copiedLength * duplicateAmount;
-
-			#if sys
-			if (totalNewNotes > 1000000) {
-				cpp.vm.Gc.enable(false);
-			}
-			#end
 
 			var newNotes:Array<Array<Dynamic>> = [for (i in 0...totalNewNotes) null];
 
@@ -5093,18 +5084,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 
-			for (newNote in newNotes)
-			{
-				if(newNote != null) notes.push(newNote);
-			}
+			sec.sectionNotes = sec.sectionNotes.concat(newNotes);
 
 			newNotes = null;
 
-			notes.sort(PlayState.sortByTime);
-			clearNoteCache();
 			_cacheSections();
 
-			(copiedLength + totalNewNotes) <= 30000 ? updateCurrentSectionNotes() : jumpNextSection();
+			sec.sectionNotes.length <= 30000 ? updateCurrentSectionNotes() : jumpNextSection();
 
 			#if sys
 			cpp.vm.Gc.enable(true);
