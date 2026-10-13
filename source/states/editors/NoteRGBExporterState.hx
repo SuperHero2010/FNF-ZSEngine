@@ -268,10 +268,14 @@ class NoteRGBExporterState extends MusicBeatState
         for (i in 0...4) {
             var col = orderColors[i];
             var variantStrings = getSplashVariantFrames(splashFrames, col);
+            trace('Splash $i ($col): variantStrings = $variantStrings');
             splashVariantSets.push(variantStrings);
             var firstFrameName = variantStrings.length > 0 ? 'note splash ${col} ${variantStrings[0]}' : null;
+            trace('Splash $i ($col): firstFrameName = $firstFrameName');
             var f = findFrame(splashFrames, firstFrameName);
+            trace('Splash $i ($col): frame found = ${f != null}');
             var sp = makeSprite(f, splashBitmap, 0.35);
+            trace('Splash $i ($col): sprite created = ${sp != null}');
             if (sp == null) {
                 splashSprites.push(null);
                 splashExportButtons.push(null);
@@ -280,8 +284,10 @@ class NoteRGBExporterState extends MusicBeatState
             }
             sp.x = startX + i * cellW;
             sp.y = startY;
+            trace('Splash $i ($col): sprite position = (${sp.x}, ${sp.y}), visible = ${sp.visible}');
             add(sp);
             splashSprites.push(sp);
+            trace('Splash $i ($col): sprite added to scene');
 
             var lbl = new FlxText(startX + i * cellW, startY - 16, cellW, 'Splash ${orderDirs[i]}', 11);
             lbl.color = FlxColor.WHITE;
@@ -522,32 +528,38 @@ class NoteRGBExporterState extends MusicBeatState
         var rVal:Int = Std.int(rSteppers[index].value);
         var gVal:Int = Std.int(gSteppers[index].value);
         var bVal:Int = Std.int(bSteppers[index].value);
+        trace('updateObjectRGB $index: RGB = ($rVal, $gVal, $bVal)');
 
         if (noteObjects[index] != null && noteObjects[index].rgbShader != null) {
             noteObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
             noteObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
             noteObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
+            trace('updateObjectRGB $index: note shader updated');
         }
 
         if (sustainObjects[index] != null && sustainObjects[index].rgbShader != null) {
             sustainObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
             sustainObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
             sustainObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
+            trace('updateObjectRGB $index: sustain shader updated');
         }
 
         if (strumObjects[index] != null && strumObjects[index].rgbShader != null) {
             strumObjects[index].rgbShader.parent.shader.r.value = [rVal / 255.0];
             strumObjects[index].rgbShader.parent.shader.g.value = [gVal / 255.0];
             strumObjects[index].rgbShader.parent.shader.b.value = [bVal / 255.0];
+            trace('updateObjectRGB $index: strum shader updated');
         }
 
         if (splashObjects[index] != null && splashObjects[index].rgbShader != null) {
             splashObjects[index].rgbShader.shader.r.value = [rVal / 255.0];
             splashObjects[index].rgbShader.shader.g.value = [gVal / 255.0];
             splashObjects[index].rgbShader.shader.b.value = [bVal / 255.0];
+            trace('updateObjectRGB $index: splash shader updated');
         }
 
         dirtyFlags[index] = true;
+        trace('updateObjectRGB $index: dirtyFlags[$index] = true');
     }
 
     override function update(elapsed:Float)

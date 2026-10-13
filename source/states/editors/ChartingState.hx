@@ -680,6 +680,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for (num => key in keysArray)
 			_keysPressedBuffer[num] = FlxG.keys.checkStatus(key, JUST_PRESSED);
 
+		if(forceDataUpdate)
+		{
+			trace('update: forceDataUpdate is true, calling updateCurrentSectionNotesOptimized');
+			updateCurrentSectionNotesOptimized();
+			forceDataUpdate = false;
+		}
+
+		trace('update: Conductor.songPosition = ${Conductor.songPosition}, curSec = $curSec');
+
 		if(autoSaveCap > 0)
 		{
 			autoSaveTime += elapsed / 60.0;
@@ -800,6 +809,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 				if(vortexEnabled && _keysPressedBuffer.contains(true))
 				{
+					trace('update: vortex editor active, processing key presses');
 					var typeSelected:String = noteTypes[noteTypeDropDown.selectedIndex];
 					if(typeSelected != null)
 					{
@@ -827,6 +837,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 							if(note.songData[1] == num && Math.abs(strumTime - note.strumTime) < 1)
 							{
+								trace('update: deleting note at data=$num, time=$strumTime');
 								deletedNotes.push(note);
 								didDelete = true;
 								break;
@@ -840,6 +851,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						var noteSetupData:Array<Dynamic> = [strumTime, num, 0];
 						if(typeSelected != null) noteSetupData.push(typeSelected);
 
+						trace('update: adding note with data=$num, time=$strumTime, type=$typeSelected');
 						for (num in sectionFirstNoteID...notes.length)
 						{
 							var rawData = notes[num];
@@ -853,6 +865,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						if(!didAdd) notes.push(noteSetupData);
 						var noteAdded = getNote(notes.indexOf(noteSetupData));
 						addedNotes.push(noteAdded);
+						trace('update: note added successfully at index ${notes.indexOf(noteSetupData)}');
 					}
 
 					if(deletedNotes.length > 0)
@@ -1139,15 +1152,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 				else if(FlxG.keys.justPressed.Z != FlxG.keys.justPressed.X) //Decrease/Increase Zoom
 				{
+					trace('update: zoom key pressed, current zoom = $curZoom');
 					if(FlxG.keys.justPressed.Z)
 						curZoom = zoomList[Std.int(Math.max(zoomList.indexOf(curZoom) - 1, 0))];
 					else
 						curZoom = zoomList[Std.int(Math.min(zoomList.indexOf(curZoom) + 1, zoomList.length - 1))];
+					trace('update: new zoom = $curZoom');
 
 					notes.sort(PlayState.sortByTime);
 					var noteSec:Int = 0;
 					var nextSectionTime:Float = cachedSectionTimes[noteSec + 1];
 					var curSectionTime:Float = cachedSectionTimes[noteSec];
+					var positionUpdateCount = 0;
 					for (i => rawData in notes)
 					{
 						if(rawData == null) continue;
@@ -1163,8 +1179,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						}
 						positionNoteYOnTime(note, noteSec);
 						note.updateSustainToZoom(cachedSectionCrochets[noteSec] / 4, curZoom);
+						positionUpdateCount++;
 					}
+					trace('update: updated positions for $positionUpdateCount notes after zoom');
 
+					var eventUpdateCount = 0;
 					for (event in events)
 					{
 						var secNum:Int = 0;
@@ -1174,7 +1193,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							secNum++;
 						}
 						positionNoteYOnTime(event, secNum);
+						eventUpdateCount++;
 					}
+					trace('update: updated positions for $eventUpdateCount events after zoom');
 					loadSection();
 					showOutput('Zoom: ${Math.round(curZoom * 100)}%');
 					updateScrollY();
@@ -1329,6 +1350,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			}
 			else if(FlxG.mouse.justPressed && !ignoreClickForThisFrame)
 			{
+				trace('update: mouse click at grid position noteData=$noteData, y=${dummyArrow.y}');
 				if(FlxG.keys.pressed.CONTROL && FlxG.mouse.justPressed)
 				{
 					if(selectedNotes.length > 0)
@@ -1346,6 +1368,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					closeNotes.sort(function(a:MetaNote, b:MetaNote) return Math.abs(a.strumTime - FlxG.mouse.y) < Math.abs(b.strumTime - FlxG.mouse.y) ? 1 : -1);
 
 					var closest = closeNotes[0];
+					trace('update: found ${closeNotes.length} close notes, closest is ${closest != null}');
 					if(closest != null && (!closest.isEvent || !lockedEvents))
 					{
 						if(FlxG.keys.pressed.SHIFT || holdingAlt) // Select Note/Event
@@ -1366,6 +1389,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						}
 						else if(!FlxG.keys.pressed.CONTROL) // Remove Note/Event
 						{
+							trace('update: removing closest note/event');
 							var radius:Float = deleteRadius.value;
 							var removedNotes:Array<MetaNote> = [];
 							var removedEvents:Array<EventMetaNote> = [];
@@ -1466,6 +1490,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 					else if(!holdingAlt && FlxG.mouse.y >= gridBg.y && FlxG.mouse.y < gridBg.y + gridBg.height) // Add note
 					{
 						var strumTime:Float = (diffY / GRID_SIZE * Conductor.stepCrochet / curZoom) + cachedSectionTimes[curSec];
+						trace('update: adding note at noteData=$noteData, strumTime=$strumTime');
 						if(noteData >= 0)
 						{
 							trace('Added note at time: $strumTime');
@@ -1475,6 +1500,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							var typeSelected:String = noteTypes[noteTypeDropDown.selectedIndex].trim();
 							if(typeSelected != null && typeSelected.length > 0)
 								noteSetupData.push(typeSelected);
+							trace('update: noteSetupData = $noteSetupData');
 
 							for (num in sectionFirstNoteID...notes.length)
 							{
@@ -1483,13 +1509,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 								{
 									notes.insert(num, noteSetupData);
 									didAdd = true;
+									trace('update: inserted note at index $num');
 									break;
 								}
 							}
-							if(!didAdd) notes.push(noteSetupData);
+							if(!didAdd) {
+								notes.push(noteSetupData);
+								trace('update: appended note to end');
+							}
 							notes.sort(PlayState.sortByTime);
 							clearNoteCache();
 							var noteAdded = getNote(notes.indexOf(noteSetupData));
+							trace('update: noteAdded = $noteAdded at index ${notes.indexOf(noteSetupData)}');
 
 							if(!holdingAlt)
 								resetSelectedNotes();
@@ -2373,8 +2404,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function updateCurrentSectionNotes()
 	{
+		trace('updateCurrentSectionNotes: START, curSec = $curSec');
 		var sec = getCurChartSection();
-		if(sec == null) return;
+		if(sec == null) {
+			trace('updateCurrentSectionNotes: sec is null');
+			return;
+		}
+		trace('updateCurrentSectionNotes: sec.sectionNotes.length = ${sec.sectionNotes.length}');
 
 		var minTime:Float = getMinNoteTime(curSec);
 		var maxTime:Float = getMaxNoteTime(curSec);
@@ -2386,36 +2422,49 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(rawData != null && rawData.length >= 3 && rawData[1] >= 0 && rawData[0] >= minTime && rawData[0] < maxTime)
 				indicesToRemove.push(i);
 		}
+		trace('updateCurrentSectionNotes: found ${indicesToRemove.length} notes to remove');
 		indicesToRemove.sort(function(a, b) return b - a); // Sort descending to avoid index shifting
 		for (i in indicesToRemove)
 		{
 			invalidateNoteCache(i);
 			notes.splice(i, 1);
 		}
+		trace('updateCurrentSectionNotes: removed notes, notes.length = ${notes.length}');
 
+		var addedCount = 0;
 		for (noteData in sec.sectionNotes)
 		{
 			if(noteData != null && noteData.length >= 3 && noteData[1] >= 0)
 			{
 				notes.push(noteData);
+				addedCount++;
 			}
 		}
+		trace('updateCurrentSectionNotes: added $addedCount notes from sec.sectionNotes');
 		clearNoteCache(); // Clear cache after adding new raw data
 
 		notes.sort(PlayState.sortByTime);
+		trace('updateCurrentSectionNotes: sorted notes, notes.length = ${notes.length}');
 		softReloadNotes();
 		forceDataUpdate = true;
+		trace('updateCurrentSectionNotes: END');
 	}
 
 	function updateCurrentSectionNotesOptimized()
 	{
+		trace('updateCurrentSectionNotesOptimized: START, curSec = $curSec');
 		var sec = getCurChartSection();
-		if(sec == null) return;
+		if(sec == null) {
+			trace('updateCurrentSectionNotesOptimized: sec is null');
+			return;
+		}
+		trace('updateCurrentSectionNotesOptimized: sec.sectionNotes.length = ${sec.sectionNotes.length}');
 
 		var minTime:Float = getMinNoteTime(curSec);
 		var maxTime:Float = getMaxNoteTime(curSec);
 
 		// OPTIMIZATION 1: Single-pass removal (backwards iteration)
+		var removedCount = 0;
 		var i:Int = notes.length - 1;
 		while(i >= 0)
 		{
@@ -2424,9 +2473,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			{
 				invalidateNoteCache(i);
 				notes.splice(i, 1); // Remove directly without separate array
+				removedCount++;
 			}
 			i--;
 		}
+		trace('updateCurrentSectionNotesOptimized: removed $removedCount notes, notes.length = ${notes.length}');
 
 		// OPTIMIZATION 2: Pre-allocate if many notes
 		var sectionNotes = sec.sectionNotes;
@@ -2440,14 +2491,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				newRawData.push(noteData);
 			}
 		}
+		trace('updateCurrentSectionNotesOptimized: collected ${newRawData.length} notes to add');
 
 		// OPTIMIZATION 4: Merge sorted arrays (faster than full sort)
 		if (newRawData.length > 0)
 		{
+			trace('updateCurrentSectionNotesOptimized: merging ${newRawData.length} new notes with ${notes.length} existing notes');
 			// If notes is empty, just assign
 			if (notes.length == 0)
 			{
 				notes = newRawData;
+				trace('updateCurrentSectionNotesOptimized: notes was empty, assigned newRawData directly');
 			}
 			else
 			{
@@ -2464,32 +2518,48 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				while(a < notes.length) merged.push(notes[a++]);
 				while(b < newRawData.length) merged.push(newRawData[b++]);
 				notes = merged;
+				trace('updateCurrentSectionNotesOptimized: merged notes, new notes.length = ${notes.length}');
 			}
 			clearNoteCache(); // Clear cache after merging
 		}
+		else
+		{
+			trace('updateCurrentSectionNotesOptimized: no new notes to add');
+		}
 
 		// OPTIMIZATION 5: Update positions for visible notes
+		var positionUpdateCount = 0;
 		for (i => rawData in notes)
 		{
 			if(rawData != null)
 			{
 				var note = getNote(i);
-				if(note != null && note.visible)
+				if(note != null && note.visible) {
 					positionNoteYOnTime(note, curSec);
+					positionUpdateCount++;
+				}
 			}
 		}
+		trace('updateCurrentSectionNotesOptimized: updated positions for $positionUpdateCount visible notes');
+		trace('updateCurrentSectionNotesOptimized: END');
 
 		forceDataUpdate = true;
 	}
 
 	function updateCurrentSectionNotesNoSectionNotes()
 	{
+		trace('updateCurrentSectionNotesNoSectionNotes: START, curSec = $curSec');
 		var sec = getCurChartSection();
-		if(sec == null) return;
+		if(sec == null) {
+			trace('updateCurrentSectionNotesNoSectionNotes: sec is null');
+			return;
+		}
 
 		var minTime:Float = cachedSectionTimes[curSec];
 		var maxTime:Float = cachedSectionTimes[curSec + 1];
+		trace('updateCurrentSectionNotesNoSectionNotes: minTime = $minTime, maxTime = $maxTime');
 
+		var visibleCount = 0;
 		for (i => rawData in notes)
 		{
 			if(rawData == null) continue;
@@ -2499,6 +2569,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if(note != null)
 			{
 				note.visible = inCurrentSection;
+				if(inCurrentSection) visibleCount++;
 
 				if (inCurrentSection && !note.isEvent)
 				{
@@ -2506,12 +2577,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
-
+		trace('updateCurrentSectionNotesNoSectionNotes: made $visibleCount notes visible');
 		forceDataUpdate = true;
+		trace('updateCurrentSectionNotesNoSectionNotes: END');
 	}
 
 	function reloadNotes()
 	{
+		trace('reloadNotes: START');
 		var startTime = haxe.Timer.stamp();
 
 		cnt = 0;
@@ -2521,15 +2594,18 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		selectedNotes = [];
 		noteCache.clear();
 		notes = [];
+		trace('reloadNotes: cleared selectedNotes, noteCache, and notes arrays');
 
 		for (event in events)
 			if(event != null) event.destroy();
 		events = [];
+		trace('reloadNotes: cleared events array');
 
 		var estimatedNotes:Int = 0;
 		for (section in PlayState.SONG.notes)
 			estimatedNotes += section.sectionNotes.length;
 		var estimatedEvents:Int = PlayState.SONG.events.length;
+		trace('reloadNotes: estimatedNotes = $estimatedNotes, estimatedEvents = $estimatedEvents');
 
 		#if sys
 		if (ClientPrefs.data.disableGC) {
@@ -2567,6 +2643,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if (estimatedNotes > 0) notes = [];
 		if (estimatedEvents > 0) events = [];
+		trace('reloadNotes: re-initialized notes and events arrays');
 
 		for (secNum => section in PlayState.SONG.notes)
 		{
@@ -2600,10 +2677,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 		}
+		trace('reloadNotes: parsed $parsedNotes notes from ${cnt} sections');
 
 		var eventsArray:Array<Dynamic> = PlayState.SONG.events;
 		var cachedLen:Int = cachedSectionTimes.length;
 		var lastTime:Float = (cachedLen > 0) ? cachedSectionTimes[cachedLen - 1] : 0;
+		trace('reloadNotes: processing ${eventsArray.length} events');
 
 		for (i in 0...eventsArray.length)
 		{
@@ -2621,9 +2700,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				if (newEvent != null) events.push(newEvent);
 			}
 		}
+		trace('reloadNotes: added ${events.length} events');
 
 		notes.sort(PlayState.sortByTime);
 		events.sort(PlayState.sortByTime);
+		trace('reloadNotes: sorted notes and events');
+
+		if (curSec >= 0 && curSec < PlayState.SONG.notes.length)
+			loadSection(curSec);
 
 		forceDataUpdate = true;
 
@@ -2643,12 +2727,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		showProgress(true);
 		if (Main.isConsoleAvailable) Sys.stdout().writeString('\n');
+		trace('reloadNotes: END, notes.length = ${notes.length}, events.length = ${events.length}');
 	}
 
 	public function createNote(note:Dynamic, ?secNum:Null<Int> = null)
 	{
 		if(secNum == null) secNum = curSec;
 		var section = PlayState.SONG.notes[secNum];
+		trace('createNote: secNum = $secNum, note = $note');
 
 		var daStrumTime:Float = note[0];
 		var daNoteData:Int = Std.int(note[1] % GRID_COLUMNS_PER_PLAYER);
@@ -2679,6 +2765,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	public function createNoteFromRaw(rawData:Dynamic, id:Int, ?secNum:Null<Int> = null):MetaNote
 	{
+		trace('createNoteFromRaw: id = $id, rawData = $rawData');
 		if(secNum == null) {
 			var daStrumTime:Float = rawData[0];
 			secNum = 0;
@@ -2687,14 +2774,22 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				if(cachedSectionTimes[i] > daStrumTime) break;
 				secNum++;
 			}
+			trace('createNoteFromRaw: determined secNum = $secNum from time $daStrumTime');
 		}
 		return createNote(rawData, secNum);
 	}
 
 	public function getNote(id:Int):MetaNote
 	{
-		if (id < 0 || id >= notes.length) return null;
-		if (noteCache.exists(id)) return noteCache.get(id);
+		if (id < 0 || id >= notes.length) {
+			trace('getNote: id $id out of bounds (notes.length = ${notes.length})');
+			return null;
+		}
+		if (noteCache.exists(id)) {
+			trace('getNote: id $id found in cache');
+			return noteCache.get(id);
+		}
+		trace('getNote: id $id creating from raw data');
 		var metaNote = createNoteFromRaw(notes[id], id);
 		noteCache.set(id, metaNote);
 		return metaNote;
@@ -2702,19 +2797,27 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	public function invalidateNoteCache(id:Int)
 	{
+		trace('invalidateNoteCache: id = $id');
 		if (noteCache.exists(id)) {
 			var cached = noteCache.get(id);
 			if (cached != null) cached.destroy();
 			noteCache.remove(id);
+			trace('invalidateNoteCache: removed id $id from cache');
+		}
+		else
+		{
+			trace('invalidateNoteCache: id $id not in cache');
 		}
 	}
 
 	public function clearNoteCache()
 	{
+		trace('clearNoteCache: clearing ${noteCache.keys().length} cached notes');
 		for (id => note in noteCache) {
 			if (note != null) note.destroy();
 		}
 		noteCache.clear();
+		trace('clearNoteCache: cache cleared');
 	}
 
 	public function createEvent(event:Dynamic)
@@ -2737,6 +2840,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function _cacheSections()
 	{
+		trace('_cacheSections: START');
 		var time:Float = 0;
 		var row:Int = 0;
 		cachedSectionRow = [];
@@ -2746,12 +2850,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if(PlayState.SONG == null)
 		{
+			trace('_cacheSections: PlayState.SONG is null');
 			cachedSectionRow.push(0);
 			cachedSectionTimes.push(0);
 			cachedSectionCrochets.push(0);
 			cachedSectionBPMs.push(0);
 			return;
 		}
+		trace('_cacheSections: PlayState.SONG.notes.length = ${PlayState.SONG.notes.length}');
 
 		var bpm:Float = PlayState.SONG.bpm;
 		var reachedLimit:Bool = false;
@@ -2773,12 +2879,20 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			row += rowRound;
 			time += beat * (rowRound / 4);
 
+			var clampedCount = 0;
 			for (note in section.sectionNotes)
 			{
 				if(note == null || note.length < 1) continue;
-				if(secNum > 0 && note[0] < lastTime) note[0] = lastTime;
-				else if(secNum < PlayState.SONG.notes.length && note[0] >= time - 0.000001) note[0] = time - 0.000001;
+				if(secNum > 0 && note[0] < lastTime) {
+					note[0] = lastTime;
+					clampedCount++;
+				}
+				else if(secNum < PlayState.SONG.notes.length && note[0] >= time - 0.000001) {
+					note[0] = time - 0.000001;
+					clampedCount++;
+				}
 			}
+			if(clampedCount > 0) trace('_cacheSections: section $secNum clamped $clampedCount notes');
 
 			if(FlxG.sound.music != null && time >= FlxG.sound.music.length)
 			{
@@ -2879,8 +2993,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function loadSection(?sec:Null<Int> = null)
 	{
+		trace('loadSection: START, sec = $sec, curSec = $curSec');
 		if(sec != null) curSec = sec;
 		curSec = Std.int(FlxMath.bound(curSec, 0, PlayState.SONG.notes.length-1));
+		trace('loadSection: curSec after bound = $curSec');
 		Conductor.bpm = cachedSectionBPMs[curSec];
 
 		var hei:Float = 0;
@@ -2937,11 +3053,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function softReloadNotes(onlyCurrent:Bool = false)
 	{
+		trace('softReloadNotes: START, onlyCurrent = $onlyCurrent, curSec = $curSec');
 		if(!onlyCurrent) behindRenderedNotes.clear();
 		curRenderedNotes.clear();
 
 		var minTime:Float = getMinNoteTime(curSec);
 		var maxTime:Float = getMaxNoteTime(curSec);
+		trace('softReloadNotes: minTime = $minTime, maxTime = $maxTime');
 		inline function curSecFilterRaw(rawData:Dynamic)
 		{
 			return (rawData != null && rawData[0] >= minTime && rawData[0] < maxTime);
@@ -2950,6 +3068,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var sec = getCurChartSection();
 		var noteCount:Int = (sec != null) ? sec.sectionNotes.length : 0;
 		var skipFullRender:Bool = (noteCount > 10000);
+		trace('softReloadNotes: noteCount = $noteCount, skipFullRender = $skipFullRender');
 
 		var firstNote:Bool = false;
 		var firstEvent:Bool = false;
@@ -2958,10 +3077,12 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		if(skipFullRender)
 		{
+			trace('softReloadNotes: using skipFullRender mode');
 			var visibleTimeRange:Float = 5000;
 			var minVisibleTime:Float = Conductor.songPosition - visibleTimeRange;
 			var maxVisibleTime:Float = Conductor.songPosition + visibleTimeRange;
 
+			var renderedCount = 0;
 			for (num => rawData in notes)
 			{
 				if(curSecFilterRaw(rawData))
@@ -2979,13 +3100,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							else if (note.rgbShader != null)
 								note.shader = note.rgbShader.parent.shader;
 							if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+							renderedCount++;
 						}
 					}
 				}
 			}
+			trace('softReloadNotes: rendered $renderedCount notes in skipFullRender mode');
 		}
 		else
 		{
+			trace('softReloadNotes: using full render mode');
+			var renderedCount = 0;
 			for (num => rawData in notes)
 			{
 				if(curSecFilterRaw(rawData))
@@ -3000,9 +3125,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 						else if (note.rgbShader != null)
 							note.shader = note.rgbShader.parent.shader;
 						if(note.hasSustain) note.updateSustainToZoom(cachedSectionCrochets[curSec] / 4, curZoom);
+						renderedCount++;
 					}
 				}
 			}
+			trace('softReloadNotes: rendered $renderedCount notes in full render mode');
 		}
 
 		if(SHOW_EVENT_COLUMN)
@@ -3072,14 +3199,20 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function jumpNextSection()
 	{
+		trace('jumpNextSection: START, curSec = $curSec');
 		// Update current section notes BEFORE jumping
 		updateCurrentSectionNotesOptimized();
 
 		var nextSection:Int = curSec + 1;
 		if(nextSection < PlayState.SONG.notes.length)
 		{
+			trace('jumpNextSection: jumping to section $nextSection');
 			loadSection(nextSection);
 			Conductor.songPosition = FlxG.sound.music.time = cachedSectionTimes[nextSection] - Conductor.offset + 0.000001;
+		}
+		else
+		{
+			trace('jumpNextSection: no next section available');
 		}
 	}
 
@@ -3105,6 +3238,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var minTime:Float = Math.NEGATIVE_INFINITY;
 		if(sec > 0)
 			minTime = cachedSectionTimes[sec];
+		trace('getMinNoteTime: sec=$sec, minTime=$minTime');
 		return minTime;
 	}
 
@@ -3113,6 +3247,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		var maxTime:Float = Math.POSITIVE_INFINITY;
 		if(sec < cachedSectionTimes.length)
 			maxTime = cachedSectionTimes[sec + 1];
+		trace('getMaxNoteTime: sec=$sec, maxTime=$maxTime');
 		return maxTime;
 	}
 
@@ -3125,7 +3260,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		noteX += GRID_SIZE * data;
 		note.x = noteX;
-		//trace(gridBg.x, noteX);
+		trace('positionNoteXByData: data=$data, noteX=$noteX, note.x=${note.x}');
 	}
 
 	function positionNoteYOnTime(note:MetaNote, section:Int)
@@ -3136,7 +3271,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		noteY = Math.max(noteY, -150);
 		note.y = noteY + (GRID_SIZE/2 - note.height/2);
 		note.chartY = noteY;
-		//trace(gridBg.y, noteY);
+		trace('positionNoteYOnTime: note.strumTime=${note.strumTime}, section=$section, noteY=$noteY, note.y=${note.y}');
 	}
 
 	var characterData:Dynamic = {};
@@ -3154,9 +3289,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 	var _lastGfSection:Null<Bool> = null;
 	function updateHeads(ignoreCheck:Bool = false):Void
 	{
+		trace('updateHeads: START, curSec = $curSec, ignoreCheck = $ignoreCheck');
 		var curSecData:SwagSection = PlayState.SONG.notes[curSec];
 		var isGfSection:Bool = (curSecData != null && curSecData.gfSection == true);
-		if(_lastGfSection == isGfSection && _lastSec == curSec && !ignoreCheck) return;
+		if(_lastGfSection == isGfSection && _lastSec == curSec && !ignoreCheck) {
+			trace('updateHeads: skipping (no change)');
+			return;
+		}
 
 		for (i in 0...GRID_PLAYERS)
 		{
@@ -3164,12 +3303,14 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			var iconName:String = Reflect.field(characterData, 'iconP${icon.ID}');
 			icon.changeIcon(iconName);
 		}
+		trace('updateHeads: updated icons for $GRID_PLAYERS players');
 
 		if(icons.length > 1)
 		{
 			var iconP1:HealthIcon = icons[0];
 			var iconP2:HealthIcon = icons[1];
 			var mustHitSection:Bool = (curSecData != null && curSecData.mustHitSection == true);
+			trace('updateHeads: mustHitSection = $mustHitSection, isGfSection = $isGfSection');
 			if (isGfSection)
 			{
 				if (mustHitSection)
@@ -3185,6 +3326,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 		_lastGfSection = isGfSection;
 		_lastSec = curSec;
+		trace('updateHeads: END');
 	}
 
 	private function getClipboardFolder():String {
@@ -5010,7 +5152,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				sec.sectionNotes[i] = note;
 			}
 
-			_cacheSections();
 			updateCurrentSectionNotes();
 		});
 
@@ -5031,7 +5172,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 				sec.sectionNotes[i][0] += (stepperShiftSteps.value) * (15000/Conductor.bpm);
 			}
-			_cacheSections();
+
 			updateCurrentSectionNotes();
 		});
 
@@ -6447,14 +6588,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	function updateChartData()
 	{
+		trace('updateChartData: START, notes.length = ${notes.length}, events.length = ${events.length}');
 		for (secNum => section in PlayState.SONG.notes)
 			PlayState.SONG.notes[secNum].sectionNotes = [];
+		trace('updateChartData: cleared all section.sectionNotes');
 
 		notes.sort(PlayState.sortByTime);
 		var noteSec:Int = 0;
 		var nextSectionTime:Float = cachedSectionTimes[noteSec + 1];
 		var curSectionTime:Float = cachedSectionTimes[noteSec];
 
+		var assignedNotes = 0;
 		for (num => rawData in notes)
 		{
 			if(rawData == null || rawData.length < 3) continue;
@@ -6470,16 +6614,35 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				}
 			}
 
-			var arr:Array<Dynamic> = PlayState.SONG.notes[noteSec].sectionNotes;
-			arr.push(rawData);
+			if(rawData[1] >= 0)
+			{
+				PlayState.SONG.notes[noteSec].sectionNotes.push(rawData);
+				assignedNotes++;
+			}
+			else
+			{
+				PlayState.SONG.notes[noteSec].sectionNotes.push(rawData);
+				assignedNotes++;
+			}
 		}
+		trace('updateChartData: assigned $assignedNotes notes to sections');
 
 		events.sort(PlayState.sortByTime);
-		PlayState.SONG.events = [];
+		var assignedEvents = 0;
 		for (event in events)
-			PlayState.SONG.events.push(event.songData);
+		{
+			var eventSec:Int = 0;
+			for (time in cachedSectionTimes)
+			{
+				if(time > event.strumTime) break;
+				eventSec++;
+			}
+			PlayState.SONG.notes[eventSec].sectionNotes.push(event.rawData);
+			assignedEvents++;
+		}
+		trace('updateChartData: assigned $assignedEvents events to sections');
+		trace('updateChartData: END');
 	}
-
 	function saveChart(canQuickSave:Bool = true)
 	{
 		#if sys
