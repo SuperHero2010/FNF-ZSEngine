@@ -2812,7 +2812,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 	public function clearNoteCache()
 	{
-		trace('clearNoteCache: clearing ${noteCache.keys().length} cached notes');
+		var cacheCount = 0;
+		for (id => note in noteCache) cacheCount++;
+		trace('clearNoteCache: clearing $cacheCount cached notes');
 		for (id => note in noteCache) {
 			if (note != null) note.destroy();
 		}
@@ -6637,7 +6639,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				if(time > event.strumTime) break;
 				eventSec++;
 			}
-			PlayState.SONG.notes[eventSec].sectionNotes.push(event.rawData);
+			PlayState.SONG.notes[eventSec].sectionNotes.push(event.songData);
 			assignedEvents++;
 		}
 		trace('updateChartData: assigned $assignedEvents events to sections');
