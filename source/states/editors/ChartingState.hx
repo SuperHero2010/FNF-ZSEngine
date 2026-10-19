@@ -687,8 +687,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			forceDataUpdate = false;
 		}
 
-		trace('update: Conductor.songPosition = ${Conductor.songPosition}, curSec = $curSec');
-
 		if(autoSaveCap > 0)
 		{
 			autoSaveTime += elapsed / 60.0;
@@ -1410,6 +1408,11 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 										invalidateNoteCache(idx);
 										notes.splice(idx, 1);
 									}
+									var sec = getCurChartSection();
+									if(sec != null && sec.sectionNotes != null) {
+										sec.sectionNotes.remove(closest.songData);
+										trace('update: removed note from sectionNotes cache, sectionNotes.length = ${sec.sectionNotes.length}');
+									}
 									removedNotes.push(closest);
 								}
 								else
@@ -1451,6 +1454,15 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 								{
 									invalidateNoteCache(idx);
 									notes.splice(idx, 1);
+								}
+								var sec = getCurChartSection();
+								if(sec != null && sec.sectionNotes != null) {
+									for (note in removedNotes) {
+										if(!note.isEvent) {
+											sec.sectionNotes.remove(note.songData);
+										}
+									}
+									trace('update: removed ${removedNotes.length} notes from sectionNotes cache, sectionNotes.length = ${sec.sectionNotes.length}');
 								}
 
 								var allEvents:Array<EventMetaNote> = events.copy();
@@ -1521,6 +1533,13 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 							clearNoteCache();
 							var noteAdded = getNote(notes.indexOf(noteSetupData));
 							trace('update: noteAdded = $noteAdded at index ${notes.indexOf(noteSetupData)}');
+
+							var sec = getCurChartSection();
+							if(sec != null && sec.sectionNotes != null) {
+								sec.sectionNotes.push(noteSetupData);
+								sec.sectionNotes.sort(PlayState.sortByTime);
+								trace('update: added note to sectionNotes cache, sectionNotes.length = ${sec.sectionNotes.length}');
+							}
 
 							if(!holdingAlt)
 								resetSelectedNotes();

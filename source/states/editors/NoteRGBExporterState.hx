@@ -172,17 +172,20 @@ class NoteRGBExporterState extends MusicBeatState
         var result:Array<SpriteFrame> = [];
         if (!Paths.fileExists(xmlPath, TEXT)) return result;
 
+        trace('loadFramesFromXML: loading from $xmlPath');
         var xml:Xml = Xml.parse(Paths.getTextFromFile(xmlPath));
         var atlas = xml.firstElement();
         for (sub in atlas.elements()) {
-            result.push({
+            var frame = {
                 name: sub.get('name'),
-                x:    Std.parseInt(sub.get('x')),
-                y:    Std.parseInt(sub.get('y')),
-                w:    Std.parseInt(sub.get('width')),
-                h:    Std.parseInt(sub.get('height'))
-            });
+                x: Std.parseInt(sub.get('x')),
+                y: Std.parseInt(sub.get('y')),
+                w: Std.parseInt(sub.get('width')),
+                h: Std.parseInt(sub.get('height'))
+            };
+            result.push(frame);
         }
+        trace('loadFramesFromXML: loaded ${result.length} frames');
         return result;
     }
 
@@ -212,14 +215,17 @@ class NoteRGBExporterState extends MusicBeatState
 
     function getSplashVariantFrames(frames:Array<SpriteFrame>, color:String):Array<String>
     {
+        trace('getSplashVariantFrames: color=$color, total frames=${frames.length}');
         var variantStrings:Array<String> = [];
         var setMap:Map<Int, Array<Int>> = new Map();
 
         for (f in frames) {
+            trace('getSplashVariantFrames: checking frame name="${f.name}"');
             var regex = ~/note splash $color (\d+)000(\d+)/;
             if (regex.match(f.name)) {
                 var setNum = Std.parseInt(regex.matched(1));
                 var frameNum = Std.parseInt(regex.matched(2));
+                trace('getSplashVariantFrames: matched! setNum=$setNum, frameNum=$frameNum');
 
                 if (!setMap.exists(setNum)) {
                     setMap.set(setNum, []);
@@ -242,6 +248,7 @@ class NoteRGBExporterState extends MusicBeatState
             }
         }
 
+        trace('getSplashVariantFrames: returning ${variantStrings.length} variants for color=$color');
         return variantStrings;
     }
 
@@ -589,6 +596,7 @@ class NoteRGBExporterState extends MusicBeatState
                 var gVec = splashObjects[i].rgbShader.shader.g.value;
                 var bVec = splashObjects[i].rgbShader.shader.b.value;
                 var multVal = splashObjects[i].rgbShader.shader.mult.value[0];
+                trace('update: splash $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                 applyRGBBlendFromVectors(sp.graphic.bitmap, rVec, gVec, bVec, multVal);
             }
         }
@@ -610,6 +618,7 @@ class NoteRGBExporterState extends MusicBeatState
                 var gVec = noteObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = noteObjects[i].rgbShader.parent.shader.b.value;
                 var multVal = noteObjects[i].rgbShader.parent.shader.mult.value[0];
+                trace('update: confirm $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                 applyRGBBlendFromVectors(sp.graphic.bitmap, rVec, gVec, bVec, multVal);
             }
         }
@@ -634,6 +643,7 @@ class NoteRGBExporterState extends MusicBeatState
                 var gVec = strumObjects[i].rgbShader.parent.shader.g.value;
                 var bVec = strumObjects[i].rgbShader.parent.shader.b.value;
                 var multVal = strumObjects[i].rgbShader.parent.shader.mult.value[0];
+                trace('update: strum $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                 applyRGBBlendFromVectors(sp.graphic.bitmap, rVec, gVec, bVec, multVal);
             }
         }
