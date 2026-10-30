@@ -28,7 +28,7 @@ class ClipboardSubstate extends MusicBeatSubstate
     private var chartingState:ChartingState;
     private var previewScroll:Float = 0;
     private var listScroll:Float = 0;
-    private var listClipRect:FlxSprite;
+    private var listBg:FlxSprite;
     var listTitle:FlxText;
 
     public function new(chartingState:ChartingState)
@@ -69,15 +69,12 @@ class ClipboardSubstate extends MusicBeatSubstate
         listBg.alpha = 0.8;
         listBg.scrollFactor.set();
         add(listBg);
+        this.listBg = listBg;
 
         listTitle = new FlxText(x + 10, y + 50, 260, "Saved Clipboards", 16);
         listTitle.color = FlxColor.YELLOW;
         listTitle.scrollFactor.set();
         add(listTitle);
-
-        listClipRect = new FlxSprite(x, y + 70).makeGraphic(280, height - 110, FlxColor.TRANSPARENT);
-        listClipRect.scrollFactor.set();
-        add(listClipRect);
 
         listGroup = new FlxTypedGroup<FlxText>();
         add(listGroup);
@@ -132,10 +129,11 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         listGroup.clear();
 
-        var listHeight = listClipRect.height;
+        var listHeight = listBg.height;
         var itemHeight = 25;
         var maxVisibleItems = Math.floor(listHeight / itemHeight);
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
+        var listTopY = listTitle.y + 20;
 
         for (i in 0...fileList.length)
         {
@@ -146,7 +144,7 @@ class ClipboardSubstate extends MusicBeatSubstate
             {
                 displayName = parts[0] + ' ' + parts[1];
             }
-            var txt = new FlxText(listTitle.x, listClipRect.y + i * itemHeight - listScroll, 400, displayName, 14);
+            var txt = new FlxText(listTitle.x, listTopY + i * itemHeight - listScroll, 400, displayName, 14);
             txt.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
             txt.ID = i;
             txt.scrollFactor.set();
@@ -156,10 +154,10 @@ class ClipboardSubstate extends MusicBeatSubstate
         for (member in listGroup.members)
         {
             member.clipRect = new flixel.math.FlxRect(
-                listClipRect.x,
-                listClipRect.y,
-                listClipRect.width,
-                listClipRect.height
+                listBg.x,
+                listTopY,
+                listBg.width,
+                listHeight - 20
             );
         }
 
@@ -325,9 +323,10 @@ class ClipboardSubstate extends MusicBeatSubstate
     {
         super.update(elapsed);
 
-        var listHeight = listClipRect.height;
+        var listHeight = listBg.height;
         var itemHeight = 25;
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
+        var listTopY = listTitle.y + 20;
 
         if (FlxG.keys.justPressed.UP)
         {
@@ -366,10 +365,10 @@ class ClipboardSubstate extends MusicBeatSubstate
         {
             var mouseX = FlxG.mouse.screenX;
             var mouseY = FlxG.mouse.screenY;
-            var listAreaX = listClipRect.x;
-            var listAreaY = listClipRect.y;
-            var listAreaW = listClipRect.width;
-            var listAreaH = listClipRect.height;
+            var listAreaX = listBg.x;
+            var listAreaY = listTopY;
+            var listAreaW = listBg.width;
+            var listAreaH = listHeight - 20;
 
             if (mouseX >= listAreaX && mouseX <= listAreaX + listAreaW &&
                 mouseY >= listAreaY && mouseY <= listAreaY + listAreaH)
@@ -401,10 +400,11 @@ class ClipboardSubstate extends MusicBeatSubstate
     private function updateListPositions():Void
     {
         var itemHeight = 25;
+        var listTopY = listTitle.y + 20;
         var i = 0;
         for (member in listGroup.members)
         {
-            member.y = listClipRect.y + i * itemHeight - listScroll;
+            member.y = listTopY + i * itemHeight - listScroll;
             i++;
         }
     }
