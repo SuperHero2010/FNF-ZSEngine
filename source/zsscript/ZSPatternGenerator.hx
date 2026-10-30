@@ -2105,19 +2105,6 @@ class ZSPatternGenerator {
             category: "function"
         });
 
-        patterns.push({
-            pattern: "\\bcorrect\\b",
-            replacement: "true",
-            description: "Boolean true",
-            category: "keywords"
-        });
-        patterns.push({
-            pattern: "\\bwrong\\b",
-            replacement: "false",
-            description: "Boolean false",
-            category: "keywords"
-        });
-
         // is correct / is true
         patterns.push({
             pattern: " <([^>]+)> is correct ",
@@ -2169,6 +2156,19 @@ class ZSPatternGenerator {
             replacement: " not $1 ",
             description: "is false -> false",
             category: "comparison"
+        });
+
+        patterns.push({
+            pattern: "\\bcorrect\\b",
+            replacement: "true",
+            description: "Boolean true",
+            category: "keywords"
+        });
+        patterns.push({
+            pattern: "\\bwrong\\b",
+            replacement: "false",
+            description: "Boolean false",
+            category: "keywords"
         });
 
         return patterns;
