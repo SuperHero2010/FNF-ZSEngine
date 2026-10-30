@@ -154,7 +154,7 @@ class ZSTranspiler {
     }
 
     public static function extractKeywordsFromPatterns():Array<String> {
-        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where"];
+        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where", "correct", "wrong", "is", "are", "assign", "proceed", "halt", "haltLua", "haltScript", "haltAll"];
         var allPatterns = ZSPatterns.getPatterns();
 
         for (pattern in allPatterns) {
@@ -217,7 +217,7 @@ class ZSTranspiler {
             if (line == "! WESTERN") continue;
 
             if (line.indexOf("*/-") == 0 || line.indexOf("/-*") >= 0) continue;
-            if (line.indexOf("'") == 0 || line.indexOf('"') >= 0 || line.indexOf("‘") == 0 || line.indexOf("’") >= 0 || line.indexOf("“") == 0 || line.indexOf("”") >= 0) continue;
+            if (line.indexOf("'") == 0 || line.indexOf('"') >= 0 || line.indexOf("‘") == 0 || line.indexOf("’") >= 0 || line.indexOf("“") == 0 || line.indexOf("”") >= 0 || line.indexOf("‹") == 0 || line.indexOf("›") >= 0 || line.indexOf("«") == 0 || line.indexOf("»") >= 0) continue;
 
             if (line.charAt(line.length - 1) == ":") continue;
 
@@ -251,7 +251,7 @@ class ZSTranspiler {
                 }
                 if (isNumber && wordToCheck.length > 0) continue;
 
-                if (wordToCheck.indexOf("'") >= 0 || wordToCheck.indexOf('"') >= 0 || wordToCheck.indexOf("“") >= 0 || wordToCheck.indexOf("”") >= 0 || wordToCheck.indexOf("‘") >= 0 || wordToCheck.indexOf("’") >= 0) continue;
+                if (wordToCheck.indexOf("'") >= 0 || wordToCheck.indexOf('"') >= 0 || wordToCheck.indexOf("“") >= 0 || wordToCheck.indexOf("”") >= 0 || wordToCheck.indexOf("‘") >= 0 || wordToCheck.indexOf("’") >= 0 || wordToCheck.indexOf("‹") >= 0 || wordToCheck.indexOf("›") >= 0 || wordToCheck.indexOf("«") >= 0 || wordToCheck.indexOf("»") >= 0) continue;
 
                 if (wordToCheck == "true" || wordToCheck == "false") continue;
 
@@ -342,7 +342,7 @@ class ZSTranspiler {
             return null;
         }
 
-        var setMathStyle = "ORIENT";
+        var mathStyle = "ORIENT";
         var hasWestern = false;
         var hasOrient = false;
 
@@ -364,9 +364,9 @@ class ZSTranspiler {
         }
 
         if (hasWestern) {
-            setMathStyle = "WESTERN";
+            mathStyle = "WESTERN";
         } else {
-            setMathStyle = "ORIENT";
+            mathStyle = "ORIENT";
         }
 
         lines[directiveLineIndex] = "";
@@ -529,7 +529,7 @@ class ZSTranspiler {
             stringChar = "";
             for (i in 0...trimmedLine.length) {
                 var c = trimmedLine.charAt(i);
-                if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’")) {
+                if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’" || c == "‹" || c == "›" || c == "«" || c == "»")) {
                     inString = true;
                     stringChar = c;
                 } else if (inString && c == stringChar) {
@@ -841,7 +841,7 @@ class ZSTranspiler {
             }
             log.push('AFTER ZSPatterns: luaLine="$luaLine"');
 
-            if (setMathStyle == "WESTERN") {
+            if (mathStyle == "WESTERN") {
                 luaLine = ~/<([^>]+)> ⊂ <([^>]+)>/g.replace(luaLine, "subsetStrict($1, $2)");
                 luaLine = ~/<([^>]+)> ⊆ <([^>]+)>/g.replace(luaLine, "subsetEq($1, $2)");
                 luaLine = ~/<([^>]+)> ⊃ <([^>]+)>/g.replace(luaLine, "supersetStrict($1, $2)");
@@ -1009,7 +1009,9 @@ class ZSTranspiler {
                                         (trimmedArg.indexOf('"') == 0 && trimmedArg.lastIndexOf('"') == trimmedArg.length - 1) ||
                                         (trimmedArg.indexOf("'") == 0 && trimmedArg.lastIndexOf("'") == trimmedArg.length - 1) ||
                                         (trimmedArg.indexOf("“") == 0 && trimmedArg.lastIndexOf("”") == trimmedArg.length - 1) ||
-                                        (trimmedArg.indexOf("‘") == 0 && trimmedArg.lastIndexOf("’") == trimmedArg.length - 1)
+                                        (trimmedArg.indexOf("‘") == 0 && trimmedArg.lastIndexOf("’") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("‹") == 0 && trimmedArg.lastIndexOf("›") == trimmedArg.length - 1) ||
+                                        (trimmedArg.indexOf("«") == 0 && trimmedArg.lastIndexOf("»") == trimmedArg.length - 1)
                                     );
                                     if (!isStringLiteral) {
                                         var firstWord = parts[0];
@@ -1250,6 +1252,8 @@ class ZSTranspiler {
             var c = line.charAt(i);
             if (c == "“" || c == "”") result += '"';
             else if (c == "‘" || c == "’") result += "'";
+            else if (c == "‹" || c == "›") result += "'";
+            else if (c == "«" || c == "»") result += '"';
             else result += c;
         }
         return result;
@@ -1283,7 +1287,7 @@ class ZSTranspiler {
         while (i < content.length) {
             var c = content.charAt(i);
             trace('  pos $i: char="$c", depth=$depth, inQuote=$inQuote, current="$current"');
-            if (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”") {
+            if (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»') {
                 inQuote = !inQuote;
                 current += c;
             } else if (!inQuote && (c == '(' || c == '[' || c == '{')) {
@@ -1394,7 +1398,7 @@ class ZSTranspiler {
             var c = table.charAt(i);
             trace('  pos $i: char="$c", depth=$depth, inString=$inString, currentValue="$currentValue", result="$result"');
 
-            if (!inString && (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”")) {
+            if (!inString && (c == '"' || c == "'" || c == '‘' || c == '’' || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»')) {
                 inString = true;
                 stringChar = c;
                 currentValue += c;
@@ -1509,7 +1513,7 @@ class ZSTranspiler {
                 continue;
             }
 
-            if (!inString && !inComment && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”")) {
+            if (!inString && !inComment && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»')) {
                 inString = true;
                 stringChar = c;
                 result += c;
@@ -1562,7 +1566,7 @@ class ZSTranspiler {
                 var k = 0;
                 while (k < inner.length) {
                     var ch = inner.charAt(k);
-                    if (ch == '"' || ch == "'" || ch == "‘" || ch == "’" || ch == "“" || ch == "”") {
+                    if (ch == '"' || ch == "'" || ch == "‘" || ch == "’" || ch == "“" || ch == "”" || ch == '‹' || ch == '›' || ch == '«' || ch == '»') {
                         inString = !inString;
                     }
                     if (!inString && (ch == ',' || ch == ':')) {
@@ -1604,7 +1608,7 @@ class ZSTranspiler {
         while (i < str.length) {
             var c = str.charAt(i);
 
-            if (!inString && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”")) {
+            if (!inString && (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»')) {
                 inString = true;
                 stringChar = c;
                 result += c;
@@ -1695,7 +1699,7 @@ class ZSTranspiler {
         var hasCommaOrQuote = false;
         for (i in 0...colonPos) {
             var c = line.charAt(i);
-            if (c == ',' || c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”") {
+            if (c == ',' || c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»') {
                 hasCommaOrQuote = true;
                 break;
             }
@@ -1814,7 +1818,7 @@ class ZSTranspiler {
         for (i in 0...line.length) {
             var c = line.charAt(i);
 
-            if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’")) {
+            if (!inString && (c == '"' || c == "'" || c == "“" || c == "”" || c == "‘" || c == "’" || c == '‹' || c == '›' || c == '«' || c == '»')) {
                 inString = true;
                 stringChar = c;
                 stringStart = i;

@@ -247,7 +247,7 @@ class VisualsSettingsSubState extends BaseOptionsMenu
 				if(curOption.variable.startsWith('splash') && Math.abs(notes.members[0].y - noteY) < 25) playNoteSplashes();
 
 			default:
-				if(notesShown) 
+				if(notesShown)
 				{
 					for (note in notes.members)
 					{

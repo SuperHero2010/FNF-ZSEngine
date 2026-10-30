@@ -80,7 +80,7 @@ class ZSParenthesisValidator {
                     var content = line.substring(i + 1, endIndex);
                     var hasComma = content.indexOf(",") != -1;
                     var hasColon = content.indexOf(":") != -1;
-                    var hasQuote = content.indexOf('"') != -1 || content.indexOf("'") != -1 || content.indexOf("‘") != -1 || content.indexOf("’") != -1 || content.indexOf("“") != -1 || content.indexOf("”") != -1;
+                    var hasQuote = content.indexOf('"') != -1 || content.indexOf("'") != -1 || content.indexOf("‘") != -1 || content.indexOf("’") != -1 || content.indexOf("“") != -1 || content.indexOf("”") != -1 || content.indexOf('‹') != -1 || content.indexOf('›') != -1 || content.indexOf('«') != -1 || content.indexOf('»') != -1;
 
                     if (hasComma || hasColon || hasQuote) {
                         inCollection = true;
@@ -117,7 +117,7 @@ class ZSParenthesisValidator {
                 continue;
             }
 
-            if (!inString && (char == '"' || char == "'" || char == "‘" || char == "’" || char == "“" || char == "”")) {
+            if (!inString && (char == '"' || char == "'" || char == "‘" || char == "’" || char == "“" || char == "”" || char == '‹' || char == '›' || char == '«' || char == '»')) {
                 inString = true;
                 stringChar = char;
                 i++;
@@ -308,7 +308,7 @@ class ZSParenthesisValidator {
         var i = 0;
         while (i < content.length) {
             var c = content.charAt(i);
-            if (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”") {
+            if (c == '"' || c == "'" || c == "‘" || c == "’" || c == "“" || c == "”" || c == '‹' || c == '›' || c == '«' || c == '»') {
                 inString = !inString;
                 current += c;
             } else if (!inString && (c == '(' || c == '[' || c == '{')) {
