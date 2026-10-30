@@ -155,7 +155,7 @@ class ClipboardSubstate extends MusicBeatSubstate
 
         for (member in listGroup.members)
         {
-            member.clipRect = new openfl.geom.Rectangle(
+            member.clipRect = new flixel.math.FlxRect(
                 listClipRect.x,
                 listClipRect.y,
                 listClipRect.width,
