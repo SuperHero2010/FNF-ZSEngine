@@ -6,6 +6,8 @@ import backend.Song.SwagSong;
 
 class CoolUtil
 {
+	public static final MIN_VALUE_DOUBLE = 2.225073858507201383090232717332404064219215980462331830553327416887204434813918195854283159012511020564067339731035811005152434161553460108856012385377718821130777993532002330479610147442583636071921565046942503734208375250806650616658158948720491179968591639648500635908770118304874799780887753749949451580451605050915399856582470818645113537935804992115981085766051992433352114352390148795699609591288891602992641511063466313393663477586513029371762047325631781485664350872122828637642044846811407613911477062801689853244110024161447421618567166150540154285084716752901903161322778896729707373123334086988983175067838846926092773977972858659654941091369095406136467568702398678315290680984617210924625396728515625e-308;
+
 	public static function checkForUpdates(url:String = null):String {
 		if (url == null || url.length == 0)
 			url = "https://raw.githubusercontent.com/SuperHero2010/FNF-ZSEngine/main/gitVersion.txt";
@@ -37,6 +39,10 @@ class CoolUtil
 		var m:Float = Math.fround(f * snap);
 		//trace(snap);
 		return (m / snap);
+	}
+
+	inline public static function logX(value:Float, exp:Float) {
+		return Math.log(value) / Math.log(exp);
 	}
 
 	inline public static function capitalize(text:String)
@@ -94,22 +100,20 @@ class CoolUtil
 			if(len <= prec){
 				// Smaller than 1
 				while(len < prec){
-					str = '0'+str;
+					str = '0' + str;
 					len++;
 				}
-				result = '0.'+str;
+				result = '0.' + str;
 			} else {
 				// Larger than 1
 				if (str.length == prec) result = str;
 				else {
-					result = str.substr(0, str.length-prec) + (prec > 0 ? '.'+str.substr(str.length-prec) : '');
+					result = str.substr(0, str.length - prec) + (prec > 0 ? '.' + str.substr(str.length - prec) : '');
 				}
 			}
 		} else {
-			str = ''+Math.fround(
-				abs * Math.pow(10, Math.floor( -logX(abs, 10) ) ) * Math.pow(10, prec) * 10
-			);
-			result = (number > MIN_VALUE_DOUBLE ? str.substr(0,1) + '.' + str.substr(1) : '0') + 'e' + Math.floor(logX(abs, 10));
+			str = Std.string(Math.fround(abs * Math.pow(10, Math.floor(-logX(abs, 10))) * Math.pow(10, prec) * 10));
+			result = (number > MIN_VALUE_DOUBLE ? str.substr(0, 1) + '.' + str.substr(1) : '0') + 'e' + Math.floor(logX(abs, 10));
 		}
 		str = null; len = null; abs = null;
 		return (number < 0 ? "-" : "") + result;
