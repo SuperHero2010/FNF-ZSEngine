@@ -1489,9 +1489,9 @@ class PlayState extends MusicBeatState
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
 		else {
-			if (targetHealth <= 9) {
+			if (healthBar.percent <= 9) {
 				hpShowStr = numFormat(targetHealth, 3, true) + ' %';
-			} else if (targetHealth == 100) {
+			} else if (healthBar.percent == 100) {
 				hpShowStr = Std.string(targetHealth) + ' %';
 			} else {
 				hpShowStr = numFormat(targetHealth, 2, true) + ' %';
@@ -2357,7 +2357,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		// update health bar
 		health = value;
-		// Clamp health to bounds to prevent decimal display issues (H-Slice approach)
+
 		if (healthBar.bounds.max != null)
 			health = Math.max(healthBar.bounds.min, Math.min(health, healthBar.bounds.max));
 		var newPercent:Null<Float> = FlxMath.remapToRange(FlxMath.bound(healthBar.valueFunction(), healthBar.bounds.min, healthBar.bounds.max), healthBar.bounds.min, healthBar.bounds.max, 0, 100);
