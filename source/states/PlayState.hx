@@ -1489,11 +1489,12 @@ class PlayState extends MusicBeatState
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
 		else {
-			var roundedHealth = Math.round(targetHealth);
-			if (roundedHealth % 10 == 0) {
-				hpShowStr = Std.string(roundedHealth) + ' %';
-			} else {
+			if (targetHealth <= 9) {
 				hpShowStr = numFormat(targetHealth, 3, true) + ' %';
+			} else if (targetHealth == 100) {
+				hpShowStr = Std.string(targetHealth) + ' %';
+			} else {
+				hpShowStr = numFormat(targetHealth, 2, true) + ' %';
 			}
 		}
 
