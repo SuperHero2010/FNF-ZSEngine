@@ -83,14 +83,36 @@ class CoolUtil
 		return Math.floor(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
 	}
 
-	public static function floatToStringPrecision(number:Float, prec:Int, exponent:Bool = false):String
-	{
-		var mult:Float = 1;
-		for (i in 0...prec)
-		{
-			mult *= 10;
+	inline public static function floatToStringPrecision(number:Float, prec:Int, exponent:Bool = false){
+		var str:String;
+		var abs:Null<Float> = Math.abs(number);
+		var len:Null<Int>;
+		var result:String;
+		if(!exponent || (abs >= Math.pow(0.1, prec) && abs < Math.pow(10, 6))) {
+			str = Std.string(Math.fround(abs * Math.pow(10, prec)));
+			len = str.length;
+			if(len <= prec){
+				// Smaller than 1
+				while(len < prec){
+					str = '0'+str;
+					len++;
+				}
+				result = '0.'+str;
+			} else {
+				// Larger than 1
+				if (str.length == prec) result = str;
+				else {
+					result = str.substr(0, str.length-prec) + (prec > 0 ? '.'+str.substr(str.length-prec) : '');
+				}
+			}
+		} else {
+			str = ''+Math.fround(
+				abs * Math.pow(10, Math.floor( -logX(abs, 10) ) ) * Math.pow(10, prec) * 10
+			);
+			result = (number > MIN_VALUE_DOUBLE ? str.substr(0,1) + '.' + str.substr(1) : '0') + 'e' + Math.floor(logX(abs, 10));
 		}
-		return Std.string(Math.floor(number * mult) / mult);
+		str = null; len = null; abs = null;
+		return (number < 0 ? "-" : "") + result;
 	}
 
 	inline public static function dominantColor(sprite:flixel.FlxSprite):Int
