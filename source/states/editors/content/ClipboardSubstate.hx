@@ -30,6 +30,8 @@ class ClipboardSubstate extends MusicBeatSubstate
     private var listScroll:Float = 0;
     private var listBg:FlxSprite;
     var listTitle:FlxText;
+    private var scrollHoldTime:Float = 0;
+    private var scrollDelay:Float = 0.15;
 
     public function new(chartingState:ChartingState)
     {
@@ -131,37 +133,69 @@ class ClipboardSubstate extends MusicBeatSubstate
         });
 
         listGroup.clear();
-
-        var listHeight = listBg.height - 30;
-        var itemHeight = 25;
-        var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
-
-        for (i in 0...fileList.length)
-        {
-            var name = fileList[i];
-            var displayName = name.replace('.clipboard', '');
-            var parts = displayName.split('_');
-            if (parts.length >= 2)
-            {
-                displayName = parts[0] + ' ' + parts[1];
-            }
-            var txt = new FlxText(0, i * itemHeight - listScroll, 250, displayName, 14);
-            txt.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
-            txt.ID = i;
-            txt.scrollFactor.set();
-            listGroup.add(txt);
-        }
+        listScroll = 0;
 
         if (fileList.length > 0)
         {
             if (selectedIndex >= fileList.length) selectedIndex = fileList.length - 1;
             previewSelected(selectedIndex);
+            updateVisibleItems();
         }
         else
         {
             previewText.text = "No clipboards found.";
             previewContainer.clear();
             currentPreviewData = null;
+        }
+    }
+
+    private function updateVisibleItems():Void
+    {
+        var listHeight = listBg.height - 30;
+        var itemHeight = 25;
+        var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
+
+        // Clamp scroll
+        if (listScroll < 0) listScroll = 0;
+        if (listScroll > maxScroll) listScroll = maxScroll;
+
+        // Calculate visible range
+        var startIndex = Math.floor(listScroll / itemHeight);
+        var endIndex = Math.min(fileList.length - 1, Math.ceil((listScroll + listHeight) / itemHeight));
+
+        // Remove items outside visible range
+        for (member in listGroup.members.copy())
+        {
+            if (member.ID < startIndex || member.ID > endIndex)
+            {
+                listGroup.remove(member, true);
+            }
+        }
+
+        // Add items in visible range
+        for (i in startIndex...endIndex + 1)
+        {
+            var existing = listGroup.members.find(m -> m.ID == i);
+            if (existing == null && i < fileList.length)
+            {
+                var name = fileList[i];
+                var displayName = name.replace('.clipboard', '');
+                var parts = displayName.split('_');
+                if (parts.length >= 2)
+                {
+                    displayName = parts[0] + ' ' + parts[1];
+                }
+                var txt = new FlxText(0, i * itemHeight - listScroll, 250, displayName, 14);
+                txt.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
+                txt.ID = i;
+                txt.scrollFactor.set();
+                listGroup.add(txt);
+            }
+            else if (existing != null)
+            {
+                existing.y = i * itemHeight - listScroll;
+                existing.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
+            }
         }
     }
 
@@ -318,36 +352,55 @@ class ClipboardSubstate extends MusicBeatSubstate
         var itemHeight = 25;
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
 
-        if (FlxG.keys.justPressed.UP)
+        // Handle continuous scrolling with UP/DOWN keys
+        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN)
         {
-            if (selectedIndex > 0)
+            scrollHoldTime = 0;
+        }
+
+        if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN)
+        {
+            scrollHoldTime += elapsed;
+            if (scrollHoldTime >= scrollDelay)
             {
-                selectedIndex--;
-                updateListSelection();
-                previewSelected(selectedIndex);
-                var selectedY = selectedIndex * itemHeight;
-                if (selectedY < listScroll)
+                scrollHoldTime = scrollDelay - 0.01; // Keep scrolling at regular interval
+                if (FlxG.keys.pressed.UP && selectedIndex > 0)
                 {
-                    listScroll = selectedY;
-                    updateListPositions();
+                    selectedIndex--;
+                    previewSelected(selectedIndex);
+                    var selectedY = selectedIndex * itemHeight;
+                    if (selectedY < listScroll)
+                    {
+                        listScroll = selectedY;
+                        updateVisibleItems();
+                    }
+                    else
+                    {
+                        updateVisibleItems();
+                    }
+                }
+                else if (FlxG.keys.pressed.DOWN && selectedIndex < fileList.length - 1)
+                {
+                    selectedIndex++;
+                    previewSelected(selectedIndex);
+                    var selectedY = selectedIndex * itemHeight;
+                    if (selectedY > listScroll + listHeight - itemHeight)
+                    {
+                        listScroll = selectedY - listHeight + itemHeight;
+                        updateVisibleItems();
+                    }
+                    else
+                    {
+                        updateVisibleItems();
+                    }
                 }
             }
         }
-        if (FlxG.keys.justPressed.DOWN)
+        else
         {
-            if (selectedIndex < fileList.length - 1)
-            {
-                selectedIndex++;
-                updateListSelection();
-                previewSelected(selectedIndex);
-                var selectedY = selectedIndex * itemHeight;
-                if (selectedY > listScroll + listHeight - itemHeight)
-                {
-                    listScroll = selectedY - listHeight + itemHeight;
-                    updateListPositions();
-                }
-            }
+            scrollHoldTime = 0;
         }
+
         if (FlxG.keys.justPressed.ENTER) onConfirmPress();
         if (FlxG.keys.justPressed.ESCAPE) onCancelPress();
 
@@ -363,10 +416,8 @@ class ClipboardSubstate extends MusicBeatSubstate
             if (mouseX >= listAreaX && mouseX <= listAreaX + listAreaW &&
                 mouseY >= listAreaY && mouseY <= listAreaY + listAreaH)
             {
-                listScroll -= FlxG.mouse.wheel * itemHeight;
-                if (listScroll < 0) listScroll = 0;
-                if (listScroll > maxScroll) listScroll = maxScroll;
-                updateListPositions();
+                listScroll += FlxG.mouse.wheel * itemHeight;
+                updateVisibleItems();
             }
             else
             {
@@ -374,27 +425,6 @@ class ClipboardSubstate extends MusicBeatSubstate
                 if (previewScroll < 0) previewScroll = 0;
                 updatePreviewContent();
             }
-        }
-    }
-
-    private function updateListSelection():Void
-    {
-        var i = 0;
-        for (member in listGroup.members)
-        {
-            member.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
-            i++;
-        }
-    }
-
-    private function updateListPositions():Void
-    {
-        var itemHeight = 25;
-        var i = 0;
-        for (member in listGroup.members)
-        {
-            member.y = i * itemHeight - listScroll;
-            i++;
         }
     }
 
