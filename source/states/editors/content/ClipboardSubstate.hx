@@ -175,7 +175,15 @@ class ClipboardSubstate extends MusicBeatSubstate
         // Add items in visible range
         for (i in startIndex...Std.int(endIndex) + 1)
         {
-            var existing = listGroup.members.find(m -> m.ID == i);
+            var existing = null;
+            for (member in listGroup.members)
+            {
+                if (member.ID == i)
+                {
+                    existing = member;
+                    break;
+                }
+            }
             if (existing == null && i < fileList.length)
             {
                 var name = fileList[i];
