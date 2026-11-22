@@ -343,9 +343,43 @@ class ClipboardSubstate extends MusicBeatSubstate
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
 
         // Handle continuous scrolling with UP/DOWN keys (including numpad)
-        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN || FlxG.keys.justPressed.NUMPADEIGHT || FlxG.keys.justPressed.NUMPADTWO)
+        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.NUMPADEIGHT)
         {
             scrollHoldTime = 0;
+            if (selectedIndex > 0)
+            {
+                selectedIndex--;
+                previewSelected(selectedIndex);
+                if (selectedIndex < listScroll)
+                {
+                    listScroll = selectedIndex;
+                    updateVisibleItems();
+                }
+                else
+                {
+                    updateVisibleItems();
+                }
+            }
+        }
+
+        if (FlxG.keys.justPressed.DOWN || FlxG.keys.justPressed.NUMPADTWO)
+        {
+            scrollHoldTime = 0;
+            if (selectedIndex < fileList.length - 1)
+            {
+                selectedIndex++;
+                previewSelected(selectedIndex);
+                var visibleCount = Math.floor((listBg.height - 30) / itemHeight);
+                if (selectedIndex >= listScroll + visibleCount)
+                {
+                    listScroll = selectedIndex - visibleCount + 1;
+                    updateVisibleItems();
+                }
+                else
+                {
+                    updateVisibleItems();
+                }
+            }
         }
 
         if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPADEIGHT || FlxG.keys.pressed.NUMPADTWO)
@@ -358,7 +392,6 @@ class ClipboardSubstate extends MusicBeatSubstate
                 {
                     selectedIndex--;
                     previewSelected(selectedIndex);
-                    var visibleCount = Math.floor((listBg.height - 30) / itemHeight);
                     if (selectedIndex < listScroll)
                     {
                         listScroll = selectedIndex;
