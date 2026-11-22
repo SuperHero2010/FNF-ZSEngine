@@ -343,18 +343,18 @@ class ClipboardSubstate extends MusicBeatSubstate
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
 
         // Handle continuous scrolling with UP/DOWN keys (including numpad)
-        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN || FlxG.keys.justPressed.NUMPAD_EIGHT || FlxG.keys.justPressed.NUMPAD_TWO)
+        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN || FlxG.keys.justPressed.NUMPADEIGHT || FlxG.keys.justPressed.NUMPADTWO)
         {
             scrollHoldTime = 0;
         }
 
-        if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPAD_EIGHT || FlxG.keys.pressed.NUMPAD_TWO)
+        if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPADEIGHT || FlxG.keys.pressed.NUMPADTWO)
         {
             scrollHoldTime += elapsed;
             if (scrollHoldTime >= scrollDelay)
             {
                 scrollHoldTime = scrollDelay - 0.01; // Keep scrolling at regular interval
-                if ((FlxG.keys.pressed.UP || FlxG.keys.pressed.NUMPAD_EIGHT) && selectedIndex > 0)
+                if ((FlxG.keys.pressed.UP || FlxG.keys.pressed.NUMPADEIGHT) && selectedIndex > 0)
                 {
                     selectedIndex--;
                     previewSelected(selectedIndex);
@@ -369,7 +369,7 @@ class ClipboardSubstate extends MusicBeatSubstate
                         updateVisibleItems();
                     }
                 }
-                else if ((FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPAD_TWO) && selectedIndex < fileList.length - 1)
+                else if ((FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPADTWO) && selectedIndex < fileList.length - 1)
                 {
                     selectedIndex++;
                     previewSelected(selectedIndex);
