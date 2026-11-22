@@ -1836,7 +1836,7 @@ class PlayState extends MusicBeatState
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
 
-		Sys.println('Loaded ${parsedNotes} notes!
+		Sys.println('Loaded $parsedNotes notes!
 Sustain notes amount: $sustainTotalCnt
 Taken time: $takenTime sec
 Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');

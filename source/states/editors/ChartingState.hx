@@ -3660,14 +3660,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		}
 	}
 
-	function updateDeleteButtonText()
-	{
-		if(deleteSections != null)
-		{
-			deleteSections.label = "Delete Section " + Std.int(deleteSectionStart.value) + " to " + Std.int(deleteSectionEnd.value);
-		}
-	}
-
 	var mustHitCheckBox:PsychUICheckBox;
 	var gfSectionCheckBox:PsychUICheckBox;
 	var altAnimSectionCheckBox:PsychUICheckBox;
@@ -4083,21 +4075,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		deleteSectionStart = new ZSUINumericStepper(objX, objY + 20, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionStart.name = 'section_start';
-		deleteSectionStart.onValueChange = updateDeleteButtonText;
 
 		deleteSectionEnd = new ZSUINumericStepper(objX, objY + 40, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionEnd.name = 'section_end';
-		deleteSectionEnd.onValueChange = updateDeleteButtonText;
-
-		deleteSectionStart.onValueChange = updateDeleteButtonText;
-		deleteSectionStart.onChange = function(oldValue:String, newValue:String) {
-			updateDeleteButtonText();
-		};
-
-		deleteSectionEnd.onValueChange = updateDeleteButtonText;
-		deleteSectionEnd.onChange = function(oldValue:String, newValue:String) {
-			updateDeleteButtonText();
-		};
 
 		/*
 		deletePlayerCheckBox = new PsychUICheckBox(objX + 100, objY + 40, 'Delete Player', 60, function()
@@ -4119,7 +4099,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		deleteOpponentNotes = deleteOpponentCheckBox.checked;
 		*/
 
-		deleteSections = new PsychUIButton(objX, objY + 60, "Delete Section " + Std.int(deleteSectionStart.value) + " to " + Std.int(deleteSectionEnd.value), function()
+		deleteSections = new PsychUIButton(objX, objY + 60, "Delete Sections", function()
 		{
 			var sectionStart:Int = Std.int(deleteSectionStart.value);
 			var sectionEnd:Int = Std.int(deleteSectionEnd.value);
@@ -4196,7 +4176,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			if (eventsDeleted > 0) msg += eventsDeleted + " events ";
 			if (msg == "") msg = "Nothing ";
 			showOutput(msg + "deleted from sections " + sectionStart + " to " + sectionEnd);
-		}, 120, 20);
+		});
 		deleteSections.normalStyle.bgColor = FlxColor.YELLOW;
 		deleteSections.normalStyle.textColor = FlxColor.WHITE;
 
@@ -4205,6 +4185,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(new FlxText(objX, objY - 15, 0, 'Jump to Section:'));
 		tab_group.add(deleteSectionStart);
 		tab_group.add(deleteSectionEnd);
+		tab_group.add(new FlxText(objX + 60, objY + 20, 0, '← Start'));
+		tab_group.add(new FlxText(objX + 60, objY + 40, 0, '← End'));
 		// tab_group.add(deletePlayerCheckBox);
 		// tab_group.add(deleteOpponentCheckBox);
 		tab_group.add(deleteSections);
@@ -4254,10 +4236,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX + 70, objY + 85, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 70, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 70, objY + 125, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 140, objY + 105, "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times", function() {
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX + 60, objY + 85, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 60, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 60, objY + 125, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 130, objY + 105, "Repeat", function() {
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
@@ -4331,34 +4313,17 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			updateCurrentSectionNotesOptimized();
 
 			showOutput("Pasted " + totalPastes + " sections successfully");
-		}, 140, 40);
+		});
 		CopyMultiSection.normalStyle.bgColor = FlxColor.BLUE;
 		CopyMultiSection.normalStyle.textColor = FlxColor.WHITE;
-
-		function updateCopyMultiSectionText()
-		{
-			if (CopyMultiSection != null) {
-				CopyMultiSection.label = "Copy from the last " + Std.int(CopyLastSection.value) + " to the next " + Std.int(CopyNextSection.value) + " sections, " + Std.int(CopyTimes.value) + " times";
-			}
-		}
-
-		CopyLastSection.onValueChange = updateCopyMultiSectionText;
-		CopyLastSection.onChange = function(oldValue:String, newValue:String) {
-			updateCopyMultiSectionText();
-		};
-		CopyNextSection.onValueChange = updateCopyMultiSectionText;
-		CopyNextSection.onChange = function(oldValue:String, newValue:String) {
-			updateCopyMultiSectionText();
-		};
-		CopyTimes.onValueChange = updateCopyMultiSectionText;
-		CopyTimes.onChange = function(oldValue:String, newValue:String) {
-			updateCopyMultiSectionText();
-		};
 
 		tab_group.add(CopyLastSection);
 		tab_group.add(CopyNextSection);
 		tab_group.add(CopyTimes);
 		tab_group.add(CopyMultiSection);
+		tab_group.add(new FlxText(objX, objY + 85, 0, 'From:'));
+		tab_group.add(new FlxText(objX, objY + 105, 0, 'To:'));
+		tab_group.add(new FlxText(objX, objY + 125, 0, 'Times:'));
 	}
 
 	function reloadNotesDropdowns()
