@@ -3153,8 +3153,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			chartEditorSave.flush();
 			showPreviousSection = !hidePreviousSectionCheckBox.checked;
 			loadSection();
+			updateGridVisibility();
 		});
-		hidePreviousSectionCheckBox.checked = (chartEditorSave.data.hidePreviousSection == true);
+		hidePreviousSectionCheckBox.checked = chartEditorSave.data.hidePreviousSection;
 		showPreviousSection = !hidePreviousSectionCheckBox.checked;
 
 		hideNextSectionCheckBox = new PsychUICheckBox(objX + 150, objY + 30, 'Hide Next Section', 140, function()
@@ -3163,8 +3164,9 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			chartEditorSave.flush();
 			showNextSection = !hideNextSectionCheckBox.checked;
 			loadSection();
+			updateGridVisibility();
 		});
-		hideNextSectionCheckBox.checked = (chartEditorSave.data.hideNextSection == true);
+		hideNextSectionCheckBox.checked = chartEditorSave.data.hideNextSection;
 		showNextSection = !hideNextSectionCheckBox.checked;
 
 		objY += 70;
@@ -4185,8 +4187,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(new FlxText(objX, objY - 15, 0, 'Jump to Section:'));
 		tab_group.add(deleteSectionStart);
 		tab_group.add(deleteSectionEnd);
-		tab_group.add(new FlxText(objX + 60, objY + 20, 0, '← Start'));
-		tab_group.add(new FlxText(objX + 60, objY + 40, 0, '← End'));
+		tab_group.add(new FlxText(objX + 120, objY + 20, 0, '← Start'));
+		tab_group.add(new FlxText(objX + 120, objY + 40, 0, '← End'));
 		// tab_group.add(deletePlayerCheckBox);
 		// tab_group.add(deleteOpponentCheckBox);
 		tab_group.add(deleteSections);
@@ -4236,10 +4238,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(mirrorPlayerNotes);
 		tab_group.add(mirrorOpponentNotes);
 
-		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX + 60, objY + 85, 1, 1, 0, 16384, 0);
-		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 60, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
-		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 60, objY + 125, 1, 1, 0, 16384, 0);
-		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 130, objY + 105, "Repeat", function() {
+		var CopyLastSection:PsychUINumericStepper = new PsychUINumericStepper(objX + 40, objY + 85, 1, 1, 0, 16384, 0);
+		var CopyNextSection:ZSUINumericStepper = new ZSUINumericStepper(objX + 40, objY + 105, 1, 1, 0, 9999, 0, 60, false, false, true);
+		var CopyTimes:PsychUINumericStepper = new PsychUINumericStepper(objX + 40, objY + 125, 1, 1, 0, 16384, 0);
+		var CopyMultiSection:PsychUIButton = new PsychUIButton(objX + 110, objY + 105, "Repeat", function() {
 			var lastCount:Int = Std.int(CopyLastSection.value);
 			var nextCount:Int = Std.int(CopyNextSection.value);
 			var repeatTimes:Int = Std.int(CopyTimes.value);
@@ -5889,6 +5891,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		showLastGridButton = new PsychUIButton(btnX, btnY, '', function()
 		{
 			showPreviousSection = !showPreviousSection;
+			hidePreviousSectionCheckBox.checked = !showPreviousSection;
 			updateGridVisibility();
 		}, btnWid);
 		showLastGridButton.text.alignment = LEFT;
@@ -5898,6 +5901,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		showNextGridButton = new PsychUIButton(btnX, btnY, '', function()
 		{
 			showNextSection = !showNextSection;
+			hideNextSectionCheckBox.checked = !showNextSection;
 			updateGridVisibility();
 		}, btnWid);
 		showNextGridButton.text.alignment = LEFT;
