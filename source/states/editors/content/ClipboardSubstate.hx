@@ -153,56 +153,38 @@ class ClipboardSubstate extends MusicBeatSubstate
     {
         var listHeight = listBg.height - 30;
         var itemHeight = 25;
-        var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
+        var maxScroll = Math.max(0, fileList.length - Math.floor(listHeight / itemHeight));
 
         // Clamp scroll
         if (listScroll < 0) listScroll = 0;
         if (listScroll > maxScroll) listScroll = maxScroll;
 
-        // Calculate visible range
-        var startIndex = Math.floor(listScroll / itemHeight);
-        var endIndex = Math.min(fileList.length - 1, Math.ceil((listScroll + listHeight) / itemHeight));
+        // Calculate visible range based on scroll offset
+        var startIndex = Math.floor(listScroll);
+        var visibleCount = Math.floor(listHeight / itemHeight);
+        var endIndex = Math.min(fileList.length - 1, startIndex + visibleCount - 1);
 
-        // Remove items outside visible range
-        for (member in listGroup.members.copy())
-        {
-            if (member.ID < startIndex || member.ID > endIndex)
-            {
-                listGroup.remove(member, true);
-            }
-        }
+        // Remove all existing items
+        listGroup.clear();
 
-        // Add items in visible range
-        for (i in startIndex...Std.int(endIndex) + 1)
+        // Add visible items at fixed positions
+        for (i in 0...visibleCount)
         {
-            var existing = null;
-            for (member in listGroup.members)
+            var dataIndex = startIndex + i;
+            if (dataIndex >= 0 && dataIndex < fileList.length)
             {
-                if (member.ID == i)
-                {
-                    existing = member;
-                    break;
-                }
-            }
-            if (existing == null && i < fileList.length)
-            {
-                var name = fileList[i];
+                var name = fileList[dataIndex];
                 var displayName = name.replace('.clipboard', '');
                 var parts = displayName.split('_');
                 if (parts.length >= 2)
                 {
                     displayName = parts[0] + ' ' + parts[1];
                 }
-                var txt = new FlxText(0, i * itemHeight - listScroll, 250, displayName, 14);
-                txt.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
-                txt.ID = i;
+                var txt = new FlxText(0, i * itemHeight, 250, displayName, 14);
+                txt.color = (dataIndex == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
+                txt.ID = dataIndex;
                 txt.scrollFactor.set();
                 listGroup.add(txt);
-            }
-            else if (existing != null)
-            {
-                existing.y = i * itemHeight - listScroll;
-                existing.color = (i == selectedIndex) ? FlxColor.YELLOW : FlxColor.WHITE;
             }
         }
     }
@@ -360,26 +342,26 @@ class ClipboardSubstate extends MusicBeatSubstate
         var itemHeight = 25;
         var maxScroll = Math.max(0, (fileList.length * itemHeight) - listHeight);
 
-        // Handle continuous scrolling with UP/DOWN keys
-        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN)
+        // Handle continuous scrolling with UP/DOWN keys (including numpad)
+        if (FlxG.keys.justPressed.UP || FlxG.keys.justPressed.DOWN || FlxG.keys.justPressed.NUMPAD_EIGHT || FlxG.keys.justPressed.NUMPAD_TWO)
         {
             scrollHoldTime = 0;
         }
 
-        if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN)
+        if (FlxG.keys.pressed.UP || FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPAD_EIGHT || FlxG.keys.pressed.NUMPAD_TWO)
         {
             scrollHoldTime += elapsed;
             if (scrollHoldTime >= scrollDelay)
             {
                 scrollHoldTime = scrollDelay - 0.01; // Keep scrolling at regular interval
-                if (FlxG.keys.pressed.UP && selectedIndex > 0)
+                if ((FlxG.keys.pressed.UP || FlxG.keys.pressed.NUMPAD_EIGHT) && selectedIndex > 0)
                 {
                     selectedIndex--;
                     previewSelected(selectedIndex);
-                    var selectedY = selectedIndex * itemHeight;
-                    if (selectedY < listScroll)
+                    var visibleCount = Math.floor((listBg.height - 30) / itemHeight);
+                    if (selectedIndex < listScroll)
                     {
-                        listScroll = selectedY;
+                        listScroll = selectedIndex;
                         updateVisibleItems();
                     }
                     else
@@ -387,14 +369,14 @@ class ClipboardSubstate extends MusicBeatSubstate
                         updateVisibleItems();
                     }
                 }
-                else if (FlxG.keys.pressed.DOWN && selectedIndex < fileList.length - 1)
+                else if ((FlxG.keys.pressed.DOWN || FlxG.keys.pressed.NUMPAD_TWO) && selectedIndex < fileList.length - 1)
                 {
                     selectedIndex++;
                     previewSelected(selectedIndex);
-                    var selectedY = selectedIndex * itemHeight;
-                    if (selectedY > listScroll + listHeight - itemHeight)
+                    var visibleCount = Math.floor((listBg.height - 30) / itemHeight);
+                    if (selectedIndex >= listScroll + visibleCount)
                     {
-                        listScroll = selectedY - listHeight + itemHeight;
+                        listScroll = selectedIndex - visibleCount + 1;
                         updateVisibleItems();
                     }
                     else
@@ -424,7 +406,7 @@ class ClipboardSubstate extends MusicBeatSubstate
             if (mouseX >= listAreaX && mouseX <= listAreaX + listAreaW &&
                 mouseY >= listAreaY && mouseY <= listAreaY + listAreaH)
             {
-                listScroll += FlxG.mouse.wheel * itemHeight;
+                listScroll -= Math.round(FlxG.mouse.wheel);
                 updateVisibleItems();
             }
             else
