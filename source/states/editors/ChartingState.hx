@@ -4075,10 +4075,10 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		jumpSectionButton.normalStyle.bgColor = FlxColor.CYAN;
 		jumpSectionButton.normalStyle.textColor = FlxColor.WHITE;
 
-		deleteSectionStart = new ZSUINumericStepper(objX, objY + 20, 1, 0, 0, 999999, 0, 60, false, true, false);
+		deleteSectionStart = new ZSUINumericStepper(objX + 40, objY + 20, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionStart.name = 'section_start';
 
-		deleteSectionEnd = new ZSUINumericStepper(objX, objY + 40, 1, 0, 0, 999999, 0, 60, false, true, false);
+		deleteSectionEnd = new ZSUINumericStepper(objX + 40, objY + 40, 1, 0, 0, 999999, 0, 60, false, true, false);
 		deleteSectionEnd.name = 'section_end';
 
 		/*
@@ -4101,7 +4101,7 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		deleteOpponentNotes = deleteOpponentCheckBox.checked;
 		*/
 
-		deleteSections = new PsychUIButton(objX, objY + 60, "Delete Sections", function()
+		deleteSections = new PsychUIButton(objX + 20, objY + 60, "Delete Sections", function()
 		{
 			var sectionStart:Int = Std.int(deleteSectionStart.value);
 			var sectionEnd:Int = Std.int(deleteSectionEnd.value);
@@ -4187,8 +4187,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		tab_group.add(new FlxText(objX, objY - 15, 0, 'Jump to Section:'));
 		tab_group.add(deleteSectionStart);
 		tab_group.add(deleteSectionEnd);
-		tab_group.add(new FlxText(objX + 120, objY + 20, 0, '← Start'));
-		tab_group.add(new FlxText(objX + 120, objY + 40, 0, '← End'));
+		tab_group.add(new FlxText(objX, objY + 20, 0, 'Start:'));
+		tab_group.add(new FlxText(objX, objY + 40, 0, 'End:'));
 		// tab_group.add(deletePlayerCheckBox);
 		// tab_group.add(deleteOpponentCheckBox);
 		tab_group.add(deleteSections);
@@ -5891,6 +5891,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		showLastGridButton = new PsychUIButton(btnX, btnY, '', function()
 		{
 			showPreviousSection = !showPreviousSection;
+			chartEditorSave.data.hidePreviousSection = hidePreviousSectionCheckBox.checked;
+			chartEditorSave.flush();
 			hidePreviousSectionCheckBox.checked = !showPreviousSection;
 			updateGridVisibility();
 		}, btnWid);
@@ -5901,6 +5903,8 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		showNextGridButton = new PsychUIButton(btnX, btnY, '', function()
 		{
 			showNextSection = !showNextSection;
+			chartEditorSave.data.hideNextSection = hideNextSectionCheckBox.checked;
+			chartEditorSave.flush();
 			hideNextSectionCheckBox.checked = !showNextSection;
 			updateGridVisibility();
 		}, btnWid);
