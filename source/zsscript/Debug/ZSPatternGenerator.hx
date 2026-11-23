@@ -2535,6 +2535,12 @@ class ZSPatternGenerator {
             description: "Set difference",
             category: "sets"
         });
+        patterns.push({
+            pattern: '\\{([^|}]+)\\|([^}]+)\\}',
+            replacement: 'tableCondition({$1}, function() return $2 end)',
+            description: "Table condition with filter",
+            category: 'sets'
+        });
 
         return patterns;
     }

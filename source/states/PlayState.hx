@@ -1485,6 +1485,7 @@ class PlayState extends MusicBeatState
 
 		var numFormat = CoolUtil.floatToStringPrecision;
 
+		// HP counter implementation from H-Slice
 		var targetHealth:Float = health * 50;
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
@@ -4349,6 +4350,10 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		return false;
 	}
 
+	public function notTableContains(table:Dynamic, value:Dynamic):Bool {
+		return !tableContains(table, value);
+	}
+
 	public function tableIntersection(A:Dynamic, B:Dynamic):Array<Dynamic> {
 		var result:Array<Dynamic> = [];
 		if (A == null || B == null) return result;
@@ -4369,7 +4374,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if (A != null && Std.is(A, Array)) {
 			var arrA:Array<Dynamic> = cast A;
 			for (v in arrA) {
-				if (!tableContains(result, v)) {
+				if (notTableContains(result, v)) {
 					result.push(v);
 				}
 			}
@@ -4377,7 +4382,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if (B != null && Std.is(B, Array)) {
 			var arrB:Array<Dynamic> = cast B;
 			for (v in arrB) {
-				if (!tableContains(result, v)) {
+				if (notTableContains(result, v)) {
 					result.push(v);
 				}
 			}
@@ -4398,7 +4403,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			}
 			var arrA:Array<Dynamic> = cast A;
 			for (v in arrB) {
-				if (!tableContains(arrA, v)) {
+				if (notTableContains(arrA, v)) {
 					result.push(v);
 				}
 			}
@@ -4413,7 +4418,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 			var arrA:Array<Dynamic> = cast A;
 			var arrB:Array<Dynamic> = cast B;
 			for (v in arrA) {
-				if (!tableContains(arrB, v)) {
+				if (notTableContains(arrB, v)) {
 					result.push(v);
 				}
 			}
@@ -4429,7 +4434,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 		if (!Std.is(B, Array)) return false;
 		var arrB:Array<Dynamic> = cast B;
 		for (v in arrA) {
-			if (!tableContains(arrB, v)) {
+			if (notTableContains(arrB, v)) {
 				return false;
 			}
 		}

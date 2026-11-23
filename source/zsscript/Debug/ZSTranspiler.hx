@@ -365,8 +365,19 @@ class ZSTranspiler {
 
         if (hasWestern) {
             mathStyle = "WESTERN";
+            mathStyle = "WESTERN";
         } else {
             mathStyle = "ORIENT";
+        }
+
+        var oldMode = false;
+
+        for (i in 0...lines.length) {
+            var line = trimStr(lines[i]);
+            if (line == "! OLD") {
+                oldMode = true;
+                lines[i] = "";
+            }
         }
 
         lines[directiveLineIndex] = "";
@@ -692,6 +703,54 @@ class ZSTranspiler {
                         return null;
                     }
                 }
+
+                if (mathStyle == "WESTERN") {
+                    if (~/[0-9],[0-9]/.match(trimmedLine)) {
+                        errors.push('Error at line $currentLine: Decimal comma "," is not allowed in Western mode');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "." instead');
+                        return null;
+                    }
+                }
+                else if (mathStyle == "ORIENT") {
+                    if (~/[0-9]\.[0-9]/.match(trimmedLine)) {
+                        errors.push('Error at line $currentLine: Decimal dot "." is not allowed in Orient mode');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "," instead');
+                        return null;
+                    }
+                }
+
+                if (oldMode) {
+                    // 0.0.1 mode: flag new syntax
+                    if (trimmedLine.indexOf("assign ") == 0) {
+                        errors.push('Error at line $currentLine: "assign" is not allowed in OLD mode');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "<variable> = value" instead');
+                        return null;
+                    }
+                    if (trimmedLine.indexOf(" = ") > -1 && trimmedLine.indexOf("if ") == 0) {
+                        errors.push('Error at line $currentLine: "=" for comparison is not allowed in OLD mode');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "==" for comparison');
+                        return null;
+                    }
+                }
+                else {
+                    // 0.0.2 mode (default): flag old syntax
+                    if (trimmedLine.indexOf("=") > -1 && trimmedLine.indexOf("assign ") != 0 && trimmedLine.indexOf("if ") != 0) {
+                        errors.push('Error at line $currentLine: Old assignment syntax is not allowed');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "assign value to <variable>" instead');
+                        return null;
+                    }
+                    if (trimmedLine.indexOf("==") > -1) {
+                        errors.push('Error at line $currentLine: "==" is not allowed');
+                        errors.push('  Found: "$trimmedLine"');
+                        errors.push('  Use "=" for comparison');
+                        return null;
+                    }
+                }
             }
 
             if (trimmedLine.indexOf("local <") == 0) {
@@ -730,6 +789,10 @@ class ZSTranspiler {
                         return null;
                     }
                 }
+            }
+
+            if (trimmedLine.indexOf("assign ") == 0 && !oldMode) {
+                trimmedLine = parseAssignmentChain(trimmedLine);
             }
 
             var colonPos = trimmedLine.indexOf(":");
@@ -792,6 +855,11 @@ class ZSTranspiler {
             }
 
             trimmedLine = parseQuantifier(trimmedLine);
+            if (!oldMode) {
+                if (trimmedLine.indexOf("if ") == 0 || trimmedLine.indexOf("else if ") == 0 || trimmedLine.indexOf("while ") == 0) {
+                    trimmedLine = trimmedLine.split(" = ").join(" == ");
+                }
+            }
 
             log.push('BEFORE ZSPatterns: trimmedLine="$trimmedLine"');
             var luaLine = trimmedLine;
@@ -851,6 +919,7 @@ class ZSTranspiler {
                 luaLine = ~/<([^>]+)> ⊆ <([^>]+)>/g.replace(luaLine, "subsetStrict($1, $2)");
                 luaLine = ~/<([^>]+)> ⊃ <([^>]+)>/g.replace(luaLine, "supersetEq($1, $2)");
                 luaLine = ~/<([^>]+)> ⊇ <([^>]+)>/g.replace(luaLine, "supersetStrict($1, $2)");
+                luaLine = ~/([0-9]),([0-9])/g.replace(luaLine, "$1.$2");
             }
 
             luaLine = ~/<([^>]+)> ⊄ <([^>]+)>/g.replace(luaLine, "notSubsetEq($1, $2)");
@@ -930,6 +999,16 @@ class ZSTranspiler {
             luaLine = luaLine.split("×").join("*");
             luaLine = luaLine.split("÷").join("/");
             luaLine = luaLine.split("−").join("-");
+            luaLine = luaLine.split("ℕ").join("\"natural\"");
+            luaLine = luaLine.split("ℕ*").join("\"naturalStar\"");
+            luaLine = luaLine.split("ℤ").join("\"integer\"");
+            luaLine = luaLine.split("ℚ").join("\"rational\"");
+            luaLine = luaLine.split("𝔸").join("\"algebraic\"");
+            luaLine = luaLine.split("ℝ").join("\"real\"");
+            luaLine = luaLine.split("ℂ").join("\"complex\"");
+            luaLine = luaLine.split("ℙ").join("\"prime\"");
+            luaLine = luaLine.split("𝕀_irr").join("\"irrational\"");
+            luaLine = luaLine.split("𝕀_img").join("\"imaginary\"");
             luaLine = convertGroupingBrackets(luaLine);
             trace('AFTER convertGroupingBrackets: luaLine="$luaLine"');
 
@@ -2038,5 +2117,121 @@ class ZSTranspiler {
                 return before + " " + replacement;
             }
         }
+    }
+
+    static function parseAssignmentChain(line:String):String {
+        var result = line;
+
+        var assignPos = result.indexOf("assign ");
+        if (assignPos == -1) return result;
+
+        var chainStart = assignPos;
+        var chainEnd = result.length;
+        var keywords = [" and ", " then ", " if ", " else ", " for ", " while ", " do ", " repeat ", " until "];
+        for (kw in keywords) {
+            var kwPos = result.indexOf(kw, chainStart);
+            if (kwPos != -1 && kwPos < chainEnd) {
+                chainEnd = kwPos;
+            }
+        }
+
+        var chain = result.substring(chainStart, chainEnd);
+        var before = result.substring(0, chainStart);
+        var after = result.substring(chainEnd);
+
+        var parts = chain.split(" to ");
+        if (parts.length < 2) return result;
+
+        if (parts[0].indexOf("assign ") == 0) {
+            parts[0] = parts[0].substring(7);
+        }
+
+        var replacement = parts[parts.length - 1];
+        var i = parts.length - 2;
+        while (i >= 0) {
+            replacement += " = " + parts[i];
+            i--;
+        }
+
+        return before + replacement + after;
+    }
+
+    static function parseAreChain(line:String):String {
+        var arePos = line.indexOf(" are ");
+        if (arePos == -1) return line;
+
+        var isCorrect = line.indexOf(" are correct") > -1;
+        var isWrong = line.indexOf(" are wrong") > -1;
+        var isTrue = line.indexOf(" are true") > -1;
+        var isFalse = line.indexOf(" are false") > -1;
+
+        if (!isCorrect && !isWrong && !isTrue && !isFalse) return line;
+
+        var conditionPart = trimStr(line.substring(0, arePos));
+        var before = line.substring(0, line.indexOf(conditionPart));
+        var after = line.substring(line.indexOf(" are ") + 5);
+
+        var keywordPos = line.length;
+        var keywords = [" correct", " wrong", " true", " false"];
+        for (kw in keywords) {
+            var pos = line.indexOf(kw, arePos);
+            if (pos != -1 && pos < keywordPos) {
+                keywordPos = pos;
+            }
+        }
+        after = line.substring(keywordPos + (line.substring(keywordPos).split(" ")[0].length + 1));
+
+        var parts = [];
+        var current = "";
+        var depth = 0;
+        for (i in 0...conditionPart.length) {
+            var c = conditionPart.charAt(i);
+            if (c == '(' || c == '[' || c == '{') depth++;
+            if (c == ')' || c == ']' || c == '}') depth--;
+            if (depth == 0 && (c == '∧' || c == '∨')) {
+                if (current != "") parts.push(current);
+                parts.push(c);
+                current = "";
+                continue;
+            }
+            current += c;
+        }
+        if (current != "") parts.push(current);
+
+        var nouns = [];
+        var operators = [];
+        for (p in parts) {
+            if (p == "∧" || p == "∨") {
+                operators.push(p);
+            } else {
+                var trimmedP = trimStr(p);
+                if (trimmedP.indexOf("<") > -1 && trimmedP.indexOf(">") > -1) {
+                    var start = trimmedP.indexOf("<");
+                    var end = trimmedP.indexOf(">", start);
+                    nouns.push(trimmedP.substring(start + 1, end));
+                } else {
+                    nouns.push(trimmedP);
+                }
+            }
+        }
+
+        var isPositive = (isCorrect || isTrue);
+        var isNegative = (isWrong || isFalse);
+
+        var result = "";
+        if (isPositive) {
+            result = nouns[0];
+            for (i in 0...operators.length) {
+                result += " " + (operators[i] == "∧" ? "and" : "or") + " " + nouns[i + 1];
+            }
+        } else if (isNegative) {
+            result = "not " + nouns[0];
+            for (i in 0...operators.length) {
+                var op = operators[i] == "∧" ? "and" : "or";
+                result += " " + op + " not " + nouns[i + 1];
+            }
+        }
+
+        return before + result + after;
     }
 }
