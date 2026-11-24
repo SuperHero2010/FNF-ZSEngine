@@ -1484,8 +1484,6 @@ class PlayState extends MusicBeatState
 		}
 
 		var numFormat = CoolUtil.floatToStringPrecision;
-
-		// HP counter implementation from H-Slice
 		var targetHealth:Float = health * 50;
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
