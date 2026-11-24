@@ -299,11 +299,16 @@ class EditorPlayState extends MusicBeatSubstate
 					{
 						if(cpuControlled && !daNote.blockHit)
 						{
-							if(cpuHitNotes)
+							if(cpuHitNotes) {
 								goodNoteHit(daNote); // Fast hit notes
-							else if(daNote.isSustainNote || daNote.strumTime <= Conductor.songPosition)
+								updateScore();
+							}
+							else if(daNote.isSustainNote || daNote.strumTime <= Conductor.songPosition) {
 								goodNoteHit(daNote); // Normal hit notes
+								updateScore();
+							}
 						}
+						else updateScore(); // Normal key hit by human
 					}
 					else if (!daNote.hitByOpponent && !daNote.ignoreNote)
 					{
@@ -573,7 +578,7 @@ class EditorPlayState extends MusicBeatSubstate
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
 
-		Sys.println('Loaded ${parsedNotes} notes!
+		Sys.println('Loaded $parsedNotes notes!
 Sustain notes amount: $sustainTotalCnt
 Taken time: $takenTime sec
 Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');

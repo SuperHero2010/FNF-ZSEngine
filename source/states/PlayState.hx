@@ -1488,12 +1488,8 @@ class PlayState extends MusicBeatState
 		var hpShowStr:String;
 		if (practiceMode) hpShowStr = FlxStringUtil.formatMoney(targetHealth, false) + ' %';
 		else {
-			var roundedHealth = Math.round(targetHealth);
-			if (roundedHealth % 10 == 0) {
-				hpShowStr = Std.string(roundedHealth) + ' %';
-			} else {
-				hpShowStr = numFormat(targetHealth, 3, true) + ' %';
-			}
+			if (healthBar.percent != 100) hpShowStr = numFormat(targetHealth, 4 - Std.string(Math.floor(targetHealth)).length, true) + (targetHealth >= 0.001 ? ' %' : '');
+			else hpShowStr = Std.string(targetHealth) + ' %';
 		}
 
 		var tempScore:String;
@@ -1635,7 +1631,6 @@ class PlayState extends MusicBeatState
 	private var eventsPushed:Array<String> = [];
 	private var totalColumns: Int = 4;
 
-	// Faster note parsing variables from H-Slice
 	private var isDesktop:Bool = true;
 	private var loadNoteTime:Float = 0;
 	private var syncTime:Float = 0;
@@ -1840,7 +1835,7 @@ class PlayState extends MusicBeatState
 		var takenTime = CoolUtil.floorDecimal((Date.now().getTime() - loadTime) / 1000, 6);
 		var takenNoteTime = CoolUtil.floorDecimal((Date.now().getTime() - loadNoteTime) / 1000, 6);
 
-		Sys.println('Loaded ${parsedNotes} notes!
+		Sys.println('Loaded $parsedNotes notes!
 Sustain notes amount: $sustainTotalCnt
 Taken time: $takenTime sec
 Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
@@ -2356,7 +2351,7 @@ Average NPS in loading: ${Math.round(parsedNotes / takenNoteTime)}');
 
 		// update health bar
 		health = value;
-		// Clamp health to bounds to prevent decimal display issues (H-Slice approach)
+
 		if (healthBar.bounds.max != null)
 			health = Math.max(healthBar.bounds.min, Math.min(health, healthBar.bounds.max));
 		var newPercent:Null<Float> = FlxMath.remapToRange(FlxMath.bound(healthBar.valueFunction(), healthBar.bounds.min, healthBar.bounds.max), healthBar.bounds.min, healthBar.bounds.max, 0, 100);

@@ -154,7 +154,7 @@ class ZSTranspiler {
     }
 
     public static function extractKeywordsFromPatterns():Array<String> {
-        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where"];
+        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where", "correct", "wrong", "is", "are", "assign", "proceed", "halt", "haltLua", "haltScript", "haltAll"];
         var allPatterns = ZSPatterns.getPatterns();
 
         for (pattern in allPatterns) {
@@ -343,7 +343,7 @@ class ZSTranspiler {
             return null;
         }
 
-        var setMathStyle = "ORIENT";
+        var mathStyle = "ORIENT";
         var hasWestern = false;
         var hasOrient = false;
 
@@ -365,9 +365,9 @@ class ZSTranspiler {
         }
 
         if (hasWestern) {
-            setMathStyle = "WESTERN";
+            mathStyle = "WESTERN";
         } else {
-            setMathStyle = "ORIENT";
+            mathStyle = "ORIENT";
         }
 
         lines[directiveLineIndex] = "";
@@ -819,7 +819,7 @@ class ZSTranspiler {
                 }
             }
 
-            if (setMathStyle == "WESTERN") {
+            if (mathStyle == "WESTERN") {
                 luaLine = ~/<([^>]+)> ⊂ <([^>]+)>/g.replace(luaLine, "subsetStrict($1, $2)");
                 luaLine = ~/<([^>]+)> ⊆ <([^>]+)>/g.replace(luaLine, "subsetEq($1, $2)");
                 luaLine = ~/<([^>]+)> ⊃ <([^>]+)>/g.replace(luaLine, "supersetStrict($1, $2)");

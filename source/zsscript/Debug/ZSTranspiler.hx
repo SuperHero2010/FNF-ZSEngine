@@ -154,7 +154,7 @@ class ZSTranspiler {
     }
 
     public static function extractKeywordsFromPatterns():Array<String> {
-        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where", "correct", "wrong", "is", "are", "assign"];
+        var keywords = ["local", "global", "if", "then", "else", "not", "and", "or", "nothing", "give", "back", "where", "correct", "wrong", "is", "are", "assign", "proceed", "halt", "haltLua", "haltScript", "haltAll"];
         var allPatterns = ZSPatterns.getPatterns();
 
         for (pattern in allPatterns) {
