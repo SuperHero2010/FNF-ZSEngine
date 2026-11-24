@@ -514,12 +514,12 @@ class NoteRGBExporterState extends MusicBeatState
             var gStep = new PsychUINumericStepper(stepX, baseY + 22, 1, defaultColors[1].green, 0, 255, 0);
             var bStep = new PsychUINumericStepper(stepX, baseY + 44, 1, defaultColors[2].blue, 0, 255, 0);
             rStep.name = 'r$i'; gStep.name = 'g$i'; bStep.name = 'b$i';
-            rStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
-            gStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
-            bStep.onChange = function(name:String, value:String) { updateObjectRGB(i); refreshUI(); };
-            rStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
-            gStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
-            bStep.onValueChange = function() { updateObjectRGB(i); refreshUI(); };
+            rStep.onChange = function(name:String, value:String) { trace('stepper r$i onChange: name=$name, value=$value'); updateObjectRGB(i); refreshUI(); };
+            gStep.onChange = function(name:String, value:String) { trace('stepper g$i onChange: name=$name, value=$value'); updateObjectRGB(i); refreshUI(); };
+            bStep.onChange = function(name:String, value:String) { trace('stepper b$i onChange: name=$name, value=$value'); updateObjectRGB(i); refreshUI(); };
+            rStep.onValueChange = function() { trace('stepper r$i onValueChange'); updateObjectRGB(i); refreshUI(); };
+            gStep.onValueChange = function() { trace('stepper g$i onValueChange'); updateObjectRGB(i); refreshUI(); };
+            bStep.onValueChange = function() { trace('stepper b$i onValueChange'); updateObjectRGB(i); refreshUI(); };
             add(rStep); add(gStep); add(bStep);
 
             rSteppers.push(rStep);
@@ -655,7 +655,9 @@ class NoteRGBExporterState extends MusicBeatState
 
     function refreshUI(?name:String, ?value:String)
     {
+        trace('refreshUI: called, name=$name, value=$value, disableNoteRGB=$disableNoteRGB');
         for (i in 0...4) {
+            trace('refreshUI: processing index $i, dirtyFlags[$i]=${dirtyFlags[i]}');
             if (noteSprites[i] != null && noteSprites[i].graphic != null) {
                 var col = orderColors[i];
                 var f = findFrame(noteFrames, '${col}0000');
@@ -667,7 +669,10 @@ class NoteRGBExporterState extends MusicBeatState
                         var gVec = noteObjects[i].rgbShader.parent.shader.g.value;
                         var bVec = noteObjects[i].rgbShader.parent.shader.b.value;
                         var multVal = noteObjects[i].rgbShader.parent.shader.mult.value[0];
+                        trace('refreshUI: note $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                         applyRGBBlendFromVectors(noteSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
+                    } else {
+                        trace('refreshUI: note $i skipping RGB blend (disableNoteRGB=$disableNoteRGB, noteObjects[i]=${noteObjects[i] != null}, rgbShader=${noteObjects[i] != null && noteObjects[i].rgbShader != null})');
                     }
                 }
             }
@@ -683,6 +688,7 @@ class NoteRGBExporterState extends MusicBeatState
                         var gVec = sustainObjects[i].rgbShader.parent.shader.g.value;
                         var bVec = sustainObjects[i].rgbShader.parent.shader.b.value;
                         var multVal = sustainObjects[i].rgbShader.parent.shader.mult.value[0];
+                        trace('refreshUI: sustain $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                         applyRGBBlendFromVectors(sustainSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
                     }
                 }
@@ -699,6 +705,7 @@ class NoteRGBExporterState extends MusicBeatState
                         var gVec = sustainObjects[i].rgbShader.parent.shader.g.value;
                         var bVec = sustainObjects[i].rgbShader.parent.shader.b.value;
                         var multVal = sustainObjects[i].rgbShader.parent.shader.mult.value[0];
+                        trace('refreshUI: sustainEnd $i applying RGB blend: r=${rVec[0]}, g=${gVec[0]}, b=${bVec[0]}, mult=$multVal');
                         applyRGBBlendFromVectors(sustainEndSprites[i].graphic.bitmap, rVec, gVec, bVec, multVal);
                     }
                 }
@@ -745,10 +752,18 @@ class NoteRGBExporterState extends MusicBeatState
 
     function applyRGBBlendFromVectors(bitmap:BitmapData, rVec:Array<Float>, gVec:Array<Float>, bVec:Array<Float>, mult:Float = 1.0):Void
     {
-        if (rVec == null || gVec == null || bVec == null) return;
-        if (rVec.length < 3 || gVec.length < 3 || bVec.length < 3) return;
+        trace('applyRGBBlendFromVectors: called, rVec=$rVec, gVec=$gVec, bVec=$bVec, mult=$mult');
+        if (rVec == null || gVec == null || bVec == null) {
+            trace('applyRGBBlendFromVectors: null vector detected, returning');
+            return;
+        }
+        if (rVec.length < 3 || gVec.length < 3 || bVec.length < 3) {
+            trace('applyRGBBlendFromVectors: vector length too short, returning');
+            return;
+        }
 
         var multClamped:Float = Math.max(0.0, Math.min(1.0, mult));
+        trace('applyRGBBlendFromVectors: processing ${bitmap.width}x${bitmap.height} bitmap, multClamped=$multClamped');
 
         for (x in 0...bitmap.width) {
             for (y in 0...bitmap.height) {

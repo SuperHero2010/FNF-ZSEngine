@@ -680,13 +680,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		for (num => key in keysArray)
 			_keysPressedBuffer[num] = FlxG.keys.checkStatus(key, JUST_PRESSED);
 
-		if(forceDataUpdate)
-		{
-			trace('update: forceDataUpdate is true, calling updateCurrentSectionNotesOptimized');
-			updateCurrentSectionNotesOptimized();
-			forceDataUpdate = false;
-		}
-
 		if(autoSaveCap > 0)
 		{
 			autoSaveTime += elapsed / 60.0;
@@ -2357,7 +2350,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		updateAudioVolume();
 		setPitch();
-		_cacheSections();
 	}
 
 	function onSongComplete()
@@ -3953,7 +3945,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 				if(rawData != null && rawData.length >= 3 && rawData[1] >= 0 && rawData[0] >= minTime && rawData[0] < maxTime)
 					sec.sectionNotes.push(rawData);
 			}
-			_cacheSections();
 		}
 	}
 
@@ -4632,7 +4623,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			#end
 
 			updateChartData();
-			_cacheSections();
 
 			var finalSection:Int = curSec + (nextCount * repeatTimes);
 			if (finalSection >= PlayState.SONG.notes.length) finalSection = PlayState.SONG.notes.length - 1;
@@ -4783,7 +4773,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 			events.sort(PlayState.sortByTime);
 		}
 
-		_cacheSections();
 		loadSection();
 
 		if(showMessage && (nts.length > 0 || evs.length > 0))
@@ -4861,7 +4850,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 		{
 			notes.sort(PlayState.sortByTime);
 			events.sort(PlayState.sortByTime);
-			_cacheSections();
 			for (rawData in newNotesData)
 			{
 				var idx = notes.indexOf(rawData);
