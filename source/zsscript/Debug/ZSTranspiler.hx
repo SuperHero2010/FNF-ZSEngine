@@ -365,7 +365,6 @@ class ZSTranspiler {
 
         if (hasWestern) {
             mathStyle = "WESTERN";
-            mathStyle = "WESTERN";
         } else {
             mathStyle = "ORIENT";
         }

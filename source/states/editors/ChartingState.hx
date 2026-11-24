@@ -6678,7 +6678,6 @@ class ChartingState extends MusicBeatState implements PsychUIEventHandler.PsychU
 
 		#if sys
 		cpp.vm.Gc.enable(true);
-
 		cpp.vm.Gc.run(true);
 		#end
 	}
